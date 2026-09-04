@@ -72,3 +72,39 @@ Step 3 entry above: worth a human look before Step 6 starts writing code).
 
 **Next:** Step 6 (Worker Pool Orchestrator) claims Feature 01 using this plan's Implementation Order
 and reuse instructions.
+
+---
+
+## 2026-09-04 — Step 5.5: Implementation Planner — Feature 02 (Intake Parsing & Normalization Stage)
+
+Produced `architecture-plan-feature-02.md`. Planning Depth: Standard (touches three existing systems —
+`Stage` contract, `LeadPipelineState`, `graph.py`'s stub-swap point — no new persistent data model, no
+cross-system/AI integration).
+
+**Existing Systems Analysis:** No duplication risk found. Reuses `contracts.py`'s `Stage` ABC,
+`state.py`'s `IntakeSlice` (already shaped exactly for this feature's output — no state-schema change
+needed), `schemas/pipeline.py`'s pre-existing `TriggerPipelineRunRequest` (web-form channel),
+`graph.py`'s `default_stages()` dict-injection stub-swap point, and `tool_scope.py` with an empty
+`allowed_tools` set. Resolved an implicit design question left open by Feature 01: since
+`default_stages()` commits every stage to `input_schema == output_schema`, raw not-yet-normalized input
+must be seeded into `IntakeSlice`'s own fields by whoever builds the initial state, and `IntakeStage.run()`
+overwrites those fields in place — no separate pre-parsing layer.
+
+**Architecture Rule Changes approved (2, both conflict-checked against existing Key Decisions, none
+found):**
+1. Each pipeline stage's real (non-stub) implementation lives in its own module under
+   `app/orchestrator/stages/`, implementing the `Stage` contract.
+2. A stage with `input_schema == output_schema` receives raw/unprocessed data in the same slice fields
+   it will overwrite — the initial-state builder seeds them, the stage transforms them in place.
+
+Both applied to `.claude/portfolio-reference.md`'s Key Decisions this session.
+
+**Implementation Order set (5 steps):** `stages/intake.py` → `schemas/pipeline.py` additions (email +
+callback request schemas) → `routers/leads.py` (three channel endpoints) → `graph.py`'s
+`default_stages()` stub-swap → `main.py` router registration.
+
+**Approved by:** auto (Auto Mode + master prompt's "EXECUTE NOW" applied — same standing note as prior
+entries: worth a human look before Step 6 starts writing code).
+
+**Next:** Step 6 (Worker Pool Orchestrator) claims Group_F02 using this plan's Implementation Order and
+reuse instructions, and finalizes `implementation_plan.md`'s `owned_files` for that group.

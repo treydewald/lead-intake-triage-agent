@@ -100,3 +100,14 @@ that doesn't exist yet.)*
 - **Stage execution/transition data persists via `PipelineRun`/`StageTrace`
   (`app/models/pipeline_run.py`)** — any future stage's execution record belongs there, not a bespoke
   per-feature log table. Set by Feature 01's implementation plan (`architecture-plan-feature-01.md`).
+- **Each pipeline stage's real (non-stub) implementation lives in its own module under
+  `app/orchestrator/stages/`, one file per stage, implementing the `Stage` contract.** Feature 01
+  intentionally shipped no stage logic (only stubs inside `graph.py` itself); this fixes where real
+  per-stage business logic belongs before Features 03-07 each face the same question independently.
+  Set by Feature 02's implementation plan (`architecture-plan-feature-02.md`).
+- **A stage whose `input_schema` equals its `output_schema` (per `default_stages()`'s convention)
+  receives not-yet-normalized data in the same slice fields it will overwrite** — whoever constructs
+  the initial `LeadPipelineState` seeds those fields with raw/unprocessed data; the stage itself does
+  the transformation in place. This is how raw external input (e.g. a raw email's text) enters the
+  graph without a separate pre-parsing layer duplicating the stage's own logic. Set by Feature 02's
+  implementation plan (`architecture-plan-feature-02.md`).
