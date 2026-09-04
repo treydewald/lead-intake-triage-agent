@@ -41,10 +41,18 @@ GROUPS:
     isolation_level: HIGH
 
   Group_F02:
-    status: UNCLAIMED
-    owner: null
+    status: IN_PROGRESS
+    owner: Worker-1 (single-session sequential run)
     features: [Feature 02]
-    owned_files: [TBD — pending Step 5.5 architecture plan for Feature 02]
+    owned_files:
+      [backend/app/orchestrator/stages/__init__.py, backend/app/orchestrator/stages/intake.py,
+       backend/app/routers/leads.py, backend/app/tests/test_stage_intake.py,
+       backend/app/tests/test_router_leads.py,
+       # Shared/modified — already Group_F01-owned; extended here per architecture-plan-feature-02.md's
+       # stub-swap/addition points. Safe under this project's strictly-linear dependency chain (every
+       # group depends on all prior groups, so only one group is ever claimable/in-progress at a time —
+       # see docs/implementation-planning.md's Step 5.5 re-entry note).
+       backend/app/orchestrator/graph.py, backend/app/schemas/pipeline.py, backend/main.py]
     dependency_groups: [Group_F01]
     isolation_level: HIGH
 
@@ -153,6 +161,12 @@ FILE_OWNERSHIP_MAP:
   backend/app/tests/test_orchestrator_*.py: Group_F01
   backend/app/tests/test_pipeline_run_models.py: Group_F01
   backend/app/tests/conftest.py: Group_F01
+  backend/app/orchestrator/stages/__init__.py: Group_F02
+  backend/app/orchestrator/stages/intake.py: Group_F02
+  backend/app/routers/leads.py: Group_F02
+  backend/app/tests/test_stage_intake.py: Group_F02
+  backend/app/tests/test_router_leads.py: Group_F02
+  backend/main.py: Group_F02
   # All other paths: unassigned until each feature's own group is claimed (its Step 5.5
   # plan, run just before that group is claimed, fixes owned_files first).
 
@@ -161,6 +175,7 @@ WORKER_STATE:
   group_claim_log:
     - {group: Group_F01, worker: Worker-1 (single-session sequential run), action: claimed, at: "2026-09-04"}
     - {group: Group_F01, worker: Worker-1 (single-session sequential run), action: completed, at: "2026-09-04"}
+    - {group: Group_F02, worker: Worker-1 (single-session sequential run), action: claimed, at: "2026-09-04"}
 
 WORKER_POOL_RULES:
   - Agents must claim a group before execution
@@ -265,10 +280,10 @@ Feature 02: Intake Parsing & Normalization Stage
 Tier: Tier 1
 
 Execution Metadata (REQUIRED)
-status: NOT STARTED
+status: IN_PROGRESS
 group: PIPELINE_STAGES
 locked: false
-assigned_worker: null
+assigned_worker: Worker-1
 is_blocked: false
 depends_on: [01]
 
