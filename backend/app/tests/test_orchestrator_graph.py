@@ -1,8 +1,16 @@
 from __future__ import annotations
 
 from app.models.pipeline_run import PipelineRun, StageTrace
+from app.models.review_queue import ReviewQueueItem
 from app.orchestrator.contracts import Stage
-from app.orchestrator.graph import _make_node, build_graph, default_stages, run_pipeline
+from app.orchestrator.graph import (
+    _make_node,
+    build_graph,
+    build_resume_graph,
+    default_stages,
+    resume_pipeline,
+    run_pipeline,
+)
 from app.orchestrator.tools.hubspot_tools import HubSpotWriteError
 from app.orchestrator.state import (
     ClassificationSlice,
@@ -94,6 +102,12 @@ def test_high_confidence_lead_skips_human_review(db_session_factory):
     assert final.notification.notified is True
     assert final.review.queued is False
 
+    db = db_session_factory()
+    try:
+        assert db.query(ReviewQueueItem).filter(ReviewQueueItem.run_id == final.run.run_id).count() == 0
+    finally:
+        db.close()
+
 
 def test_low_confidence_lead_routes_to_human_review_instead_of_crm_write(db_session_factory):
     calls: list[str] = []
@@ -107,6 +121,16 @@ def test_low_confidence_lead_routes_to_human_review_instead_of_crm_write(db_sess
     assert "notify" not in calls
     assert final.crm_write.write_status is None
     assert final.review.queued is True
+    assert final.run.status == RunStatus.AWAITING_REVIEW
+
+    db = db_session_factory()
+    try:
+        item = db.query(ReviewQueueItem).filter(ReviewQueueItem.run_id == final.run.run_id).one()
+        assert item.status == "PENDING"
+        snapshot = LeadPipelineState.model_validate_json(item.state_snapshot)
+        assert snapshot.review.queued is True
+    finally:
+        db.close()
 
 
 def test_stage_exception_halts_only_that_leads_run(db_session_factory):
@@ -373,3 +397,51 @@ def test_default_stages_crm_write_failure_halts_run_via_real_stage(db_session_fa
 
     assert final.run.status == RunStatus.FAILED
     assert final.run.failed_stage == "hubspot_crm_write"
+
+
+def test_resume_pipeline_continues_paused_run_through_crm_write_and_notify(db_session_factory):
+    """Proves the actual resume mechanism the Feature 06 spec assumes exists: a
+    hand-built post-review state resumes into crm_write then notify, with `StageTrace`
+    rows appended under the SAME run_id the original (paused) run used - not a second,
+    disconnected run. See architecture-plan-feature-06.md, step 5's validation."""
+    calls: list[str] = []
+    stages = _make_stages(calls, confidence=0.2)
+    graph = build_graph(stages, ToolRegistry(), db_session_factory, confidence_threshold=0.7)
+    paused = run_pipeline("lead-resume", _initial_state(), graph=graph, session_factory=db_session_factory)
+    assert paused.run.status == RunStatus.AWAITING_REVIEW
+
+    resume_calls: list[str] = []
+    resume_stages = _make_stages(resume_calls, confidence=0.2)
+    resume_graph = build_resume_graph(resume_stages, ToolRegistry(), db_session_factory)
+
+    resumed_state = paused.model_copy(
+        update={"review": paused.review.model_copy(update={"reviewer_action": "approve"})}
+    )
+    final = resume_pipeline(paused.run.run_id, resumed_state, graph=resume_graph, session_factory=db_session_factory)
+
+    assert resume_calls == ["crm_write", "notify"]
+    assert final.crm_write.write_status == "created"
+    assert final.notification.notified is True
+    assert final.run.status == RunStatus.RUNNING
+
+    db = db_session_factory()
+    try:
+        traces = (
+            db.query(StageTrace)
+            .filter(StageTrace.run_id == paused.run.run_id)
+            .order_by(StageTrace.created_at)
+            .all()
+        )
+        assert [t.stage_name for t in traces] == [
+            "intake_parsing",
+            "intent_classification",
+            "data_enrichment",
+            "human_review",
+            "hubspot_crm_write",
+            "outcome_notification",
+        ]
+        run_row = db.get(PipelineRun, paused.run.run_id)
+        assert run_row.status == RunStatus.RUNNING.value
+        assert db.query(PipelineRun).filter(PipelineRun.lead_id == "lead-resume").count() == 1
+    finally:
+        db.close()

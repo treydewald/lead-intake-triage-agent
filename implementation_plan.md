@@ -112,8 +112,8 @@ GROUPS:
     # architecture-plan-feature-05.md (Step 5.5) sets Implementation Order — see that file
 
   Group_F06:
-    status: IN_PROGRESS
-    owner: Worker-1 (single-session sequential run)
+    status: COMPLETED
+    owner: null
     features: [Feature 06]
     owned_files: [backend/app/orchestrator/stages/human_review.py (new),
       backend/app/models/review_queue.py (new),
@@ -242,6 +242,7 @@ WORKER_STATE:
     - {group: Group_F05, worker: Worker-1 (single-session sequential run), action: claimed, at: "2026-09-04"}
     - {group: Group_F05, worker: Worker-1 (single-session sequential run), action: completed, at: "2026-09-04"}
     - {group: Group_F06, worker: Worker-1 (single-session sequential run), action: claimed, at: "2026-09-04"}
+    - {group: Group_F06, worker: Worker-1 (single-session sequential run), action: completed, at: "2026-09-04"}
 
 WORKER_POOL_RULES:
   - Agents must claim a group before execution
@@ -628,7 +629,7 @@ Feature 06: Human Review & Approval Gate
 Tier: Tier 1
 
 Execution Metadata (REQUIRED)
-status: NOT STARTED
+status: COMPLETED
 group: PIPELINE_STAGES
 locked: false
 assigned_worker: null

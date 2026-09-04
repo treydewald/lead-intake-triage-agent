@@ -8,8 +8,10 @@ from pydantic import BaseModel
 
 from app.database.session import SessionLocal
 from app.models.pipeline_run import PipelineRun, StageTrace
+from app.models.review_queue import ReviewQueueItem
 from app.orchestrator.contracts import Stage
 from app.orchestrator.stages.data_enrichment import DataEnrichmentStage
+from app.orchestrator.stages.human_review import HumanReviewStage
 from app.orchestrator.stages.hubspot_crm_write import HubSpotCrmWriteStage
 from app.orchestrator.stages.intake import IntakeStage
 from app.orchestrator.stages.intent_classification import IntentClassificationStage
@@ -80,6 +82,7 @@ def default_stages() -> dict[str, Stage]:
     stages["classification"] = IntentClassificationStage()
     stages["enrichment"] = DataEnrichmentStage()
     stages["crm_write"] = HubSpotCrmWriteStage()
+    stages["review"] = HumanReviewStage()
     return stages
 
 
@@ -141,6 +144,60 @@ def _make_node(stage: Stage, registry: ToolRegistry, session_factory: SessionFac
     return node
 
 
+def _make_human_review_node(
+    stage: Stage, registry: ToolRegistry, session_factory: SessionFactory
+) -> Callable[[LeadPipelineState], dict]:
+    """Same shape as `_make_node`, but on success also persists a `ReviewQueueItem`
+    (with a full-state resume snapshot) and moves the run to `AWAITING_REVIEW` — the
+    dead `AWAITING_REVIEW` status this feature is what actually activates. Used only
+    for the `"human_review_stage"` node; every other node keeps using `_make_node`."""
+
+    def node(state: LeadPipelineState) -> dict:
+        if state.run.status == RunStatus.FAILED:
+            return {}
+
+        if stage.input_slices is not None:
+            slice_in = stage.input_schema(**{name: getattr(state, name) for name in stage.input_slices})
+        else:
+            slice_in = getattr(state, stage.effective_input_slice)
+        proxy = registry.scoped_proxy(stage.allowed_tools, stage.name)
+
+        try:
+            output = stage.run(slice_in, proxy)
+        except Exception as exc:  # a stage failure halts only this lead's run
+            error_msg = str(exc)
+            _write_trace(session_factory, state.run.run_id, stage.name, slice_in, None, "FAILED", error_msg)
+            return {
+                "run": state.run.model_copy(
+                    update={"status": RunStatus.FAILED, "failed_stage": stage.name, "error": error_msg}
+                )
+            }
+
+        _write_trace(session_factory, state.run.run_id, stage.name, slice_in, output, "COMPLETED", None)
+
+        paused_run = state.run.model_copy(update={"status": RunStatus.AWAITING_REVIEW})
+        state_snapshot = state.model_copy(update={stage.state_slice: output, "run": paused_run}).model_dump_json()
+
+        db = session_factory()
+        try:
+            db.add(
+                ReviewQueueItem(
+                    run_id=state.run.run_id,
+                    lead_id=state.run.lead_id,
+                    draft_intent_label=state.classification.intent_label,
+                    confidence_score=state.classification.confidence_score,
+                    state_snapshot=state_snapshot,
+                )
+            )
+            db.commit()
+        finally:
+            db.close()
+
+        return {stage.state_slice: output, "run": paused_run}
+
+    return node
+
+
 def _route_or_fail(next_node: str) -> Callable[[LeadPipelineState], str]:
     def route(state: LeadPipelineState) -> str:
         return "failed" if state.run.status == RunStatus.FAILED else next_node
@@ -178,7 +235,7 @@ def build_graph(
     graph.add_node("classify_stage", _make_node(stages["classification"], registry, session_factory))
     graph.add_node("enrich_stage", _make_node(stages["enrichment"], registry, session_factory))
     graph.add_node("crm_write_stage", _make_node(stages["crm_write"], registry, session_factory))
-    graph.add_node("human_review_stage", _make_node(stages["review"], registry, session_factory))
+    graph.add_node("human_review_stage", _make_human_review_node(stages["review"], registry, session_factory))
     graph.add_node("notify_stage", _make_node(stages["notification"], registry, session_factory))
 
     graph.add_edge(START, "intake_stage")
@@ -211,6 +268,39 @@ def build_production_graph(session_factory: SessionFactory = SessionLocal) -> Co
     return build_graph(default_stages(), registry, session_factory, settings.confidence_threshold)
 
 
+def build_resume_graph(
+    stages: dict[str, Stage],
+    registry: ToolRegistry,
+    session_factory: SessionFactory,
+) -> CompiledStateGraph:
+    """The actual resume mechanism the Feature 06 spec assumes exists: a second,
+    smaller compiled graph (`crm_write_stage -> notify_stage`) continuing a paused run
+    from where Human Review left off. Reuses the exact same `Stage` instances and the
+    generic `_make_node` as the primary graph — no bespoke stage-calling code path —
+    so every per-stage tool/state boundary guarantee carries over unchanged."""
+    graph = StateGraph(LeadPipelineState)
+
+    graph.add_node("crm_write_stage", _make_node(stages["crm_write"], registry, session_factory))
+    graph.add_node("notify_stage", _make_node(stages["notification"], registry, session_factory))
+
+    graph.add_edge(START, "crm_write_stage")
+    graph.add_conditional_edges(
+        "crm_write_stage", _route_or_fail("notify"), {"notify": "notify_stage", "failed": END}
+    )
+    graph.add_edge("notify_stage", END)
+
+    return graph.compile()
+
+
+def build_production_resume_graph(session_factory: SessionFactory = SessionLocal) -> CompiledStateGraph:
+    from app.core.config import settings
+    from app.orchestrator.tools import register_default_tools
+
+    registry = ToolRegistry()
+    register_default_tools(registry, settings)
+    return build_resume_graph(default_stages(), registry, session_factory)
+
+
 def run_pipeline(
     lead_id: str,
     initial_state: LeadPipelineState,
@@ -235,6 +325,42 @@ def run_pipeline(
     initial_state.run = initial_state.run.model_copy(update={"run_id": run_id, "lead_id": lead_id})
 
     result = compiled.invoke(initial_state)
+    final_state = result if isinstance(result, LeadPipelineState) else LeadPipelineState.model_validate(result)
+
+    db = session_factory()
+    try:
+        run_row = db.get(PipelineRun, run_id)
+        if run_row is not None:
+            run_row.status = final_state.run.status.value
+            db.commit()
+    finally:
+        db.close()
+
+    return final_state
+
+
+def resume_pipeline(
+    run_id: str,
+    state: LeadPipelineState,
+    *,
+    graph: CompiledStateGraph | None = None,
+    session_factory: SessionFactory = SessionLocal,
+) -> LeadPipelineState:
+    """Continue an existing paused `PipelineRun` from its `state_snapshot`. Unlike
+    `run_pipeline`, never creates a new `PipelineRun` row - it only updates the
+    existing one, so a resumed run's `StageTrace` rows append under the same
+    `run_id` the original run used (see architecture-plan-feature-06.md, step 5's
+    validation: must never duplicate run history).
+
+    Resets `run.status` to `RUNNING` before invoking the resume graph - the incoming
+    state's status is `AWAITING_REVIEW` (carried in the snapshot), and a resumed leg
+    must reach the same terminal status (`RUNNING`/`FAILED`) a normal run would,
+    exactly as `run_pipeline` starts every fresh run from `RUNNING`."""
+    compiled = graph if graph is not None else build_production_resume_graph(session_factory)
+
+    resumed_state = state.model_copy(update={"run": state.run.model_copy(update={"status": RunStatus.RUNNING})})
+
+    result = compiled.invoke(resumed_state)
     final_state = result if isinstance(result, LeadPipelineState) else LeadPipelineState.model_validate(result)
 
     db = session_factory()

@@ -180,3 +180,45 @@ change at all, a stronger form of the "never re-implemented" reuse the plan call
 9. `401`/other non-retryable failures raise immediately with zero retries → `test_orchestrator_tools.py::test_write_contact_raises_immediately_on_401_with_no_retry` + `test_write_contact_raises_immediately_on_other_4xx_with_no_retry`
 10. No reliable dedupe key present → always create, flagged uncertain, zero lookup calls → `test_orchestrator_tools.py::test_write_contact_with_no_identifying_field_creates_directly_with_dedupe_uncertain`
 11. Tool-scoping discipline (no direct `httpx` import in the stage module) → grep check above
+
+---
+
+## 2026-09-04 — Feature 06 (Human Review & Approval Gate)
+
+**Checks run:** `pytest app/tests/` (full backend suite, 91 tests) + `alembic upgrade head` on the
+dev SQLite DB (created `review_queue_item` cleanly via autogenerate) + grep check that
+`HumanReviewStage.allowed_tools` stays `frozenset()` (per `architecture-plan-feature-06.md`'s
+Validation Requirements #3 — confirmed, the only match is the class body itself, no tool grant
+added).
+
+No ruff/mypy installed in this project's `.venv` (same note as prior features) — pytest is the
+available validation signal this run.
+
+**Result:** PASS — `pytest app/tests/` 91 passed (79 pre-existing + 12 new: 2 in
+`test_stage_human_review.py`, 8 in `test_router_reviews.py`, 1 in `test_orchestrator_graph.py`, 1 in
+`test_orchestrator_state.py`), 0 failed. No fix cycle needed after implementation — one design gap
+was caught and corrected before running tests: `resume_pipeline` must reset `run.status` from the
+snapshot's `AWAITING_REVIEW` back to `RUNNING` before invoking the resume graph, otherwise a
+successfully-resumed run would stay stuck at `AWAITING_REVIEW` instead of reaching the
+`RUNNING`/`FAILED` terminal value the plan's Acceptance Criteria require;
+`test_resume_pipeline_continues_paused_run_through_crm_write_and_notify` covers this directly.
+
+**Design note (test-only addition, not in the original architecture plan):** `routers/reviews.py`
+gained a `get_resume_graph_factory` FastAPI dependency, the same pattern as the existing
+`get_session_factory`, so `test_router_reviews.py` can inject a resume graph built from fake stages
+instead of `build_production_resume_graph`'s real HubSpot/Ollama tool bindings — keeping the
+router's approve/edit path testable without live credentials, consistent with this project's
+standing HubSpot-sandbox deviation (`.claude/pipeline-reference.md`). `resume_pipeline` itself stays
+the single resume mechanism; only which compiled graph the router hands it is now pluggable.
+
+**Acceptance criteria coverage (architecture-plan-feature-06.md):**
+1. High-confidence lead proceeds automatically, no `ReviewQueueItem` created → `test_orchestrator_graph.py::test_high_confidence_lead_skips_human_review` (extended with a `ReviewQueueItem` count-zero assertion)
+2. Low-confidence lead creates exactly one `ReviewQueueItem` (`PENDING`) and `PipelineRun.status` becomes `AWAITING_REVIEW` → `test_orchestrator_graph.py::test_low_confidence_lead_routes_to_human_review_instead_of_crm_write` (extended)
+3. `approve` resumes the same `run_id` into `crm_write` then `notify` with the original label, terminal status reached → `test_orchestrator_graph.py::test_resume_pipeline_continues_paused_run_through_crm_write_and_notify` (graph level) + `test_router_reviews.py::test_approve_resumes_with_original_label` (router level)
+4. `edit` resumes with `corrected_intent_label` reflected in `state.classification.intent_label` by CRM-write time → `test_router_reviews.py::test_edit_resumes_with_corrected_label`
+5. `reject` sets `RunStatus.REJECTED`, no CRM write, no `StageTrace` row past `human_review` → `test_router_reviews.py::test_reject_sets_rejected_status_with_no_further_stage_trace`
+6. A second action on an already-actioned `run_id` returns 409, first action's outcome unchanged → `test_router_reviews.py::test_second_action_on_already_actioned_run_returns_409_and_leaves_first_effect_unchanged`
+7. `resume_pipeline` never creates a second `PipelineRun` row → `test_orchestrator_graph.py::test_resume_pipeline_continues_paused_run_through_crm_write_and_notify` (asserts exactly one row for the `lead_id`)
+8. `HumanReviewStage.allowed_tools` stays empty (pure gate, no tool creep) → `test_stage_human_review.py::test_human_review_stage_declares_no_tool_access` + grep check above
+9. `RunStatus.REJECTED` round-trips distinctly from `FAILED` → `test_orchestrator_state.py::test_run_status_rejected_round_trips`
+10. `alembic upgrade head` creates `review_queue_item` cleanly on the existing dev DB → verified manually above

@@ -74,3 +74,14 @@ def test_merged_intake_enrichment_constructs_from_both_slices():
 
     assert merged.intake.source_channel == "web_form"
     assert merged.enrichment.resolved_fields["email"] == "jane@example.com"
+
+
+def test_run_status_rejected_round_trips():
+    """A reviewer's explicit rejection is `RunStatus.REJECTED` - a distinct terminal
+    outcome from `FAILED`, per Feature 06's implementation plan."""
+    state = LeadPipelineState(run=RunMetadata(run_id="run-1", lead_id="lead-1", status=RunStatus.REJECTED))
+
+    round_tripped = LeadPipelineState.model_validate_json(state.model_dump_json())
+
+    assert round_tripped.run.status == RunStatus.REJECTED
+    assert round_tripped.run.status != RunStatus.FAILED

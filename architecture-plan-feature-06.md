@@ -318,6 +318,33 @@ Systems predicted to touch: Backend orchestrator package (graph.py, state.py, ne
 
 --- filled in later, by Step 7 / CD-4, once implementation is verified ---
 Actual Footprint
-Files actually changed: [pending Step 6/7]
-Deviations from plan: [pending Step 6/7]
-Rework required: [pending Step 6/7]
+Files actually changed: matches Predicted Footprint (11 files) plus one not explicitly named there —
+12 total: 7 new (`app/orchestrator/stages/human_review.py`, `app/models/review_queue.py`,
+`app/schemas/review.py`, `app/routers/reviews.py`, `alembic/versions/
+68de6a50cacb_add_review_queue_item_table.py`, `app/tests/test_stage_human_review.py`,
+`app/tests/test_router_reviews.py`) + 5 modified (`app/orchestrator/state.py`,
+`app/orchestrator/graph.py`, `main.py`, `app/tests/test_orchestrator_graph.py`,
+`app/tests/test_orchestrator_state.py`). The one addition: `app/models/__init__.py` also needed a
+one-line modification (registers `ReviewQueueItem`, same pattern Feature 01 established for
+`PipelineRun`/`StageTrace`) so Alembic autogenerate could see the new model — implied by the plan's
+own "New: app/models/review_queue.py" entry but not separately itemized in Predicted Footprint.
+`.claude/portfolio-reference.md` also gained Architecture Map rows for the new files (doc, not code),
+same footnote pattern as Feature 05's Actual Footprint.
+Deviations from plan: One genuine implementation-time gap this plan's Implementation Order did not
+anticipate: `resume_pipeline` must reset the reconstructed state's `run.status` from
+`AWAITING_REVIEW` (carried in the snapshot) back to `RUNNING` before invoking the resume graph.
+Without this, a successfully-resumed run would remain stuck at `AWAITING_REVIEW` forever instead of
+reaching the `RUNNING`/`FAILED` terminal value this plan's own Acceptance Criteria require ("resume
+doesn't change that contract"). Caught before any test run, not via a failing test — added directly
+to `resume_pipeline`'s implementation and covered by
+`test_resume_pipeline_continues_paused_run_through_crm_write_and_notify`. Second, smaller deviation:
+`app/routers/reviews.py` gained a `get_resume_graph_factory` FastAPI dependency (mirroring the
+existing `get_session_factory` pattern) so the router's approve/edit path could be tested with fake
+stages instead of `build_production_resume_graph`'s real HubSpot/Ollama tool bindings — a testability
+seam this plan's Step 6 requirements section didn't call for, but consistent with the project's
+standing "tests never require live credentials" practice (Features 03/04/05). `resume_pipeline`
+itself remains the single resume mechanism; only which compiled graph the router hands it is now
+pluggable. No other deviation from the Implementation Order's 7 steps.
+Rework required: none beyond the `resume_pipeline` status-reset fix above, made during initial
+implementation, before any test run — all 91 tests (79 pre-existing + 12 new) passed on the first
+`pytest` run after that fix.

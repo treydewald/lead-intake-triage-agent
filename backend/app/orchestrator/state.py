@@ -12,6 +12,7 @@ class RunStatus(str, Enum):
     COMPLETED = "COMPLETED"
     FAILED = "FAILED"
     AWAITING_REVIEW = "AWAITING_REVIEW"
+    REJECTED = "REJECTED"
 
 
 class IntakeSlice(BaseModel):

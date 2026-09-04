@@ -233,3 +233,66 @@ module)
 **Status:** approved — all 5 of Feature 05's roadmap acceptance criteria verified by test, plus the
 architecture plan's tool-scoping-discipline, multi-slice-merge, and reworded-failure-handling
 criteria; `implementation_plan.md` marked Feature 05 `COMPLETED`, Group_F05 `COMPLETED`
+
+---
+
+## 2026-09-04 — Step 6: Feature 06 (Human Review & Approval Gate), Group_F06
+
+Implemented per `architecture-plan-feature-06.md`'s Implementation Order (7 steps): `state.py`
+(`RunStatus.REJECTED`) → `models/review_queue.py` + Alembic revision → `stages/human_review.py`
+(`HumanReviewStage`) → `graph.py` (real stage wired in + `_make_human_review_node`) → `graph.py`
+(`build_resume_graph()` + `resume_pipeline()` + `build_production_resume_graph()`) →
+`schemas/review.py` + `routers/reviews.py` → `main.py` router registration.
+
+**Files modified:**
+- `backend/app/orchestrator/state.py` (modified) — `RunStatus` gains `REJECTED`, a terminal outcome
+  distinct from `FAILED` for an explicit reviewer rejection
+- `backend/app/models/review_queue.py` (new) — `ReviewQueueItem`: `run_id` (unique FK →
+  `pipeline_run.id`), `lead_id`, `draft_intent_label`, `confidence_score`, `status`
+  (`PENDING`/`ACTIONED`), `reviewer_action`, `corrected_intent_label`, `state_snapshot` (full
+  `LeadPipelineState` JSON at pause time), `created_at`, `actioned_at`
+- `backend/app/models/__init__.py` (modified) — registers `ReviewQueueItem` for Alembic autogenerate
+- `backend/alembic/versions/68de6a50cacb_add_review_queue_item_table.py` (new)
+- `backend/app/orchestrator/stages/human_review.py` (new) — `HumanReviewStage`: `input_slice =
+  "classification"`, `allowed_tools = frozenset()`, unconditionally returns
+  `ReviewSlice(queued=True, paused_at_stage="crm_write")` — the routing decision was already made by
+  `_route_after_enrich`
+- `backend/app/orchestrator/graph.py` (modified) — `default_stages()["review"]` now returns a real
+  `HumanReviewStage()`; new `_make_human_review_node` (same shape as `_make_node`, but on success also
+  persists a `ReviewQueueItem` with a full-state resume snapshot and moves `run.status` to
+  `AWAITING_REVIEW`); new `build_resume_graph()` (2-node `crm_write_stage -> notify_stage`, reusing
+  the same `Stage` instances and the generic `_make_node`), `build_production_resume_graph()`, and
+  `resume_pipeline()` (mirrors `run_pipeline()` but never creates a new `PipelineRun` row, and resets
+  `run.status` to `RUNNING` before invoking — a gap caught during validation, see
+  `.claude/validation-results.md`)
+- `backend/app/schemas/review.py` (new) — `ReviewActionRequest` (`action`, optional
+  `corrected_intent_label`), `ReviewQueueItemOut` (excludes `state_snapshot`/`status`/`reviewer_action`)
+- `backend/app/routers/reviews.py` (new) — `GET /reviews`, `GET /reviews/{run_id}`, `POST
+  /reviews/{run_id}/action`; the action endpoint's claim is a single atomic `UPDATE ... WHERE
+  status='PENDING'` (SQLAlchemy Core), never a SELECT-then-branch on `status`, so a second concurrent
+  action gets 409 from the update's zero matched rows; `reject` sets `RunStatus.REJECTED` directly (no
+  resume); `approve`/`edit` reconstruct `LeadPipelineState` from the snapshot and call
+  `resume_pipeline()`. Also adds `get_resume_graph_factory`, a `get_session_factory`-style dependency
+  making the resume graph pluggable in tests (test-only need, not in the original architecture plan)
+- `backend/main.py` (modified) — registered `reviews.router`
+- `backend/app/tests/test_stage_human_review.py` (new) — 2 tests: output shape, no-tool-access
+- `backend/app/tests/test_router_reviews.py` (new) — 8 tests: list/detail/404, approve (original
+  label), edit (corrected label + required-field 422), reject (status + no further trace), 409 on a
+  second action
+- `backend/app/tests/test_orchestrator_graph.py` (modified) — extended
+  `test_high_confidence_lead_skips_human_review` (asserts zero `ReviewQueueItem` rows) and
+  `test_low_confidence_lead_routes_to_human_review_instead_of_crm_write` (asserts `PENDING`
+  `ReviewQueueItem` + `AWAITING_REVIEW`); added
+  `test_resume_pipeline_continues_paused_run_through_crm_write_and_notify` (proves resume continuity:
+  same `run_id`, appended `StageTrace` rows, exactly one `PipelineRun` row)
+- `backend/app/tests/test_orchestrator_state.py` (modified) — 1 new test: `RunStatus.REJECTED`
+  round-trips distinctly from `FAILED`
+
+**Diff size:** ~430 lines added/changed across 12 files (5 new source modules incl. migration, 2 new
+test files, 5 modified)
+**Validation:** PASS — see `.claude/validation-results.md` (91/91 tests passing; grep-verified
+`HumanReviewStage.allowed_tools` stays empty)
+**Status:** approved — all of Feature 06's Acceptance Criteria verified by test, including the
+resume-continuity and concurrency-safe-claim requirements the architecture plan specifically called
+out for Step 7 to check; `implementation_plan.md` marked Feature 06 `COMPLETED`, Group_F06
+`COMPLETED`
