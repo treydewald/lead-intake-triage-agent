@@ -105,9 +105,30 @@ that doesn't exist yet.)*
   intentionally shipped no stage logic (only stubs inside `graph.py` itself); this fixes where real
   per-stage business logic belongs before Features 03-07 each face the same question independently.
   Set by Feature 02's implementation plan (`architecture-plan-feature-02.md`).
-- **A stage whose `input_schema` equals its `output_schema` (per `default_stages()`'s convention)
-  receives not-yet-normalized data in the same slice fields it will overwrite** — whoever constructs
-  the initial `LeadPipelineState` seeds those fields with raw/unprocessed data; the stage itself does
-  the transformation in place. This is how raw external input (e.g. a raw email's text) enters the
-  graph without a separate pre-parsing layer duplicating the stage's own logic. Set by Feature 02's
-  implementation plan (`architecture-plan-feature-02.md`).
+- **A stage may declare `input_slice` (`Stage`'s `ClassVar[str | None]`, default `None`) when it reads
+  a different `LeadPipelineState` slice than the one it writes; `app/orchestrator/graph.py`'s
+  `_make_node` resolves actual input via `Stage.effective_input_slice` (`input_slice or state_slice`),
+  never `state_slice` directly.** A stage whose `input_schema` equals its `output_schema` and which
+  leaves `input_slice` unset (e.g. `IntakeStage`) is the special case where both are equal: it receives
+  not-yet-normalized data in the same slice fields it will overwrite — whoever constructs the initial
+  `LeadPipelineState` seeds those fields with raw/unprocessed data, and the stage transforms them in
+  place. This is how raw external input (e.g. a raw email's text) enters the graph without a separate
+  pre-parsing layer duplicating the stage's own logic, and how a later stage (e.g. Feature 03's
+  `IntentClassificationStage`, which reads `intake` but writes `classification`) can read a different
+  slice than it owns without a wildcard/multi-slice mechanism. Set by Feature 02's implementation plan
+  (`architecture-plan-feature-02.md`); generalized by Feature 03's (`architecture-plan-feature-03.md`).
+- **A stage's own recoverable, per-spec-expected external-system failure (an LLM call failing after one
+  retry, or returning an invalid/out-of-set response after one retry) must be encoded as data in the
+  stage's own output slice — never raised as a `Stage.run()` exception** — so it flows through the
+  graph's existing conditional-confidence routing (`_route_after_enrich`) into Human Review instead of
+  short-circuiting the entire run to `RunStatus.FAILED`/END via `_make_node`'s exception handler.
+  Raising from `Stage.run()` stays reserved for genuinely unexpected/bug-level errors, never a failure
+  mode a feature's own spec already anticipates. Set by Feature 03's implementation plan
+  (`architecture-plan-feature-03.md`).
+- **Real tool bindings for external systems (LLM calls, lookups, CRM writes) are registered into
+  `ToolRegistry` via one dedicated module per external system under `app/orchestrator/tools/`, wired
+  together by a single `register_default_tools(registry, settings)` factory that
+  `build_production_graph()` calls** — the tools-side analogue of the "one file per stage" rule below.
+  A stage module still never constructs or imports a tool binding directly; it only ever reaches one
+  through its `ScopedToolProxy`. Set by Feature 03's implementation plan
+  (`architecture-plan-feature-03.md`).

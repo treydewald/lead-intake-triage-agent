@@ -12,14 +12,16 @@ How *this project* is using the Upwork Portfolio Project Pipeline. Distinct from
 **Project Mode:** STANDARD (Intent: PORTFOLIO, Lifetime: MEDIUM, Scale: MEDIUM, Optimization
 Objective: PORTFOLIO_SIGNAL — see `docs/project-strategy.md`). Steps 10-16 are MANDATORY this cycle.
 
-**Step:** Step 6: Worker Pool Orchestrator — Group_F02 (Feature 02: Intake Parsing & Normalization
-Stage) claimed, implemented, and completed this session. `default_stages()["intake"]` is now a real
-`IntakeStage`; three intake endpoints (`/leads/webform`, `/leads/email`, `/leads/callback`) added.
-29/29 backend tests passing.
+**Step:** Step 5.5: Implementation Planner — Feature 03 (Intent Classification Stage) completed this
+session. Produced `architecture-plan-feature-03.md`; extended the `Stage` contract with `input_slice`/
+`effective_input_slice`, resolved how an external-system classification failure reaches Human Review
+without bypassing it, and introduced the `app/orchestrator/tools/` package convention for real tool
+bindings. Three Architecture Rule Changes applied to this file's Key Decisions. `implementation_plan.md`'s
+Group_F03 `owned_files` finalized; group status set `CLAIMABLE`.
 
 **Completed steps:** 1 (Project Advisor), 2 (Roadmap Architect), 3 (Feature Specification Engine), 4
-(Environment Bootstrap), 5.5 (Implementation Planner — Feature 01 and Feature 02; re-entered per
-feature group, see `docs/implementation-planning.md` §16), 6 (Worker Pool Orchestrator —
+(Environment Bootstrap), 5.5 (Implementation Planner — Feature 01, Feature 02, and Feature 03;
+re-entered per feature group, see `docs/implementation-planning.md` §16), 6 (Worker Pool Orchestrator —
 Group_F01 and Group_F02 both COMPLETED).
 
 **Gates passed:** None yet — Gate 2 (Step 7, implementation verification) and Gate 1 (Step 13,
@@ -36,15 +38,17 @@ Tier section, STANDARD mode with Tier 2/3 features present falls back to full ti
 
 ## Next Step
 
-**Step 5.5 (re-entry): Implementation Planner for Feature 03 (Intent Classification Stage)**, then
-**Step 6 (re-entry): Worker Pool Orchestrator claims Group_F03** — per
-`docs/implementation-planning.md` §16, Step 5.5 re-enters per feature group before Step 6 claims it.
-Feature 03 is the next group in Tier 1's linear build order (`depends_on: [01, 02]`, both now
-COMPLETED) and calls a local Ollama LLM for classification — the first feature to touch AI
-integration, so Step 5.5's Existing Systems Analysis should confirm how `ollama_model`/
-`ollama_base_url` (already in `app/core/config.py`) get wired into a scoped tool binding via
-`tool_scope.py`, and how a classification tool gets registered with `ToolRegistry` in
-`build_production_graph()`.
+**Step 6 (re-entry): Worker Pool Orchestrator claims Group_F03** (Feature 03: Intent Classification
+Stage) — `architecture-plan-feature-03.md` and `implementation_plan.md`'s `owned_files` are both ready;
+Group_F03 is `CLAIMABLE`. Implementation Order from the plan: (1) `contracts.py`'s `input_slice`/
+`effective_input_slice` → (2) new `app/orchestrator/tools/` package (`ollama_tools.py` +
+`register_default_tools`) → (3) `stages/intent_classification.py` (empty-message short-circuit;
+retry-once-then-fail-closed call/validation policy; `{buyer, browser, spam}` label set) → (4)
+`graph.py` (`_make_node` reads `effective_input_slice`; real `default_stages()["classification"]`;
+`build_production_graph()` populates `ToolRegistry` for the first time). Step 6 must also update
+`test_orchestrator_graph.py`'s `default_stages()`-based test to register a fake `"ollama_classify"`
+tool so it exercises the real stage's success path, not the old stub-failure path — see the
+architecture plan's Implementation Order step 4 and Validation Requirements.
 
 **Dependency-satisfied but out of scope this round:** Group_F14 (Feature 14, Multi-Channel Intake
 Expansion) also became CLAIMABLE once Group_F02 completed (`depends_on: [Group_F02]`), but it's a

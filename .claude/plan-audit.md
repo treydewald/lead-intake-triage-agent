@@ -108,3 +108,59 @@ entries: worth a human look before Step 6 starts writing code).
 
 **Next:** Step 6 (Worker Pool Orchestrator) claims Group_F02 using this plan's Implementation Order and
 reuse instructions, and finalizes `implementation_plan.md`'s `owned_files` for that group.
+
+---
+
+## 2026-09-04 — Step 5.5: Implementation Planner — Feature 03 (Intent Classification Stage)
+
+Produced `architecture-plan-feature-03.md`. Planning Depth: Deep (first AI integration; requires
+extending the `Stage` contract itself, resolving how an external-system failure reaches Human Review
+without bypassing it, and populating `ToolRegistry` with a real binding for the first time — 4+
+existing systems touched: `contracts.py`, `graph.py`, `tool_scope.py`'s registry, `state.py`).
+
+**Existing Systems Analysis:** No duplication risk found. Reuses `state.py`'s `ClassificationSlice`
+(already shaped exactly for this feature's output), `tool_scope.py`'s `ToolRegistry`/`ScopedToolProxy`
+as-is, `graph.py`'s `default_stages()` swap point and — the key finding — its existing
+`_route_after_enrich` confidence-threshold routing, which already sends a `None`/low `confidence_score`
+to Human Review with zero new graph edges. Reuses the already-pinned `ollama` dependency, `Settings.
+ollama_base_url`/`ollama_model`, and the `"ollama_classify"` tool name already anticipated by
+`test_orchestrator_tool_scope.py`. Surfaced a real architectural gap: `_make_node` only ever read a
+stage's input from its own `state_slice`, which breaks for a stage (this one) that must read `intake`
+but write `classification` — resolved via Architecture Rule Change #1 below rather than worked around
+per-feature.
+
+**Architecture Rule Changes approved (3, all conflict-checked against existing Key Decisions):**
+1. `Stage` gains `input_slice` (default `None`, falls back to `state_slice` via a new
+   `effective_input_slice` property) — generalizes, not contradicts, Feature 02's existing
+   same-schema Key Decision; that rule is restated as this new rule's special case in the same bullet
+   rather than left standing separately.
+2. A stage's own per-spec-expected external-system failure (retry-exhausted call error or invalid
+   response) is encoded as output-slice data, never raised — so it flows through existing confidence
+   routing into Human Review instead of short-circuiting to `RunStatus.FAILED`/END. No conflict found;
+   generalizes a risk-mitigation note Feature 02's plan stated only locally.
+3. Real tool bindings live one-module-per-external-system under a new `app/orchestrator/tools/`
+   package, wired by `register_default_tools(registry, settings)`, called from
+   `build_production_graph()` — the tools-side analogue of Feature 02's "one file per stage" rule. No
+   conflict found; nothing addressed this because no stage needed a real tool binding until now.
+
+All three applied to `.claude/portfolio-reference.md`'s Key Decisions this session.
+
+**Implementation Order set (4 steps):** `contracts.py`'s `input_slice`/`effective_input_slice` →
+`app/orchestrator/tools/` package (`ollama_tools.py` + `register_default_tools`) →
+`stages/intent_classification.py` (empty-message short-circuit; retry-once-then-fail-closed policy;
+`{buyer, browser, spam}` label validation) → `graph.py` (`_make_node` reads
+`effective_input_slice`; real `default_stages()["classification"]`; `build_production_graph()` now
+populates `ToolRegistry` for the first time).
+
+**Notable design resolution:** the feature spec's optional hosted-LLM-API fallback path is deliberately
+**not** built this round — `.claude/portfolio-reference.md`'s existing Key Decision already defers that
+until Feature 09's benchmark shows the local model is insufficient. This plan satisfies "support an
+optional fallback" by leaving the seam open (multi-tool `allowed_tools`, existing
+`fallback_llm_api_key` config field), not by wiring a second tool call now.
+
+**Approved by:** auto (Auto Mode + master prompt's "EXECUTE NOW" applied — same standing note as prior
+entries: worth a human look before Step 6 starts writing code, especially the two new Architecture
+Rule Changes to the `Stage` contract itself).
+
+**Next:** Step 6 (Worker Pool Orchestrator) claims Group_F03 using this plan's Implementation Order and
+reuse instructions, and finalizes `implementation_plan.md`'s `owned_files` for that group.

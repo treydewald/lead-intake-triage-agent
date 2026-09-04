@@ -11,7 +11,7 @@ Note on grouping: this project's Tier 1 features form a near-strictly-linear dep
 chain off Feature 01 (see roadmap.md's Dependency Notes), so each feature is its own
 single-feature group rather than an invented multi-feature grouping — that keeps
 `dependency_groups` an exact match of each feature's real `depends_on` list instead of
-approximating it. Only Feature 01 has an `architecture-plan-*.md` (Step 5.5) so far;
+approximating it. Features 01-03 each have an `architecture-plan-*.md` (Step 5.5) so far;
 `owned_files` for every other group stays TBD until that feature's own Step 5.5 plan
 runs, per `docs/implementation-planning.md` §16 (Step 5.5 re-enters per feature group).
 
@@ -57,10 +57,19 @@ GROUPS:
     isolation_level: HIGH
 
   Group_F03:
-    status: UNCLAIMED
+    status: CLAIMABLE
     owner: null
     features: [Feature 03]
-    owned_files: [TBD — pending Step 5.5 architecture plan for Feature 03]
+    owned_files:
+      [backend/app/orchestrator/stages/intent_classification.py,
+       backend/app/orchestrator/tools/__init__.py, backend/app/orchestrator/tools/ollama_tools.py,
+       backend/app/tests/test_stage_intent_classification.py, backend/app/tests/test_orchestrator_tools.py,
+       # Shared/modified — already Group_F01-owned; extended here per architecture-plan-feature-03.md's
+       # input_slice/effective_input_slice addition and classification stub-swap. Safe under this
+       # project's strictly-linear dependency chain (see docs/implementation-planning.md's Step 5.5
+       # re-entry note).
+       backend/app/orchestrator/contracts.py, backend/app/orchestrator/graph.py,
+       backend/app/tests/test_orchestrator_contracts.py, backend/app/tests/test_orchestrator_graph.py]
     dependency_groups: [Group_F01, Group_F02]
     isolation_level: HIGH
 
