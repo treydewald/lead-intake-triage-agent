@@ -86,3 +86,11 @@ that doesn't exist yet.)*
   session wiring, and an empty `app/orchestrator/` package. Feature implementation (all 14
   `implementation_plan.md` features) is Step 6's job, per `prompts/04`'s own "What This Stage Does
   NOT" boundary.
+- **Every pipeline stage implements the Stage contract (`app/orchestrator/contracts.py`) and receives
+  tools only through `app/orchestrator/tool_scope.py`'s scoped proxy** — a stage module must never
+  import or call another stage's tool binding directly. This is what makes the per-stage tool/state
+  boundary architecturally real under code inspection, not cosmetic — the project's Critical risk.
+  Set by Feature 01's implementation plan (`architecture-plan-feature-01.md`).
+- **Stage execution/transition data persists via `PipelineRun`/`StageTrace`
+  (`app/models/pipeline_run.py`)** — any future stage's execution record belongs there, not a bespoke
+  per-feature log table. Set by Feature 01's implementation plan (`architecture-plan-feature-01.md`).

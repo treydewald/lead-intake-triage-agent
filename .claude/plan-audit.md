@@ -41,3 +41,34 @@ text after a Step 4 scaffolding error (`cp -r` from `templates/claude-dir/` over
 original content with the blank template before it was backed up). Content above matches the
 original Step 3 report verbatim where possible; no new review activity occurred. See
 `.claude/pipeline-changelog.md` for the same note.
+
+---
+
+## 2026-09-04 — Step 5.5: Implementation Planner — Feature 01 (Pipeline Orchestration Layer)
+
+Produced `architecture-plan-feature-01.md`. Planning Depth: Deep (foundational architecture change
+carrying the project's Critical risk; Existing Systems Analysis itself was quick since nothing exists
+yet to reuse beyond Step 4's empty scaffolding and already-pinned `langgraph` dependency).
+
+**Existing Systems Analysis:** No duplication risk found — no orchestration/state-machine/tool-scoping
+code exists anywhere yet. Reuses `app/database/session.py` (Base/SessionLocal) and
+`app/core/config.py` (`confidence_threshold`) as-is; populates the empty `app/orchestrator/` package.
+
+**Architecture Rule Changes approved (2, both conflict-checked against existing Key Decisions, none
+found):**
+1. Every pipeline stage implements the Stage contract and receives tools only through
+   `tool_scope.py`'s scoped proxy — no stage may import another stage's tool binding directly.
+2. Stage execution/transition data persists via `PipelineRun`/`StageTrace` — no bespoke per-feature
+   log tables.
+
+Both applied to `.claude/portfolio-reference.md`'s Key Decisions this session.
+
+**Implementation Order set (5 steps):** contracts.py → state.py → tool_scope.py/errors.py →
+pipeline_run.py models + Alembic migration → graph.py. Stage nodes for Features 02-07 are stub
+callables until each feature's own Step 6 group lands.
+
+**Approved by:** auto (Auto Mode + master prompt's "EXECUTE NOW" applied — same standing note as the
+Step 3 entry above: worth a human look before Step 6 starts writing code).
+
+**Next:** Step 6 (Worker Pool Orchestrator) claims Feature 01 using this plan's Implementation Order
+and reuse instructions.

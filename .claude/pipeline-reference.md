@@ -12,10 +12,11 @@ How *this project* is using the Upwork Portfolio Project Pipeline. Distinct from
 **Project Mode:** STANDARD (Intent: PORTFOLIO, Lifetime: MEDIUM, Scale: MEDIUM, Optimization
 Objective: PORTFOLIO_SIGNAL — see `docs/project-strategy.md`). Steps 10-16 are MANDATORY this cycle.
 
-**Step:** Step 4: Environment Bootstrap — complete.
+**Step:** Step 5.5: Implementation Planner — complete for Feature 01 (Pipeline Orchestration Layer).
 
 **Completed steps:** 1 (Project Advisor), 2 (Roadmap Architect), 3 (Feature Specification Engine), 4
-(Environment Bootstrap).
+(Environment Bootstrap), 5.5 (Implementation Planner — Feature 01 only; re-entered per feature group,
+see `docs/implementation-planning.md` §16).
 
 **Gates passed:** None yet — Gate 2 (Step 7, implementation verification) and Gate 1 (Step 13,
 portfolio score ≥9.0/10) are both ahead.
@@ -31,16 +32,16 @@ Tier section, STANDARD mode with Tier 2/3 features present falls back to full ti
 
 ## Next Step
 
-**Step 5.5: Implementation Planner** (`prompts/05.5_implementation-planner.md`) — new in v22.0,
-runs between Step 5 and Step 6. Analyzes `implementation_plan.md`'s Tier 1 feature specs against
-this project's actual bootstrapped architecture (this file + `portfolio-reference.md`'s Architecture
-Map) before Step 6 writes any code, producing `architecture-plan-*.md` per feature/group.
+**Step 6: Worker Pool Orchestrator** — implements Feature 01 (Pipeline Orchestration Layer) per
+`architecture-plan-feature-01.md`'s Implementation Order (contracts.py → state.py →
+tool_scope.py/errors.py → pipeline_run.py models + Alembic migration → graph.py), honoring that
+plan's reuse instructions rather than re-deriving architecture independently.
+
+Step 5.5 re-enters (per-feature-group, not once-per-project — `docs/implementation-planning.md`
+§16) once Feature 01 is claimed by Step 6, to plan Feature 02 (Intake Parsing & Normalization
+Stage) next, per `roadmap.md`'s Execution Order Recommendation.
 
 Step 5 (Workspace Recovery) does not apply — this is a fresh bootstrap, not a recovery.
-
-After Step 5.5: **Step 6 (Worker Pool Orchestrator)** implements Tier 1 features in the
-`roadmap.md` Execution Order Recommendation, starting with Feature 01 (Pipeline Orchestration
-Layer).
 
 ---
 
