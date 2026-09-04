@@ -282,3 +282,57 @@ stages should be written, not just this one).
 
 **Next:** Step 6 (Worker Pool Orchestrator) claims Group_F05 using this plan's Implementation Order and
 reuse instructions, and finalizes `implementation_plan.md`'s `owned_files` for that group.
+
+---
+
+## 2026-09-04 — Step 5.5: Implementation Planner — Feature 06 (Human Review & Approval Gate)
+
+Produced `architecture-plan-feature-06.md`. Planning Depth: Deep — the feature spec assumes a
+pause/resume mechanism ("reuses Feature 01's orchestrator resume mechanism") that turned out not to
+actually exist anywhere in the codebase; this plan had to design and add one, plus a new persisted
+domain model and a concurrency-sensitive API surface (4+ existing systems touched).
+
+**Existing Systems Analysis:** No duplication risk found in the sense of a rebuilt system, but one real
+near-miss was caught and rejected: naively reconstructing a paused run's state by replaying `StageTrace`
+rows would have duplicated `StageTrace`'s execution-log role with a second, bespoke path — instead the
+new `ReviewQueueItem` stores one full `LeadPipelineState` JSON snapshot at pause time, the same
+snapshot *technique* `StageTrace` already uses, applied at the run level. **Key finding:** the existing
+`_route_after_enrich` edge already fully implements this feature's confidence-based routing (high
+confidence → auto CRM Write, low confidence → Human Review) — Feature 06 does not touch that edge at
+all, only implements the real stage body it currently stubs and builds what happens after a lead lands
+there. `RunStatus.AWAITING_REVIEW` already existed in the enum, unused by any code path until now.
+
+**Architecture Rule Changes approved (3, all conflict-checked against existing Key Decisions, none
+found):**
+1. A paused run's resumable state is persisted as one full `LeadPipelineState` JSON snapshot on the
+   owning feature's own domain row, never reconstructed by replaying `StageTrace` rows — a distinct
+   concern from `StageTrace`'s execution-log role, not a competing rule.
+2. Resuming a paused run re-enters the orchestrator abstraction (`Stage` contract, `ToolRegistry`,
+   `_make_node`) via a second, smaller compiled graph starting at the paused stage, never a bespoke
+   API-layer code path calling stage tools directly.
+3. `RunStatus.REJECTED` is a new, distinct terminal status for an explicit reviewer rejection — never
+   recorded as `FAILED`, which stays reserved for a stage raising during execution (a different axis
+   than a human decision made after a stage already completed).
+
+All three applied to `.claude/portfolio-reference.md`'s Key Decisions this session.
+
+**Implementation Order set (7 steps):** `state.py` (`RunStatus.REJECTED`) → `app/models/review_queue.py`
+(`ReviewQueueItem` + Alembic revision) → `stages/human_review.py` (trivial `HumanReviewStage` — the
+queue-vs-auto decision was already made upstream) → `graph.py` (real stage wired in; dedicated
+review-node wrapper persists the queue item + sets `AWAITING_REVIEW`) → `graph.py`
+(`build_resume_graph()` + `resume_pipeline()`, a 2-node `crm_write_stage → notify_stage` continuation
+reusing the same `Stage` instances) → `schemas/review.py` + `routers/reviews.py` (concurrency-safe
+claim via a single conditional `UPDATE ... WHERE status='PENDING'`, never read-then-write) → `main.py`
+router registration.
+
+**Notable design resolution:** the reviewer-action endpoint never re-derives CRM-write logic itself —
+approve/edit always goes through `resume_pipeline()`, so `HubSpotCrmWriteStage`'s existing dedupe/retry/
+tool-scoping guarantees apply identically whether a lead reached CRM Write automatically or via human
+approval.
+
+**Approved by:** auto (Auto Mode + master prompt's "EXECUTE NOW" applied — same standing note as prior
+entries: worth a human look before Step 6 starts writing code, particularly the new resume mechanism
+and the concurrency-safe claim, since neither has an existing precedent in this project to check against).
+
+**Next:** Step 6 (Worker Pool Orchestrator) claims Group_F06 using this plan's Implementation Order and
+reuse instructions, and finalizes `implementation_plan.md`'s `owned_files` for that group.

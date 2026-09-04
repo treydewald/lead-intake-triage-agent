@@ -1,7 +1,7 @@
 # Portfolio Reference — Lead Intake Triage Agent
 
-**Last Updated:** 2026-09-04 (Key Decisions updated by Feature 05's Step 6 implementation — see
-`execution-log.md`)
+**Last Updated:** 2026-09-04 (Key Decisions updated by Feature 06's Step 5.5 implementation plan — see
+`architecture-plan-feature-06.md`)
 
 Read this before opening source files. Only open the actual code when this doc doesn't answer the
 question.
@@ -202,3 +202,24 @@ that doesn't exist yet.)*
   record's actual internal id (not just whether a match exists) should follow this same pattern —
   address by a known unique property's value via `idProperty`, not by extending `search_contact`'s
   return shape.
+- **A paused pipeline run's resumable state is persisted as one full `LeadPipelineState` JSON snapshot
+  on the owning feature's own domain row (e.g. `ReviewQueueItem.state_snapshot`), never reconstructed
+  by replaying `StageTrace` rows** — the same snapshot technique `StageTrace` already uses
+  (`model_dump_json()`), applied at the run level instead of per-stage, whenever a future feature needs
+  to pause and later resume a run. This does not compete with the "execution data persists via
+  PipelineRun/StageTrace" Key Decision above — that rule governs the execution log; this rule governs a
+  domain-specific task queue's own resume payload, a genuinely different concern. Set by Feature 06's
+  implementation plan (`architecture-plan-feature-06.md`).
+- **Resuming a paused run re-enters the same orchestrator abstraction — the existing `Stage` contract,
+  `ToolRegistry`, and `_make_node` trace-writing — via a second, smaller compiled graph starting at the
+  paused stage, rather than a bespoke code path in the API/router layer that calls stage tools
+  directly.** The resume graph's nodes are the exact same `Stage` instances as the primary graph, so
+  every existing per-stage tool/state boundary guarantee carries over unchanged; a router must never
+  call a tool binding or a stage's `run()` directly to "fast-path" a resume. Set by Feature 06's
+  implementation plan (`architecture-plan-feature-06.md`).
+- **`RunStatus.FAILED` is reserved for a stage raising during execution; a reviewer's explicit rejection
+  is `RunStatus.REJECTED` — a distinct, valid terminal outcome, never recorded as `FAILED`.** This is a
+  different axis than the existing failure-handling Key Decision above (which governs whether a stage
+  raises vs. returns data during stage execution) — a human decision made after a stage has already
+  completed is never itself a stage failure. Set by Feature 06's implementation plan
+  (`architecture-plan-feature-06.md`).

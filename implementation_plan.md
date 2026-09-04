@@ -115,9 +115,22 @@ GROUPS:
     status: UNCLAIMED
     owner: null
     features: [Feature 06]
-    owned_files: [TBD — pending Step 5.5 architecture plan for Feature 06]
+    owned_files: [backend/app/orchestrator/stages/human_review.py (new),
+      backend/app/models/review_queue.py (new),
+      backend/app/schemas/review.py (new),
+      backend/app/routers/reviews.py (new),
+      backend/alembic/versions/<new>_add_review_queue_item_table.py (new),
+      backend/app/tests/test_stage_human_review.py (new),
+      backend/app/tests/test_router_reviews.py (new),
+      backend/app/orchestrator/state.py (modify — RunStatus.REJECTED),
+      backend/app/orchestrator/graph.py (modify — HumanReviewStage wired in, dedicated review-node
+        wrapper, build_resume_graph(), resume_pipeline(), build_production_resume_graph()),
+      backend/main.py (modify — registers reviews.router),
+      backend/app/tests/test_orchestrator_graph.py (modify),
+      backend/app/tests/test_orchestrator_state.py (modify)]
     dependency_groups: [Group_F01, Group_F03, Group_F05]
     isolation_level: HIGH
+    # architecture-plan-feature-06.md (Step 5.5) sets Implementation Order — see that file
 
   Group_F07:
     status: UNCLAIMED
@@ -206,6 +219,12 @@ FILE_OWNERSHIP_MAP:
   backend/app/tests/test_stage_data_enrichment.py: Group_F04
   backend/app/orchestrator/stages/hubspot_crm_write.py: Group_F05
   backend/app/tests/test_stage_hubspot_crm_write.py: Group_F05
+  backend/app/orchestrator/stages/human_review.py: Group_F06
+  backend/app/models/review_queue.py: Group_F06
+  backend/app/schemas/review.py: Group_F06
+  backend/app/routers/reviews.py: Group_F06
+  backend/app/tests/test_stage_human_review.py: Group_F06
+  backend/app/tests/test_router_reviews.py: Group_F06
   # All other paths: unassigned until each feature's own group is claimed (its Step 5.5
   # plan, run just before that group is claimed, fixes owned_files first).
 

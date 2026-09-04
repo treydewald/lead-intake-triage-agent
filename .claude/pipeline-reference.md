@@ -12,26 +12,25 @@ How *this project* is using the Upwork Portfolio Project Pipeline. Distinct from
 **Project Mode:** STANDARD (Intent: PORTFOLIO, Lifetime: MEDIUM, Scale: MEDIUM, Optimization
 Objective: PORTFOLIO_SIGNAL — see `docs/project-strategy.md`). Steps 10-16 are MANDATORY this cycle.
 
-**Step:** Step 6: Worker Pool Orchestrator — Group_F05 (Feature 05: HubSpot CRM Write Stage) completed
-this session, following `architecture-plan-feature-05.md`'s 7-step Implementation Order exactly:
-`contracts.py` (`input_slices`) → `state.py` (`CrmWriteSlice` extended + `MergedIntakeEnrichment`) →
-`graph.py`'s `_make_node` (generic multi-slice branch) → `hubspot_tools.py` (`write_contact`,
-`HubSpotWriteError`) → `tools/__init__.py` (registers `"hubspot_write"`) → `stages/
-hubspot_crm_write.py` (new `HubSpotCrmWriteStage`, deliberately no try/except around the tool call) →
-`graph.py`'s `default_stages()["crm_write"]` swap. One genuine implementation-time discovery not
-anticipated by the architecture plan: `search_contact` (Feature 04) returns only a matched contact's
-`properties`, never its internal HubSpot id, which a PATCH-based update needs — resolved via
-HubSpot's own `idProperty` upsert query parameter (addressing the record by its dedupe key's own
-value) rather than modifying `search_contact` or a second lookup; recorded as a new Key Decision in
-`.claude/portfolio-reference.md`. All 79 tests (59 pre-existing + 20 new) passed on the first
-`pytest` run — no fix cycle needed. `implementation_plan.md` marks Feature 05 and Group_F05
-`COMPLETED`; `.claude/execution-log.md` and `.claude/validation-results.md` have the full entries;
-`architecture-plan-feature-05.md`'s Actual Footprint is filled in.
+**Step:** Step 5.5: Implementation Planner — Feature 06 (Human Review & Approval Gate) completed this
+session. Produced `architecture-plan-feature-06.md` (Deep tier). Key finding: the feature spec assumes
+a pause/resume mechanism ("reuses Feature 01's orchestrator resume mechanism") that does not actually
+exist in the codebase — this plan designs one (a second, smaller compiled graph — `crm_write_stage →
+notify_stage` — reusing the same `Stage` instances/`_make_node`, entered via a new `resume_pipeline()`)
+rather than treating the spec's assumption as already satisfied. Also found that the existing
+`_route_after_enrich` edge already fully implements the confidence-based auto/queue routing this
+feature's spec asks for — no graph-edge change needed, only the real `human_review` stage body and
+what happens after a lead is queued. Three Architecture Rule Changes applied to `.claude/
+portfolio-reference.md`'s Key Decisions (resumable-state snapshot ownership, resume re-entering the
+orchestrator abstraction rather than a bespoke API code path, and a new `RunStatus.REJECTED` distinct
+from `FAILED`). `implementation_plan.md`'s Group_F06 `owned_files` finalized (13 files) and
+`FILE_OWNERSHIP_MAP` extended for the new stage/model/schema/router files. `.claude/plan-audit.md` has
+the full entry.
 
 **Completed steps:** 1 (Project Advisor), 2 (Roadmap Architect), 3 (Feature Specification Engine), 4
 (Environment Bootstrap), 5.5 (Implementation Planner — Feature 01, Feature 02, Feature 03, Feature 04,
-and Feature 05; re-entered per feature group, see `docs/implementation-planning.md` §16), 6 (Worker Pool
-Orchestrator — Group_F01, Group_F02, Group_F03, Group_F04, and Group_F05 all COMPLETED).
+Feature 05, and Feature 06; re-entered per feature group, see `docs/implementation-planning.md` §16), 6
+(Worker Pool Orchestrator — Group_F01, Group_F02, Group_F03, Group_F04, and Group_F05 all COMPLETED).
 
 **Gates passed:** None yet — Gate 2 (Step 7, implementation verification) and Gate 1 (Step 13,
 portfolio score ≥9.0/10) are both ahead. Step 7 has not yet run against any completed feature.
@@ -47,16 +46,14 @@ Tier section, STANDARD mode with Tier 2/3 features present falls back to full ti
 
 ## Next Step
 
-**Step 5.5: Implementation Planner — Feature 06 (Human Review Gate).** Group_F06's `dependency_groups`
-(`Group_F01`, `Group_F03`, `Group_F05`) are all now `COMPLETED`, making it the next Tier 1 feature in
-`roadmap.md`'s Execution Order (`... → HubSpot CRM Write → Human Review Gate → Outcome Notification →
-Observability View`). `Group_F06.owned_files` in `implementation_plan.md` is still `TBD` — per this
-project's established pattern (Features 02-05 each did), Step 5.5 must run first to produce
-`architecture-plan-feature-06.md` and finalize `owned_files`/Implementation Order before Step 6 claims
-Group_F06. Likely design question for that plan to resolve: how the paused/queued lead re-enters the
-graph after a reviewer's decision (approve / reject / edit) — `ReviewSlice` already has
-`reviewer_action`/`corrected_intent_label`/`paused_at_stage` fields from Feature 01's bootstrap, but no
-stage or edge yet reads or acts on them.
+**Step 6: Worker Pool Orchestrator — Group_F06 (Feature 06: Human Review & Approval Gate).**
+`architecture-plan-feature-06.md` now exists with a finalized 7-step Implementation Order and
+`owned_files`. Step 6 should claim Group_F06 and follow that order exactly: `state.py`
+(`RunStatus.REJECTED`) → `app/models/review_queue.py` (`ReviewQueueItem` + Alembic revision) →
+`stages/human_review.py` (`HumanReviewStage`) → `graph.py` (real stage wired in + dedicated
+review-node wrapper persisting the queue item and setting `AWAITING_REVIEW`) → `graph.py`
+(`build_resume_graph()` + `resume_pipeline()`) → `schemas/review.py` + `routers/reviews.py`
+(concurrency-safe claim via conditional `UPDATE`) → `main.py` router registration.
 
 **Dependency-satisfied but out of scope this round:** Group_F09 (Feature 09, Classification Accuracy
 Benchmark Report) is dependency-satisfiable (`depends_on: [Group_F03]`, completed), but it's a Tier 2
