@@ -10,6 +10,7 @@ from app.database.session import SessionLocal
 from app.models.pipeline_run import PipelineRun, StageTrace
 from app.orchestrator.contracts import Stage
 from app.orchestrator.stages.intake import IntakeStage
+from app.orchestrator.stages.intent_classification import IntentClassificationStage
 from app.orchestrator.state import (
     ClassificationSlice,
     CrmWriteSlice,
@@ -74,6 +75,7 @@ def default_stages() -> dict[str, Stage]:
         for slice_name, node_name, feature_id in _STAGE_ORDER
     }
     stages["intake"] = IntakeStage()
+    stages["classification"] = IntentClassificationStage()
     return stages
 
 
@@ -112,7 +114,7 @@ def _make_node(stage: Stage, registry: ToolRegistry, session_factory: SessionFac
             # always routes to END), but never silently proceed past a halted run.
             return {}
 
-        slice_in = getattr(state, stage.state_slice)
+        slice_in = getattr(state, stage.effective_input_slice)
         proxy = registry.scoped_proxy(stage.allowed_tools, stage.name)
 
         try:
@@ -195,8 +197,11 @@ def build_graph(
 
 def build_production_graph(session_factory: SessionFactory = SessionLocal) -> CompiledStateGraph:
     from app.core.config import settings
+    from app.orchestrator.tools import register_default_tools
 
-    return build_graph(default_stages(), ToolRegistry(), session_factory, settings.confidence_threshold)
+    registry = ToolRegistry()
+    register_default_tools(registry, settings)
+    return build_graph(default_stages(), registry, session_factory, settings.confidence_threshold)
 
 
 def run_pipeline(

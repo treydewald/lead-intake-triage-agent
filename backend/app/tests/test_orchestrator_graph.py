@@ -160,11 +160,17 @@ def test_every_stage_transition_produces_a_queryable_stage_trace(db_session_fact
 
 
 def test_default_stages_web_form_payload_reaches_classify_with_normalized_intake(db_session_factory):
-    """Feature 02: `default_stages()`'s real `IntakeStage` normalizes the raw payload and
-    the run reaches (attempts) classify_stage - still a stub until Feature 03 lands, so
-    the run halts there as FAILED, which is the expected/correct outcome at this point."""
+    """Features 02+03: `default_stages()`'s real `IntakeStage` normalizes the raw payload
+    and the real `IntentClassificationStage` successfully classifies it (a fake
+    "ollama_classify" tool is registered so no real Ollama call happens in this test).
+    The run then reaches (attempts) enrich_stage - still a stub until Feature 04 lands,
+    so the run halts there as FAILED, which is the expected/correct outcome at this
+    point. This proves the real classification stage's *success* path, not merely that
+    classify still fails for the old reason (an unregistered/stub stage)."""
     stages = default_stages()
-    graph = build_graph(stages, ToolRegistry(), db_session_factory, confidence_threshold=0.7)
+    registry = ToolRegistry()
+    registry.register("ollama_classify", lambda text: {"intent_label": "buyer", "confidence_score": 0.95})
+    graph = build_graph(stages, registry, db_session_factory, confidence_threshold=0.7)
 
     initial_state = LeadPipelineState(
         intake=IntakeSlice(
@@ -181,8 +187,64 @@ def test_default_stages_web_form_payload_reaches_classify_with_normalized_intake
     assert final.intake.phone == "5551234567"
     assert final.intake.email == "jane@example.com"
     assert final.intake.empty_message is False
+    assert final.classification.intent_label == "buyer"
+    assert final.classification.confidence_score == 0.95
     assert final.run.status == RunStatus.FAILED
-    assert final.run.failed_stage == "intent_classification"
+    assert final.run.failed_stage == "data_enrichment"
+
+
+def test_low_confidence_classification_from_real_stage_reaches_human_review(db_session_factory):
+    """Proves a low `confidence_score` produced by the real (non-stub)
+    `IntentClassificationStage` reaches Human Review via the existing, unmodified
+    `_route_after_enrich` - no new conditional edges added to graph.py. Enrichment is
+    faked (still a stub until Feature 04) so this isolates "does low confidence route
+    correctly" from "is enrichment implemented yet"."""
+    stages = default_stages()
+    stages["enrichment"] = _FakeStage(
+        "data_enrichment", "enrichment", EnrichmentSlice, lambda data, tools: EnrichmentSlice()
+    )
+    stages["review"] = _FakeStage(
+        "human_review", "review", ReviewSlice, lambda data, tools: ReviewSlice(queued=True, paused_at_stage="crm_write")
+    )
+    registry = ToolRegistry()
+    registry.register("ollama_classify", lambda text: {"intent_label": "browser", "confidence_score": 0.2})
+    graph = build_graph(stages, registry, db_session_factory, confidence_threshold=0.7)
+
+    initial_state = LeadPipelineState(
+        intake=IntakeSlice(source_channel="web_form", message_body="just browsing around")
+    )
+    final = run_pipeline("lead-low-conf-real", initial_state, graph=graph, session_factory=db_session_factory)
+
+    assert final.classification.intent_label == "browser"
+    assert final.classification.confidence_score == 0.2
+    assert final.review.queued is True
+    assert final.crm_write.write_status is None
+
+
+def test_classification_failed_sentinel_from_real_stage_reaches_human_review(db_session_factory):
+    """A tool that raises on both attempts produces the `classification_failed` sentinel
+    (confidence_score=0.0), which must route to Human Review the same as any other
+    below-threshold result - no separate "failed" branch needed in graph.py."""
+    stages = default_stages()
+    stages["enrichment"] = _FakeStage(
+        "data_enrichment", "enrichment", EnrichmentSlice, lambda data, tools: EnrichmentSlice()
+    )
+    stages["review"] = _FakeStage(
+        "human_review", "review", ReviewSlice, lambda data, tools: ReviewSlice(queued=True, paused_at_stage="crm_write")
+    )
+    registry = ToolRegistry()
+
+    def _always_raise(text):
+        raise RuntimeError("ollama unreachable")
+
+    registry.register("ollama_classify", _always_raise)
+    graph = build_graph(stages, registry, db_session_factory, confidence_threshold=0.7)
+
+    initial_state = LeadPipelineState(intake=IntakeSlice(source_channel="web_form", message_body="hello there"))
+    final = run_pipeline("lead-classify-failed", initial_state, graph=graph, session_factory=db_session_factory)
+
+    assert final.classification.model_used == "classification_failed"
+    assert final.review.queued is True
 
 
 def test_failed_stage_transition_is_traced_with_error(db_session_factory):

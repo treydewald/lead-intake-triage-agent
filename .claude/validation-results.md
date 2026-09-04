@@ -67,3 +67,41 @@ fix cycle needed; all tests passed on first run.
 8. `IntakeStage` has no successful path to any tool call → `test_stage_intake.py::test_intake_stage_has_no_successful_path_to_any_tool_call`
 9. `default_stages()["intake"]` is a real `IntakeStage`, existing graph tests still pass → all pre-existing `test_orchestrator_graph.py` tests pass unchanged + new `test_default_stages_web_form_payload_reaches_classify_with_normalized_intake`
 10. Three router endpoints reachable and return a `PipelineRunOut` → `test_router_leads.py` (all three channels)
+
+---
+
+## 2026-09-04 — Feature 03 (Intent Classification Stage)
+
+**Checks run:** `pytest app/tests/` (full backend suite, 44 tests) + grep check that
+`app/orchestrator/stages/intent_classification.py` never imports `ollama` directly (per
+`architecture-plan-feature-03.md`'s Validation Requirements — `grep -n "import ollama\|from ollama"`
+returned no match, confirming the stage reaches the model only through
+`tools.call("ollama_classify", ...)`) + a real end-to-end smoke call through
+`ollama_tools.classify_intent` against the local `llama3.2:3b` daemon (reachable in this
+environment per `.claude/pipeline-reference.md`'s Step 4 deviation note).
+
+**Result:** PASS — `pytest app/tests/` 44 passed (29 pre-existing + 15 new: 8 in
+`test_stage_intent_classification.py`, 3 in `test_orchestrator_tools.py`, 2 in
+`test_orchestrator_contracts.py`, 2 new + 1 modified in `test_orchestrator_graph.py`), 0 failed. No
+fix cycle needed on the final run; two new graph-level tests initially failed (`review.queued` was
+`False`) because the still-stubbed `human_review` stage (Feature 06 not yet built) raised
+`NotImplementedError` when invoked unfaked — fixed by also faking the `review` stage in those two
+tests, same pattern already used for `enrichment`, then re-verified clean.
+
+**Live-model smoke test (informative, not gating):** `classify_intent(client, "llama3.2:3b", "Hi, I
+am ready to buy 3 units right now, please send me a quote and invoice today.")` against the real
+local daemon returned `{'intent_label': 'buyer', 'confidence_score': 0.9}` — validates against the
+fixed `{buyer, browser, spam}` label set. Useful signal for Feature 09's future benchmark; not a
+substitute for the fake-tool unit/graph tests, which remain the gating suite.
+
+**Acceptance criteria coverage (architecture-plan-feature-03.md / roadmap Feature 03):**
+1. Clear buyer-intent message → `buyer` label, high confidence → `test_stage_intent_classification.py::test_clear_buyer_message_produces_buyer_label_with_high_confidence`
+2. Empty/near-empty message body → low-confidence result, no tool call → `test_stage_intent_classification.py::test_empty_message_short_circuits_without_calling_tool`
+3. LLM call failure (both attempts) → `classification_failed` sentinel, no raise → `test_stage_intent_classification.py::test_tool_call_raising_on_both_attempts_produces_classification_failed_sentinel` + `test_run_never_raises_out_of_run_for_expected_failure_modes`
+4. Out-of-set label response (both attempts) → same sentinel → `test_stage_intent_classification.py::test_invalid_label_on_both_attempts_produces_classification_failed_sentinel`
+5. Fails once then succeeds on retry → successful result → `test_stage_intent_classification.py::test_tool_call_fails_once_then_succeeds_on_retry_returns_successful_result`
+6. `allowed_tools` boundary (`ollama_classify` only) → `test_stage_intent_classification.py::test_allowed_tools_contains_only_ollama_classify`
+7. Determinism (same fake-tool response → identical result) → `test_stage_intent_classification.py::test_repeated_calls_with_same_response_produce_identical_result`
+8. `default_stages()["classification"]` is real, `build_production_graph()` registers a real tool → `test_default_stages_web_form_payload_reaches_classify_with_normalized_intake` (fakes only the tool, exercises the real stage's success path) + `test_orchestrator_tools.py::test_register_default_tools_registers_ollama_classify`
+9. Low-confidence/failed result reaches Human Review via unmodified `_route_after_enrich`, no new graph edges → `test_low_confidence_classification_from_real_stage_reaches_human_review` + `test_classification_failed_sentinel_from_real_stage_reaches_human_review`
+10. Tool-scoping discipline (no direct `ollama` import in the stage module) → grep check above

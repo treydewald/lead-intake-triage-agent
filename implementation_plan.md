@@ -57,8 +57,8 @@ GROUPS:
     isolation_level: HIGH
 
   Group_F03:
-    status: IN_PROGRESS
-    owner: Worker-1
+    status: COMPLETED
+    owner: null
     features: [Feature 03]
     owned_files:
       [backend/app/orchestrator/stages/intent_classification.py,
@@ -176,6 +176,10 @@ FILE_OWNERSHIP_MAP:
   backend/app/tests/test_stage_intake.py: Group_F02
   backend/app/tests/test_router_leads.py: Group_F02
   backend/main.py: Group_F02
+  backend/app/orchestrator/stages/intent_classification.py: Group_F03
+  backend/app/orchestrator/tools/**: Group_F03
+  backend/app/tests/test_stage_intent_classification.py: Group_F03
+  backend/app/tests/test_orchestrator_tools.py: Group_F03
   # All other paths: unassigned until each feature's own group is claimed (its Step 5.5
   # plan, run just before that group is claimed, fixes owned_files first).
 
@@ -187,6 +191,7 @@ WORKER_STATE:
     - {group: Group_F02, worker: Worker-1 (single-session sequential run), action: claimed, at: "2026-09-04"}
     - {group: Group_F02, worker: Worker-1 (single-session sequential run), action: completed, at: "2026-09-04"}
     - {group: Group_F03, worker: Worker-1 (single-session sequential run), action: claimed, at: "2026-09-04"}
+    - {group: Group_F03, worker: Worker-1 (single-session sequential run), action: completed, at: "2026-09-04"}
 
 WORKER_POOL_RULES:
   - Agents must claim a group before execution
@@ -363,7 +368,7 @@ Feature 03: Intent Classification Stage
 Tier: Tier 1
 
 Execution Metadata (REQUIRED)
-status: NOT STARTED
+status: COMPLETED
 group: PIPELINE_STAGES
 locked: false
 assigned_worker: null
@@ -413,13 +418,13 @@ Outputs
   classification slice for Feature 04 and Feature 06 to consume
 
 Acceptance Criteria
-- [ ] A clearly buyer-intent message produces the buyer label with a high confidence score
-- [ ] An empty or near-empty message body produces a low-confidence result rather than an error
-- [ ] An LLM call failure results in a FAILED classification routed to Human Review, not a pipeline
+- [x] A clearly buyer-intent message produces the buyer label with a high confidence score
+- [x] An empty or near-empty message body produces a low-confidence result rather than an error
+- [x] An LLM call failure results in a FAILED classification routed to Human Review, not a pipeline
   crash
-- [ ] Classification stage has no successful path to CRM-write or enrichment-lookup tools, verified
+- [x] Classification stage has no successful path to CRM-write or enrichment-lookup tools, verified
   by a boundary test
-- [ ] The same input produces the same classification label across repeated runs (deterministic
+- [x] The same input produces the same classification label across repeated runs (deterministic
   enough for benchmarking)
 
 ====================================================================

@@ -34,3 +34,24 @@ def test_non_conforming_stage_is_rejected():
 
     with pytest.raises(TypeError):
         _MissingRun()  # abstract method `run` not implemented
+
+
+def test_effective_input_slice_falls_back_to_state_slice_when_unset():
+    stage = _ConformingStage()
+    assert stage.input_slice is None
+    assert stage.effective_input_slice == "intake"
+
+
+def test_effective_input_slice_uses_explicit_input_slice_when_set():
+    class _CrossSliceStage(Stage):
+        name = "cross_slice"
+        input_schema = _Payload
+        output_schema = _Payload
+        state_slice = "classification"
+        input_slice = "intake"
+
+        def run(self, data: _Payload, tools: object) -> _Payload:
+            return data
+
+    stage = _CrossSliceStage()
+    assert stage.effective_input_slice == "intake"

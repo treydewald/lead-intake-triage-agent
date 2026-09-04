@@ -26,6 +26,15 @@ class Stage(ABC, Generic[InputT, OutputT]):
     output_schema: ClassVar[type[BaseModel]]
     allowed_tools: ClassVar[frozenset[str]] = frozenset()
     state_slice: ClassVar[str]
+    input_slice: ClassVar[str | None] = None
+
+    @property
+    def effective_input_slice(self) -> str:
+        """The `LeadPipelineState` slice this stage actually reads. Defaults to
+        `state_slice` (a stage that transforms its own slice in place); a stage that
+        reads a different slice than it writes (e.g. one reading `intake` but writing
+        `classification`) overrides `input_slice` instead."""
+        return self.input_slice or self.state_slice
 
     @abstractmethod
     def run(self, data: InputT, tools: "ScopedToolProxy") -> OutputT:
