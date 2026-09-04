@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from app.models.pipeline_run import PipelineRun, StageTrace
 from app.orchestrator.contracts import Stage
-from app.orchestrator.graph import build_graph, run_pipeline
+from app.orchestrator.graph import build_graph, default_stages, run_pipeline
 from app.orchestrator.state import (
     ClassificationSlice,
     CrmWriteSlice,
@@ -157,6 +157,32 @@ def test_every_stage_transition_produces_a_queryable_stage_trace(db_session_fact
         assert all(t.status == "COMPLETED" for t in traces)
     finally:
         db.close()
+
+
+def test_default_stages_web_form_payload_reaches_classify_with_normalized_intake(db_session_factory):
+    """Feature 02: `default_stages()`'s real `IntakeStage` normalizes the raw payload and
+    the run reaches (attempts) classify_stage - still a stub until Feature 03 lands, so
+    the run halts there as FAILED, which is the expected/correct outcome at this point."""
+    stages = default_stages()
+    graph = build_graph(stages, ToolRegistry(), db_session_factory, confidence_threshold=0.7)
+
+    initial_state = LeadPipelineState(
+        intake=IntakeSlice(
+            source_channel="web_form",
+            name=" Jane Doe ",
+            phone="(555) 123-4567",
+            email=" JANE@EXAMPLE.COM ",
+            message_body="I want to buy now",
+        )
+    )
+    final = run_pipeline("lead-webform", initial_state, graph=graph, session_factory=db_session_factory)
+
+    assert final.intake.name == "Jane Doe"
+    assert final.intake.phone == "5551234567"
+    assert final.intake.email == "jane@example.com"
+    assert final.intake.empty_message is False
+    assert final.run.status == RunStatus.FAILED
+    assert final.run.failed_stage == "intent_classification"
 
 
 def test_failed_stage_transition_is_traced_with_error(db_session_factory):

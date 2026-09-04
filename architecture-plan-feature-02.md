@@ -171,6 +171,14 @@ request/response schemas. No database/migration changes.
 
 --- filled in later, by Step 7, once implementation is verified ---
 Actual Footprint
-Files actually changed: [pending Step 6/7]
-Deviations from plan: [pending Step 6/7]
-Rework required: [pending Step 6/7]
+Files actually changed: 5 new (`app/orchestrator/stages/__init__.py`, `app/orchestrator/stages/
+intake.py`, `app/routers/leads.py`, `app/tests/test_stage_intake.py`, `app/tests/
+test_router_leads.py`) + 4 modified (`app/orchestrator/graph.py`, `app/schemas/pipeline.py`,
+`backend/main.py`, `app/tests/test_orchestrator_graph.py` — matches the 5 new/3 modified prediction
+exactly, plus one additional modified test file for the graph-level stub-swap test the
+Implementation Order itself called for in step 4).
+Deviations from plan: None in source files. `app/tests/test_orchestrator_graph.py` was modified
+(predicted footprint listed only 3 modified files) to add the graph-level test the Implementation
+Order's own step 4 specified ("add one new graph-level test...") — an omission in the Predicted
+Footprint list itself, not a deviation in implementation.
+Rework required: None — all tests passed on first run (see `.claude/validation-results.md`).

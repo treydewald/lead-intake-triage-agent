@@ -9,6 +9,7 @@ from pydantic import BaseModel
 from app.database.session import SessionLocal
 from app.models.pipeline_run import PipelineRun, StageTrace
 from app.orchestrator.contracts import Stage
+from app.orchestrator.stages.intake import IntakeStage
 from app.orchestrator.state import (
     ClassificationSlice,
     CrmWriteSlice,
@@ -58,7 +59,8 @@ class _StubStage(Stage):
 
 
 def default_stages() -> dict[str, Stage]:
-    """Production stage set: all six are stubs until Features 02-07 land."""
+    """Production stage set: Feature 02's `IntakeStage` is real; the remaining five stay
+    stubs until Features 03-07 land."""
     schemas: dict[str, type[BaseModel]] = {
         "intake": IntakeSlice,
         "classification": ClassificationSlice,
@@ -67,10 +69,12 @@ def default_stages() -> dict[str, Stage]:
         "review": ReviewSlice,
         "notification": NotificationSlice,
     }
-    return {
+    stages: dict[str, Stage] = {
         slice_name: _StubStage(node_name, slice_name, feature_id, schemas[slice_name])
         for slice_name, node_name, feature_id in _STAGE_ORDER
     }
+    stages["intake"] = IntakeStage()
+    return stages
 
 
 def _write_trace(

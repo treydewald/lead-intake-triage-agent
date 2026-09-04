@@ -41,8 +41,8 @@ GROUPS:
     isolation_level: HIGH
 
   Group_F02:
-    status: IN_PROGRESS
-    owner: Worker-1 (single-session sequential run)
+    status: COMPLETED
+    owner: null
     features: [Feature 02]
     owned_files:
       [backend/app/orchestrator/stages/__init__.py, backend/app/orchestrator/stages/intake.py,
@@ -176,6 +176,7 @@ WORKER_STATE:
     - {group: Group_F01, worker: Worker-1 (single-session sequential run), action: claimed, at: "2026-09-04"}
     - {group: Group_F01, worker: Worker-1 (single-session sequential run), action: completed, at: "2026-09-04"}
     - {group: Group_F02, worker: Worker-1 (single-session sequential run), action: claimed, at: "2026-09-04"}
+    - {group: Group_F02, worker: Worker-1 (single-session sequential run), action: completed, at: "2026-09-04"}
 
 WORKER_POOL_RULES:
   - Agents must claim a group before execution
@@ -280,10 +281,10 @@ Feature 02: Intake Parsing & Normalization Stage
 Tier: Tier 1
 
 Execution Metadata (REQUIRED)
-status: IN_PROGRESS
+status: COMPLETED
 group: PIPELINE_STAGES
 locked: false
-assigned_worker: Worker-1
+assigned_worker: null
 is_blocked: false
 depends_on: [01]
 
@@ -335,12 +336,12 @@ Outputs
   received_at}, handed to Feature 01's orchestrator as the pipeline trigger
 
 Acceptance Criteria
-- [ ] A web-form payload with all fields present produces a fully-populated structured record
-- [ ] Raw email text produces a record with extracted sender fields and the full body retained
-- [ ] A callback transcript with no extractable structured fields still produces a valid record with
+- [x] A web-form payload with all fields present produces a fully-populated structured record
+- [x] Raw email text produces a record with extracted sender fields and the full body retained
+- [x] A callback transcript with no extractable structured fields still produces a valid record with
   the transcript as message_body
-- [ ] Every normalized record is tagged with the correct source_channel
-- [ ] An empty message body does not crash normalization and is explicitly flagged
+- [x] Every normalized record is tagged with the correct source_channel
+- [x] An empty message body does not crash normalization and is explicitly flagged
 
 ====================================================================
 
