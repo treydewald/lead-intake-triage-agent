@@ -74,8 +74,8 @@ GROUPS:
     isolation_level: HIGH
 
   Group_F04:
-    status: UNCLAIMED
-    owner: null
+    status: IN_PROGRESS
+    owner: Worker-1
     features: [Feature 04]
     owned_files: [backend/app/orchestrator/tools/hubspot_tools.py (new),
       backend/app/orchestrator/stages/data_enrichment.py (new),
@@ -202,6 +202,7 @@ WORKER_STATE:
     - {group: Group_F02, worker: Worker-1 (single-session sequential run), action: completed, at: "2026-09-04"}
     - {group: Group_F03, worker: Worker-1 (single-session sequential run), action: claimed, at: "2026-09-04"}
     - {group: Group_F03, worker: Worker-1 (single-session sequential run), action: completed, at: "2026-09-04"}
+    - {group: Group_F04, worker: Worker-1 (single-session sequential run), action: claimed, at: "2026-09-04"}
 
 WORKER_POOL_RULES:
   - Agents must claim a group before execution
@@ -447,7 +448,7 @@ Feature 04: Data Enrichment Stage
 Tier: Tier 1
 
 Execution Metadata (REQUIRED)
-status: NOT STARTED
+status: IN_PROGRESS
 group: PIPELINE_STAGES
 locked: false
 assigned_worker: null
