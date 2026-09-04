@@ -57,8 +57,8 @@ GROUPS:
     isolation_level: HIGH
 
   Group_F03:
-    status: CLAIMABLE
-    owner: null
+    status: IN_PROGRESS
+    owner: Worker-1
     features: [Feature 03]
     owned_files:
       [backend/app/orchestrator/stages/intent_classification.py,
@@ -186,6 +186,7 @@ WORKER_STATE:
     - {group: Group_F01, worker: Worker-1 (single-session sequential run), action: completed, at: "2026-09-04"}
     - {group: Group_F02, worker: Worker-1 (single-session sequential run), action: claimed, at: "2026-09-04"}
     - {group: Group_F02, worker: Worker-1 (single-session sequential run), action: completed, at: "2026-09-04"}
+    - {group: Group_F03, worker: Worker-1 (single-session sequential run), action: claimed, at: "2026-09-04"}
 
 WORKER_POOL_RULES:
   - Agents must claim a group before execution
