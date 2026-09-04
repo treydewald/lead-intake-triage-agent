@@ -112,3 +112,53 @@ direct `ollama` import in the stage module; real end-to-end smoke call against t
 **Status:** approved — all 5 of Feature 03's roadmap acceptance criteria verified by test, plus the
 architecture plan's tool-scoping-discipline and routing-reuse criteria; `implementation_plan.md`
 marked Feature 03 `COMPLETED`, Group_F03 `COMPLETED`
+
+---
+
+## 2026-09-04 — Step 6: Feature 04 (Data Enrichment Stage), Group_F04
+
+Implemented per `architecture-plan-feature-04.md`'s Implementation Order: `state.py`
+(`EnrichmentSlice` extension) → `tools/hubspot_tools.py` + `tools/__init__.py` → `stages/
+data_enrichment.py` → `graph.py` stub-swap.
+
+**Files modified:**
+- `backend/app/orchestrator/state.py` (modified) — `EnrichmentSlice` gains `attempted_fields`,
+  `match_confidence`, `conflicts`, `lookup_error`, alongside the existing `resolved_fields`/`sources`
+- `backend/app/orchestrator/tools/hubspot_tools.py` (new) — `search_contact(client, base_url, token,
+  *, phone=None, email=None, name=None)`: one HubSpot CRM Search API call (`EQ` filter on phone/email
+  when given, else `CONTAINS_TOKEN` on name), returns the first match's `properties` or `None`; no
+  confidence logic (kept in the stage, thin-tool principle)
+- `backend/app/orchestrator/tools/__init__.py` (modified) — `register_default_tools` additionally
+  constructs one shared `httpx.Client(timeout=5.0)` and registers `search_contact` as
+  `"hubspot_search_contact"`
+- `backend/app/orchestrator/stages/data_enrichment.py` (new) — `DataEnrichmentStage`: detects missing
+  `name`/`phone`/`email` fields, picks exact-key (phone/email, `match_confidence=1.0`) or fuzzy-name
+  (`difflib.SequenceMatcher`, `0.85` threshold) query, merges only fields Intake left null, records
+  conflicts instead of overwriting, encodes a tool exception as `lookup_error` rather than raising
+- `backend/app/orchestrator/graph.py` (modified) — `default_stages()["enrichment"]` now returns a
+  real `DataEnrichmentStage()` instead of `_StubStage`
+- `backend/app/tests/test_orchestrator_state.py` (modified) — 1 new test for `EnrichmentSlice`'s
+  extended default shape
+- `backend/app/tests/test_orchestrator_tools.py` (modified) — 5 new tests: `search_contact`'s
+  exact-match hit / no-result / HTTP-error-passthrough / fuzzy-name-filter behavior (fake `httpx`-shaped
+  client double, no mocking library), plus `register_default_tools` registers
+  `"hubspot_search_contact"`
+- `backend/app/tests/test_orchestrator_tool_scope.py` (modified) — 1 new boundary test: the real
+  `DataEnrichmentStage`'s scoped proxy can call `hubspot_search_contact` but raises
+  `OutOfScopeToolError` on `hubspot_write`
+- `backend/app/tests/test_stage_data_enrichment.py` (new) — 8 tests covering all Feature 04
+  acceptance criteria (exact-match resolve, no-op pass-through, lookup failure, conflict recorded not
+  merged, fuzzy match below/at-or-above threshold, no-match, no-identifying-field)
+- `backend/app/tests/test_orchestrator_graph.py` (modified) — updated the existing
+  `test_default_stages_web_form_payload_reaches_classify_with_normalized_intake` (renamed to
+  `..._reaches_enrichment_with_normalized_intake`) to register a fake `"hubspot_search_contact"` tool
+  that asserts it's never called (all fields already present, so real `DataEnrichmentStage` is a
+  no-op) — the run now halts at the still-stubbed `hubspot_crm_write`, not `data_enrichment`
+
+**Diff size:** ~330 lines added/changed across 8 files (2 new source modules, 1 new test file, 5
+modified)
+**Validation:** PASS — see `.claude/validation-results.md` (59/59 tests passing, first run clean;
+grep-verified no direct `httpx` import in the stage module)
+**Status:** approved — all 5 of Feature 04's roadmap acceptance criteria verified by test, plus the
+architecture plan's tool-scoping-discipline and boundary-test criteria; `implementation_plan.md`
+marked Feature 04 `COMPLETED`, Group_F04 `COMPLETED`

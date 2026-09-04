@@ -159,17 +159,22 @@ def test_every_stage_transition_produces_a_queryable_stage_trace(db_session_fact
         db.close()
 
 
-def test_default_stages_web_form_payload_reaches_classify_with_normalized_intake(db_session_factory):
-    """Features 02+03: `default_stages()`'s real `IntakeStage` normalizes the raw payload
-    and the real `IntentClassificationStage` successfully classifies it (a fake
-    "ollama_classify" tool is registered so no real Ollama call happens in this test).
-    The run then reaches (attempts) enrich_stage - still a stub until Feature 04 lands,
-    so the run halts there as FAILED, which is the expected/correct outcome at this
-    point. This proves the real classification stage's *success* path, not merely that
-    classify still fails for the old reason (an unregistered/stub stage)."""
+def test_default_stages_web_form_payload_reaches_enrichment_with_normalized_intake(db_session_factory):
+    """Features 02+03+04: `default_stages()`'s real `IntakeStage` normalizes the raw
+    payload, the real `IntentClassificationStage` successfully classifies it, and the
+    real `DataEnrichmentStage` runs as a no-op pass-through (all fields already present,
+    so no "hubspot_search_contact" call is made). The run then reaches (attempts)
+    crm_write_stage - still a stub until Feature 05 lands, so the run halts there as
+    FAILED, which is the expected/correct outcome at this point. This proves the real
+    Enrichment stage's *success* path chained after real Classification, not just its
+    unit tests in isolation - mirroring how Feature 03's graph-level test proved the
+    same for classification."""
     stages = default_stages()
     registry = ToolRegistry()
     registry.register("ollama_classify", lambda text: {"intent_label": "buyer", "confidence_score": 0.95})
+    registry.register("hubspot_search_contact", lambda **kwargs: (_ for _ in ()).throw(
+        AssertionError("tool should not be called - all fields already present")
+    ))
     graph = build_graph(stages, registry, db_session_factory, confidence_threshold=0.7)
 
     initial_state = LeadPipelineState(
@@ -189,8 +194,9 @@ def test_default_stages_web_form_payload_reaches_classify_with_normalized_intake
     assert final.intake.empty_message is False
     assert final.classification.intent_label == "buyer"
     assert final.classification.confidence_score == 0.95
+    assert final.enrichment.resolved_fields == {}
     assert final.run.status == RunStatus.FAILED
-    assert final.run.failed_stage == "data_enrichment"
+    assert final.run.failed_stage == "hubspot_crm_write"
 
 
 def test_low_confidence_classification_from_real_stage_reaches_human_review(db_session_factory):

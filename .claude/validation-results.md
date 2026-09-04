@@ -105,3 +105,33 @@ substitute for the fake-tool unit/graph tests, which remain the gating suite.
 8. `default_stages()["classification"]` is real, `build_production_graph()` registers a real tool → `test_default_stages_web_form_payload_reaches_classify_with_normalized_intake` (fakes only the tool, exercises the real stage's success path) + `test_orchestrator_tools.py::test_register_default_tools_registers_ollama_classify`
 9. Low-confidence/failed result reaches Human Review via unmodified `_route_after_enrich`, no new graph edges → `test_low_confidence_classification_from_real_stage_reaches_human_review` + `test_classification_failed_sentinel_from_real_stage_reaches_human_review`
 10. Tool-scoping discipline (no direct `ollama` import in the stage module) → grep check above
+
+---
+
+## 2026-09-04 — Feature 04 (Data Enrichment Stage)
+
+**Checks run:** `pytest app/tests/` (full backend suite, 59 tests) + grep check that
+`app/orchestrator/stages/data_enrichment.py` never imports `httpx` directly (per
+`architecture-plan-feature-04.md`'s Validation Requirements — confirmed no match, the stage reaches
+HubSpot only through `tools.call("hubspot_search_contact", ...)`). `HUBSPOT_ACCESS_TOKEN` is empty in
+this environment's `.env` (standing deviation, `.claude/pipeline-reference.md`), so the plan's
+optional live-sandbox smoke call was skipped — informative-only, not required to pass this gate.
+
+No ruff/mypy installed in this project's `.venv` (same as Feature 02's note) — pytest is the
+available validation signal this run.
+
+**Result:** PASS — `pytest app/tests/` 59 passed (44 pre-existing + 15 new: 8 in
+`test_stage_data_enrichment.py`, 5 in `test_orchestrator_tools.py`, 1 in
+`test_orchestrator_tool_scope.py`, 1 in `test_orchestrator_state.py`, plus 1 modified in
+`test_orchestrator_graph.py`), 0 failed. No fix cycle needed; all tests passed on first run.
+
+**Acceptance criteria coverage (architecture-plan-feature-04.md / roadmap Feature 04):**
+1. Missing `email`, resolvable via phone-keyed lookup → merged + tagged with source → `test_stage_data_enrichment.py::test_missing_email_resolved_via_phone_exact_match`
+2. All fields already present → unchanged no-op, no tool call made → `test_stage_data_enrichment.py::test_all_fields_present_is_a_no_op_pass_through` (trace-entry-still-logged edge case verified at the graph level, per plan, via the existing unconditional `_write_trace` call)
+3. External lookup tool raises (simulated timeout) → `lookup_error` set, does not raise out of `run()` → `test_stage_data_enrichment.py::test_lookup_failure_is_encoded_as_lookup_error_not_raised`
+4. `DataEnrichmentStage.allowed_tools` boundary (`hubspot_search_contact` only, `hubspot_write` rejected) → `test_orchestrator_tool_scope.py::test_data_enrichment_stage_proxy_rejects_hubspot_write_call`
+5. Conflicting already-populated field is recorded, never overwritten → `test_stage_data_enrichment.py::test_conflicting_field_is_recorded_not_merged`
+6. Fuzzy name match below threshold → no merge → `test_stage_data_enrichment.py::test_name_only_query_below_threshold_produces_no_merge`
+7. Fuzzy name match at/above threshold → merges as phone/email path does → `test_stage_data_enrichment.py::test_name_only_query_at_or_above_threshold_merges_fields`
+8. `default_stages()["enrichment"]` is a real `DataEnrichmentStage`, `build_production_graph()` registers a real `"hubspot_search_contact"` tool → `test_orchestrator_graph.py::test_default_stages_web_form_payload_reaches_enrichment_with_normalized_intake` + `test_orchestrator_tools.py::test_register_default_tools_registers_hubspot_search_contact`
+9. Tool-scoping discipline (no direct `httpx` import in the stage module) → grep check above

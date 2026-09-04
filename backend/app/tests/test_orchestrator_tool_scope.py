@@ -1,6 +1,7 @@
 import pytest
 
 from app.orchestrator.errors import OutOfScopeToolError
+from app.orchestrator.stages.data_enrichment import DataEnrichmentStage
 from app.orchestrator.tool_scope import ToolRegistry
 
 
@@ -33,6 +34,22 @@ def test_out_of_scope_call_is_rejected_not_silently_ignored():
 
     with pytest.raises(OutOfScopeToolError):
         proxy.call("hubspot_write", {})
+
+
+def test_data_enrichment_stage_proxy_rejects_hubspot_write_call():
+    """The real `DataEnrichmentStage` (not a bare `frozenset()`) must not be able to
+    reach `hubspot_write` - the concrete demonstration of the project's Critical risk
+    using two tools on the *same* external system (see architecture-plan-feature-04.md)."""
+    registry = ToolRegistry()
+    registry.register("hubspot_search_contact", lambda **kwargs: None)
+    registry.register("hubspot_write", lambda record: {"id": "123"})
+    stage = DataEnrichmentStage()
+
+    proxy = registry.scoped_proxy(stage.allowed_tools, stage.name)
+
+    assert proxy.call("hubspot_search_contact") is None
+    with pytest.raises(OutOfScopeToolError):
+        proxy.call("hubspot_write", {"email": "a@b.com"})
 
 
 def test_unregistered_tool_name_raises_key_error_even_if_declared_allowed():

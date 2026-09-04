@@ -9,6 +9,7 @@ from pydantic import BaseModel
 from app.database.session import SessionLocal
 from app.models.pipeline_run import PipelineRun, StageTrace
 from app.orchestrator.contracts import Stage
+from app.orchestrator.stages.data_enrichment import DataEnrichmentStage
 from app.orchestrator.stages.intake import IntakeStage
 from app.orchestrator.stages.intent_classification import IntentClassificationStage
 from app.orchestrator.state import (
@@ -60,8 +61,8 @@ class _StubStage(Stage):
 
 
 def default_stages() -> dict[str, Stage]:
-    """Production stage set: Feature 02's `IntakeStage` is real; the remaining five stay
-    stubs until Features 03-07 land."""
+    """Production stage set: Features 02-04's stages are real; the remaining three stay
+    stubs until Features 05-07 land."""
     schemas: dict[str, type[BaseModel]] = {
         "intake": IntakeSlice,
         "classification": ClassificationSlice,
@@ -76,6 +77,7 @@ def default_stages() -> dict[str, Stage]:
     }
     stages["intake"] = IntakeStage()
     stages["classification"] = IntentClassificationStage()
+    stages["enrichment"] = DataEnrichmentStage()
     return stages
 
 

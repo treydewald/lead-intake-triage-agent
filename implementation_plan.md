@@ -11,7 +11,7 @@ Note on grouping: this project's Tier 1 features form a near-strictly-linear dep
 chain off Feature 01 (see roadmap.md's Dependency Notes), so each feature is its own
 single-feature group rather than an invented multi-feature grouping — that keeps
 `dependency_groups` an exact match of each feature's real `depends_on` list instead of
-approximating it. Features 01-03 each have an `architecture-plan-*.md` (Step 5.5) so far;
+approximating it. Features 01-04 each have an `architecture-plan-*.md` (Step 5.5) so far;
 `owned_files` for every other group stays TBD until that feature's own Step 5.5 plan
 runs, per `docs/implementation-planning.md` §16 (Step 5.5 re-enters per feature group).
 
@@ -74,8 +74,8 @@ GROUPS:
     isolation_level: HIGH
 
   Group_F04:
-    status: IN_PROGRESS
-    owner: Worker-1
+    status: COMPLETED
+    owner: null
     features: [Feature 04]
     owned_files: [backend/app/orchestrator/tools/hubspot_tools.py (new),
       backend/app/orchestrator/stages/data_enrichment.py (new),
@@ -190,6 +190,8 @@ FILE_OWNERSHIP_MAP:
   backend/app/orchestrator/tools/**: Group_F03
   backend/app/tests/test_stage_intent_classification.py: Group_F03
   backend/app/tests/test_orchestrator_tools.py: Group_F03
+  backend/app/orchestrator/stages/data_enrichment.py: Group_F04
+  backend/app/tests/test_stage_data_enrichment.py: Group_F04
   # All other paths: unassigned until each feature's own group is claimed (its Step 5.5
   # plan, run just before that group is claimed, fixes owned_files first).
 
@@ -203,6 +205,7 @@ WORKER_STATE:
     - {group: Group_F03, worker: Worker-1 (single-session sequential run), action: claimed, at: "2026-09-04"}
     - {group: Group_F03, worker: Worker-1 (single-session sequential run), action: completed, at: "2026-09-04"}
     - {group: Group_F04, worker: Worker-1 (single-session sequential run), action: claimed, at: "2026-09-04"}
+    - {group: Group_F04, worker: Worker-1 (single-session sequential run), action: completed, at: "2026-09-04"}
 
 WORKER_POOL_RULES:
   - Agents must claim a group before execution
@@ -448,7 +451,7 @@ Feature 04: Data Enrichment Stage
 Tier: Tier 1
 
 Execution Metadata (REQUIRED)
-status: IN_PROGRESS
+status: COMPLETED
 group: PIPELINE_STAGES
 locked: false
 assigned_worker: null
@@ -499,13 +502,13 @@ Outputs
   (fields attempted, fields resolved, source) for Feature 08
 
 Acceptance Criteria
-- [ ] A lead record missing an email field, where the lookup tool can resolve it, ends up with the
+- [x] A lead record missing an email field, where the lookup tool can resolve it, ends up with the
   email field populated and tagged with its source
-- [ ] A lead record with all fields already present passes through unchanged and still logs a trace
+- [x] A lead record with all fields already present passes through unchanged and still logs a trace
   entry
-- [ ] An external lookup timeout does not fail the pipeline run
-- [ ] Enrichment stage has no successful path to the HubSpot write tool, verified by a boundary test
-- [ ] An already-populated field is never overwritten by a conflicting lookup result
+- [x] An external lookup timeout does not fail the pipeline run
+- [x] Enrichment stage has no successful path to the HubSpot write tool, verified by a boundary test
+- [x] An already-populated field is never overwritten by a conflicting lookup result
 
 ====================================================================
 

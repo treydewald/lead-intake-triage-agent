@@ -43,6 +43,10 @@ class EnrichmentSlice(BaseModel):
 
     resolved_fields: dict[str, Any] = Field(default_factory=dict)
     sources: dict[str, str] = Field(default_factory=dict)
+    attempted_fields: list[str] = Field(default_factory=list)
+    match_confidence: float | None = None
+    conflicts: dict[str, Any] = Field(default_factory=dict)
+    lookup_error: str | None = None
 
 
 class CrmWriteSlice(BaseModel):

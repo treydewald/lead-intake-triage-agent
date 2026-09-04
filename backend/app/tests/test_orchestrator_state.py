@@ -2,6 +2,7 @@ from datetime import datetime, timezone
 
 from app.orchestrator.state import (
     ClassificationSlice,
+    EnrichmentSlice,
     IntakeSlice,
     LeadPipelineState,
     RunMetadata,
@@ -40,3 +41,14 @@ def test_default_state_has_all_slices_present():
     assert state.review is not None
     assert state.notification is not None
     assert state.run.status == RunStatus.RUNNING
+
+
+def test_enrichment_slice_defaults_are_empty_and_none():
+    slice_ = EnrichmentSlice()
+
+    assert slice_.resolved_fields == {}
+    assert slice_.sources == {}
+    assert slice_.attempted_fields == []
+    assert slice_.match_confidence is None
+    assert slice_.conflicts == {}
+    assert slice_.lookup_error is None

@@ -12,20 +12,21 @@ How *this project* is using the Upwork Portfolio Project Pipeline. Distinct from
 **Project Mode:** STANDARD (Intent: PORTFOLIO, Lifetime: MEDIUM, Scale: MEDIUM, Optimization
 Objective: PORTFOLIO_SIGNAL — see `docs/project-strategy.md`). Steps 10-16 are MANDATORY this cycle.
 
-**Step:** Step 5.5: Implementation Planner — Feature 04 (Data Enrichment Stage) completed this session.
-Produced `architecture-plan-feature-04.md`: a read-only HubSpot contact search
-(`hubspot_search_contact`) fills missing lead fields (exact-key match on phone/email at confidence
-1.0, else a `difflib`-scored fuzzy name match against a `0.85` threshold), reusing Feature 03's
-`input_slice`/`ToolRegistry` machinery unchanged. Three Architecture Rule Changes applied to
-`.claude/portfolio-reference.md`'s Key Decisions (one wording generalization; two new — the
-read/write tool-naming split for a shared external system, and the read-time-only multi-slice merge
-convention). `implementation_plan.md`'s Group_F04 `owned_files` finalized from the plan's Implementation
-Order. Group_F04 not yet claimed by Step 6.
+**Step:** Step 6: Worker Pool Orchestrator — Group_F04 (Feature 04: Data Enrichment Stage) completed
+this session. Implemented `DataEnrichmentStage` per `architecture-plan-feature-04.md`'s Implementation
+Order: `EnrichmentSlice` extended with `attempted_fields`/`match_confidence`/`conflicts`/
+`lookup_error`; new `hubspot_tools.search_contact` (read-only, exact phone/email match or fuzzy-name
+`CONTAINS_TOKEN` fallback) registered as `"hubspot_search_contact"`; `default_stages()["enrichment"]`
+swapped from `_StubStage` to the real stage. Full backend suite: 59/59 passing (15 new tests across
+5 files), first run clean. Grep-verified no direct `httpx` import in the stage module. Live HubSpot
+sandbox smoke call skipped — `HUBSPOT_ACCESS_TOKEN` still empty in `.env` (standing deviation, see
+below). `implementation_plan.md`'s Feature 04 and Group_F04 both marked `COMPLETED`;
+`architecture-plan-feature-04.md`'s Actual Footprint filled in (no deviations, no rework).
 
 **Completed steps:** 1 (Project Advisor), 2 (Roadmap Architect), 3 (Feature Specification Engine), 4
 (Environment Bootstrap), 5.5 (Implementation Planner — Feature 01, Feature 02, Feature 03, and Feature
 04; re-entered per feature group, see `docs/implementation-planning.md` §16), 6 (Worker Pool
-Orchestrator — Group_F01, Group_F02, and Group_F03 all COMPLETED).
+Orchestrator — Group_F01, Group_F02, Group_F03, and Group_F04 all COMPLETED).
 
 **Gates passed:** None yet — Gate 2 (Step 7, implementation verification) and Gate 1 (Step 13,
 portfolio score ≥9.0/10) are both ahead. Step 7 has not yet run against any completed feature.
@@ -41,17 +42,20 @@ Tier section, STANDARD mode with Tier 2/3 features present falls back to full ti
 
 ## Next Step
 
-**Step 6: Worker Pool Orchestrator — claim Group_F04 (Feature 04: Data Enrichment Stage).**
-`architecture-plan-feature-04.md` and `implementation_plan.md`'s `owned_files` are both ready; per
-`docs/decision-trees.md`'s top-level routing ("Tier 1 features incomplete → Step 5.5 → Step 6"), this
-round's Step 5.5 is done, so Step 6 executes it directly next.
+**Step 5.5: Implementation Planner — Feature 05 (HubSpot CRM Write Stage).** Group_F04 is now
+`COMPLETED`, so Group_F05 (`depends_on: [Group_F01, Group_F04]`) is dependency-satisfied. Per
+`docs/implementation-planning.md` §16, Step 5.5 re-enters for Feature 05 (producing
+`architecture-plan-feature-05.md` and finalizing Group_F05's `owned_files`) before its own Step 6
+round claims it. Note: Feature 05 is this project's highest-risk external integration (idempotent,
+retry-safe HubSpot writes against a real sandbox) and depends on a human provisioning
+`HUBSPOT_ACCESS_TOKEN` (see Deviations below) before it can be exercised against the live sandbox —
+Step 5.5/Step 6 should not block on that being present at plan/build time, per the existing deviation
+note.
 
 **Dependency-satisfied but out of scope this round:** Group_F09 (Feature 09, Classification Accuracy
 Benchmark Report) is dependency-satisfiable (`depends_on: [Group_F03]`, completed), but it's a Tier 2
 item — Tier 1 (Features 01-08) takes priority per the roadmap's own tiering. Group_F14 (Feature 14)
-remains CLAIMABLE-but-deferred as previously noted (Tier 3, visibility only). Once Group_F04 completes,
-Group_F05 (`depends_on: [Group_F01, Group_F04]`) becomes dependency-satisfied and needs its own Step
-5.5 re-entry before its own Step 6 round, per `docs/implementation-planning.md` §16.
+remains CLAIMABLE-but-deferred as previously noted (Tier 3, visibility only).
 
 Step 5 (Workspace Recovery) does not apply — this is a fresh bootstrap, not a recovery.
 

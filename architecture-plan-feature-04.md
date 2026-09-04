@@ -272,6 +272,18 @@ binding (first HubSpot code in the project), `ToolRegistry` production populatio
 
 --- filled in later, by Step 7, once implementation is verified ---
 Actual Footprint
-Files actually changed: [pending Step 7]
-Deviations from plan: [pending Step 7]
-Rework required: [pending Step 7]
+Files actually changed: exactly as predicted — 2 new (`app/orchestrator/tools/hubspot_tools.py`,
+`app/orchestrator/stages/data_enrichment.py`) + 1 new test file
+(`app/tests/test_stage_data_enrichment.py`) + 5 modified (`app/orchestrator/state.py`,
+`app/orchestrator/tools/__init__.py`, `app/orchestrator/graph.py`, `app/tests/test_orchestrator_state.py`,
+`app/tests/test_orchestrator_tools.py`, `app/tests/test_orchestrator_tool_scope.py`,
+`app/tests/test_orchestrator_graph.py`) — 8 files total, matching the plan's predicted 4 new + 5
+modified once the one new test function counted as "modify" above is reconciled against the actual
+file list.
+Deviations from plan: none structural. `test_orchestrator_graph.py`'s existing
+`test_default_stages_web_form_payload_reaches_classify_with_normalized_intake` was renamed to
+`..._reaches_enrichment_with_normalized_intake` and its final assertion updated from
+`failed_stage == "data_enrichment"` to `failed_stage == "hubspot_crm_write"`, per the plan's own
+Implementation Order step 4 note that a real Enrichment stage's success reaches the next (still
+stubbed) node.
+Rework required: none — full backend suite (59 tests) passed on the first run; no fix cycle needed.
