@@ -1,6 +1,7 @@
 # Portfolio Reference — Lead Intake Triage Agent
 
-**Last Updated:** 2026-09-04 (populated by Step 4; keep current — see `docs/claude-directory-spec.md`)
+**Last Updated:** 2026-09-04 (Key Decisions updated by Feature 05's Step 5.5 plan — see
+`architecture-plan-feature-05.md`)
 
 Read this before opening source files. Only open the actual code when this doc doesn't answer the
 question.
@@ -120,16 +121,22 @@ that doesn't exist yet.)*
   `IntentClassificationStage`, which reads `intake` but writes `classification`) can read a different
   slice than it owns without a wildcard/multi-slice mechanism. Set by Feature 02's implementation plan
   (`architecture-plan-feature-02.md`); generalized by Feature 03's (`architecture-plan-feature-03.md`).
-- **A stage's own recoverable, per-spec-expected external-system failure (e.g., an LLM call failing
-  after one retry, an external lookup timing out, or a returned invalid/out-of-set response) must be
-  encoded as data in the stage's own output slice — never raised as a `Stage.run()` exception** — so it
-  flows through the graph's existing conditional-confidence routing (`_route_after_enrich`) into Human
-  Review instead of short-circuiting the entire run to `RunStatus.FAILED`/END via `_make_node`'s
-  exception handler. Raising from `Stage.run()` stays reserved for genuinely unexpected/bug-level
-  errors, never a failure mode a feature's own spec already anticipates. Set by Feature 03's
-  implementation plan (`architecture-plan-feature-03.md`); the examples were broadened by Feature 04's
-  (`architecture-plan-feature-04.md`) to reflect a second real instance (a lookup timeout) of the same
-  already-general principle — no semantic change.
+- **A stage's own external-system failure is encoded as data in its output slice, never raised, when
+  the owning feature's spec wants the pipeline to continue past it (e.g. route to Human Review, or
+  proceed as a no-op) — regardless of whether the spec anticipates the failure. A stage raises from
+  `run()`, letting `_make_node`'s existing exception handler set `RunStatus.FAILED`/END, when the
+  owning feature's spec wants this lead's run to halt at this stage instead — this includes
+  spec-anticipated, intentionally-terminal failures (e.g. a write failing after retries are exhausted,
+  or an invalid/expired auth token), not only genuinely unexpected bugs.** Set by Feature 03's
+  implementation plan (`architecture-plan-feature-03.md`); broadened by Feature 04's
+  (`architecture-plan-feature-04.md`) to reflect a second real instance (a lookup timeout) of the
+  continue-past-it case. **Reworded by Feature 05's implementation plan
+  (`architecture-plan-feature-05.md`)** after its own spec exposed a real contradiction in the prior
+  wording ("never a failure mode a feature's own spec already anticipates" literally forbade Feature
+  05's own required behavior — a spec-anticipated write failure that must halt the run). The
+  distinguishing test was never "does the spec anticipate this failure" — every recoverable failure
+  above was also spec-anticipated — it's "does the spec want the run to continue past it or halt for
+  this lead." This supersedes the prior wording; it is not a second rule standing beside it.
 - **Real tool bindings for external systems (LLM calls, lookups, CRM writes) are registered into
   `ToolRegistry` via one dedicated module per external system under `app/orchestrator/tools/`, wired
   together by a single `register_default_tools(registry, settings)` factory that
@@ -157,3 +164,27 @@ that doesn't exist yet.)*
   boundary, since Feature 04 is the first feature whose spec used "merge into the lead record" language
   spanning two slices it doesn't jointly own. Set by Feature 04's implementation plan
   (`architecture-plan-feature-04.md`).
+- **A stage that needs read access to more than one `LeadPipelineState` slice declares `input_slices:
+  ClassVar[tuple[str, ...]]` (plural, additive companion to the existing singular `input_slice`), and
+  its `input_schema` must be a merge-only Pydantic model whose field names exactly match those slice
+  names — `app/orchestrator/graph.py`'s `_make_node` builds it generically:
+  `stage.input_schema(**{name: getattr(state, name) for name in stage.input_slices})`.** Write access is
+  unaffected — `_make_node` still writes only `{stage.state_slice: output}`. The per-stage *read*
+  boundary has never been runtime-enforced the way `allowed_tools` is (`ScopedToolProxy` enforces tool
+  access at call time; `input_slice`/`input_slices` has only ever been a declared contract) — this
+  extends that declared-read side to a documented multi-slice case, not a new enforcement mechanism.
+  `input_slices` defaults to `None`; the original singular `input_slice`/`effective_input_slice`
+  mechanism (Feature 02/03) is unchanged and stays in active use by `IntentClassificationStage` and
+  `DataEnrichmentStage`. Set by Feature 05's implementation plan (`architecture-plan-feature-05.md`),
+  building the mechanism Feature 04's "merged lead record is read-time" Key Decision (above) had already
+  anticipated needing.
+- **A tool binding's dedupe-before-write mechanism reuses an existing read-only lookup tool as a direct
+  in-module function call, never a second registered tool exposed to the writing stage's
+  `allowed_tools`.** Concretely: `hubspot_tools.write_contact` calls `search_contact` directly;
+  `HubSpotCrmWriteStage.allowed_tools` is `frozenset({"hubspot_write"})` only, never
+  `"hubspot_search_contact"`. This is the corollary the existing "distinct tool names, granted to
+  different stages' `allowed_tools`" Key Decision (Feature 04, above) implied but didn't spell out: the
+  write-side stage gets no search access at all, even though its underlying tool internally needs to
+  search for dedupe purposes — reuse happens at the Python function level, not the tool-scoping level,
+  so the write-only boundary the project's Critical risk depends on stays real under code inspection.
+  Set by Feature 05's implementation plan (`architecture-plan-feature-05.md`).

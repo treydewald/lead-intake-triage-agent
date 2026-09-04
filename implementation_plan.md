@@ -95,9 +95,21 @@ GROUPS:
     status: UNCLAIMED
     owner: null
     features: [Feature 05]
-    owned_files: [TBD — pending Step 5.5 architecture plan for Feature 05]
+    owned_files: [backend/app/orchestrator/stages/hubspot_crm_write.py (new),
+      backend/app/tests/test_stage_hubspot_crm_write.py (new),
+      backend/app/orchestrator/contracts.py (modify — input_slices),
+      backend/app/orchestrator/state.py (modify — CrmWriteSlice, MergedIntakeEnrichment),
+      backend/app/orchestrator/graph.py (modify),
+      backend/app/orchestrator/tools/hubspot_tools.py (modify — write_contact, HubSpotWriteError),
+      backend/app/orchestrator/tools/__init__.py (modify),
+      backend/app/tests/test_orchestrator_contracts.py (modify),
+      backend/app/tests/test_orchestrator_state.py (modify),
+      backend/app/tests/test_orchestrator_tools.py (modify),
+      backend/app/tests/test_orchestrator_tool_scope.py (modify),
+      backend/app/tests/test_orchestrator_graph.py (modify)]
     dependency_groups: [Group_F01, Group_F04]
     isolation_level: HIGH
+    # architecture-plan-feature-05.md (Step 5.5) sets Implementation Order — see that file
 
   Group_F06:
     status: UNCLAIMED
@@ -192,6 +204,8 @@ FILE_OWNERSHIP_MAP:
   backend/app/tests/test_orchestrator_tools.py: Group_F03
   backend/app/orchestrator/stages/data_enrichment.py: Group_F04
   backend/app/tests/test_stage_data_enrichment.py: Group_F04
+  backend/app/orchestrator/stages/hubspot_crm_write.py: Group_F05
+  backend/app/tests/test_stage_hubspot_crm_write.py: Group_F05
   # All other paths: unassigned until each feature's own group is claimed (its Step 5.5
   # plan, run just before that group is claimed, fixes owned_files first).
 

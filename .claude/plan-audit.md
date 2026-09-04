@@ -226,3 +226,59 @@ read/write tool-naming convention Feature 05 must follow).
 
 **Next:** Step 6 (Worker Pool Orchestrator) claims Group_F04 using this plan's Implementation Order and
 reuse instructions, and finalizes `implementation_plan.md`'s `owned_files` for that group.
+
+---
+
+## 2026-09-04 — Step 5.5: Implementation Planner — Feature 05 (HubSpot CRM Write Stage)
+
+Produced `architecture-plan-feature-05.md`. Planning Depth: Deep — the project's own stated
+highest-risk external integration, and the analysis surfaced two genuine architecture gaps rather than
+a routine reuse case: this stage needs read access to two `LeadPipelineState` slices at once (which the
+existing singular `input_slice` mechanism can't express), and the existing "recoverable failure, never
+raise" Key Decision, read literally, contradicted what this feature's own spec explicitly requires (a
+genuine write failure must halt the run).
+
+**Existing Systems Analysis:** No duplication risk found (grep-confirmed `hubspot_tools.py` currently
+holds only `search_contact` and its two Protocols). Reuses `CrmWriteSlice` (extended, not replaced),
+the existing shared `httpx.Client` from `tools/__init__.py`, `hubspot_base_url`/`hubspot_access_token`
+config, `_STAGE_ORDER`/the existing `crm_write_stage` → `_route_or_fail("notify")` edge, and — most
+importantly — Feature 04's own `search_contact` function, called directly inside the new `write_contact`
+as the dedupe lookup rather than re-implemented or exposed as a second tool.
+
+**Architecture Rule Changes approved (3, all conflict-checked against existing Key Decisions):**
+1. **Reworded, not additive** — the existing "recoverable failure encoded as data, never raised" Key
+   Decision's closing clause ("never a failure mode a feature's own spec already anticipates")
+   literally forbade Feature 05's own required behavior. Generalized: the deciding question is whether
+   the spec wants the pipeline to continue past the failure or halt this lead's run — not whether the
+   spec anticipates it. This supersedes the prior wording rather than sitting beside it.
+2. New: a stage needing more than one input slice declares `input_slices` (plural companion to the
+   existing singular `input_slice`); `_make_node` builds the merged input generically from a merge-only
+   schema whose field names match the slice names. Additive — the singular mechanism (Feature 02/03) is
+   completely unchanged. No conflict found; builds the mechanism Feature 04's "merged lead record is
+   read-time" Key Decision had already anticipated needing without yet building.
+3. New: a tool's dedupe-before-write lookup reuses an existing read-only tool as a direct in-module
+   function call, never a second registered tool granted to the writing stage. No conflict found; the
+   unstated corollary of Feature 04's "distinct tool names, different stages' `allowed_tools`" rule.
+
+All three applied to `.claude/portfolio-reference.md`'s Key Decisions this session.
+
+**Implementation Order set (7 steps):** `contracts.py` (`input_slices` added) → `state.py`
+(`CrmWriteSlice` extended + new `MergedIntakeEnrichment` merge schema) → `graph.py`'s `_make_node`
+(generic multi-slice branch) → `hubspot_tools.py` (`write_contact`: dedupe-lookup-then-create-or-update,
+retry-with-backoff on 429/5xx via injected `sleep`, immediate raise on 401/403/other 4xx) →
+`tools/__init__.py` (registers `"hubspot_write"` on the existing shared client) →
+`stages/hubspot_crm_write.py` (new `HubSpotCrmWriteStage`, deliberately **no** try/except around the
+tool call — see Rule Change #1) → `graph.py` (`default_stages()["crm_write"]` swap, no routing change).
+
+**Notable design resolution:** write-side dedupe is exact-key only (phone/email) — deliberately no
+name-fuzzy fallback (unlike Enrichment's read-side match), because a false-positive fuzzy match here
+would update the wrong person's *live* CRM record, not just this project's own local state. No reliable
+key present → always create, flagged `dedupe_uncertain=True`, per the spec's own edge case.
+
+**Approved by:** auto (Auto Mode + master prompt's "EXECUTE NOW" applied — same standing note as prior
+entries: worth a human look before Step 6 starts writing code, particularly the reworded failure-
+handling Key Decision and the new `input_slices` contract change, both of which affect how future
+stages should be written, not just this one).
+
+**Next:** Step 6 (Worker Pool Orchestrator) claims Group_F05 using this plan's Implementation Order and
+reuse instructions, and finalizes `implementation_plan.md`'s `owned_files` for that group.

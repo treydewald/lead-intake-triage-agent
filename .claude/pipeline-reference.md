@@ -12,20 +12,26 @@ How *this project* is using the Upwork Portfolio Project Pipeline. Distinct from
 **Project Mode:** STANDARD (Intent: PORTFOLIO, Lifetime: MEDIUM, Scale: MEDIUM, Optimization
 Objective: PORTFOLIO_SIGNAL — see `docs/project-strategy.md`). Steps 10-16 are MANDATORY this cycle.
 
-**Step:** Step 6: Worker Pool Orchestrator — Group_F04 (Feature 04: Data Enrichment Stage) completed
-this session. Implemented `DataEnrichmentStage` per `architecture-plan-feature-04.md`'s Implementation
-Order: `EnrichmentSlice` extended with `attempted_fields`/`match_confidence`/`conflicts`/
-`lookup_error`; new `hubspot_tools.search_contact` (read-only, exact phone/email match or fuzzy-name
-`CONTAINS_TOKEN` fallback) registered as `"hubspot_search_contact"`; `default_stages()["enrichment"]`
-swapped from `_StubStage` to the real stage. Full backend suite: 59/59 passing (15 new tests across
-5 files), first run clean. Grep-verified no direct `httpx` import in the stage module. Live HubSpot
-sandbox smoke call skipped — `HUBSPOT_ACCESS_TOKEN` still empty in `.env` (standing deviation, see
-below). `implementation_plan.md`'s Feature 04 and Group_F04 both marked `COMPLETED`;
-`architecture-plan-feature-04.md`'s Actual Footprint filled in (no deviations, no rework).
+**Step:** Step 5.5: Implementation Planner — Feature 05 (HubSpot CRM Write Stage) completed this
+session. Produced `architecture-plan-feature-05.md` (Deep tier). Two genuine architecture gaps
+surfaced and resolved before any code was written: (1) this stage needs read access to both `intake`
+and `enrichment` slices at once, which the existing singular `input_slice` mechanism couldn't express
+— resolved by adding an additive `input_slices` (plural) companion to `Stage`, with `_make_node`
+building the merged input generically from a new `MergedIntakeEnrichment` schema; (2) the existing
+"recoverable failure, never raise" Key Decision, read literally, contradicted Feature 05's own spec
+(a write failure after retries exhausted must halt the run, not continue) — resolved by rewording the
+Key Decision to the actual distinguishing test ("does the spec want the run to continue past it or
+halt for this lead," not "does the spec anticipate it"). A third rule was added: the new write tool's
+dedupe lookup reuses Feature 04's `search_contact` as a direct in-module function call, never a second
+registered tool exposed to the write-only stage. All three applied to `.claude/portfolio-reference.md`'s
+Key Decisions. `implementation_plan.md`'s `Group_F05.owned_files` finalized (12 files: 2 new, 10
+modify) and a `FILE_OWNERSHIP_MAP` entry added for the new stage file, following Group_F04's precedent
+of only mapping genuinely new files (shared files stay under their originating group's wildcard).
+`.claude/plan-audit.md` has the new checkpoint entry.
 
 **Completed steps:** 1 (Project Advisor), 2 (Roadmap Architect), 3 (Feature Specification Engine), 4
-(Environment Bootstrap), 5.5 (Implementation Planner — Feature 01, Feature 02, Feature 03, and Feature
-04; re-entered per feature group, see `docs/implementation-planning.md` §16), 6 (Worker Pool
+(Environment Bootstrap), 5.5 (Implementation Planner — Feature 01, Feature 02, Feature 03, Feature 04,
+and Feature 05; re-entered per feature group, see `docs/implementation-planning.md` §16), 6 (Worker Pool
 Orchestrator — Group_F01, Group_F02, Group_F03, and Group_F04 all COMPLETED).
 
 **Gates passed:** None yet — Gate 2 (Step 7, implementation verification) and Gate 1 (Step 13,
@@ -42,15 +48,18 @@ Tier section, STANDARD mode with Tier 2/3 features present falls back to full ti
 
 ## Next Step
 
-**Step 5.5: Implementation Planner — Feature 05 (HubSpot CRM Write Stage).** Group_F04 is now
-`COMPLETED`, so Group_F05 (`depends_on: [Group_F01, Group_F04]`) is dependency-satisfied. Per
-`docs/implementation-planning.md` §16, Step 5.5 re-enters for Feature 05 (producing
-`architecture-plan-feature-05.md` and finalizing Group_F05's `owned_files`) before its own Step 6
-round claims it. Note: Feature 05 is this project's highest-risk external integration (idempotent,
-retry-safe HubSpot writes against a real sandbox) and depends on a human provisioning
-`HUBSPOT_ACCESS_TOKEN` (see Deviations below) before it can be exercised against the live sandbox —
-Step 5.5/Step 6 should not block on that being present at plan/build time, per the existing deviation
-note.
+**Step 6: Worker Pool Orchestrator — Group_F05 (Feature 05: HubSpot CRM Write Stage).**
+`architecture-plan-feature-05.md` now exists with a full Implementation Order (7 steps) and finalized
+`owned_files`; Step 6 claims Group_F05 and builds exactly that order: `contracts.py` (`input_slices`) →
+`state.py` (`CrmWriteSlice` extended + `MergedIntakeEnrichment`) → `graph.py`'s `_make_node` (generic
+multi-slice branch) → `hubspot_tools.py` (`write_contact`, retry-with-backoff, reuses `search_contact`
+internally) → `tools/__init__.py` (registers `"hubspot_write"`) → `stages/hubspot_crm_write.py` (new
+`HubSpotCrmWriteStage` — deliberately no try/except around the tool call, per the reworded Key
+Decision) → `graph.py`'s `default_stages()["crm_write"]` swap. Note: Feature 05 is this project's
+highest-risk external integration and depends on a human provisioning `HUBSPOT_ACCESS_TOKEN` (see
+Deviations below) before it can be exercised against the live sandbox — Step 6 should not block on
+that being present at build time, per the existing deviation note; unit tests use fake tool/client
+doubles throughout, same as Features 03/04.
 
 **Dependency-satisfied but out of scope this round:** Group_F09 (Feature 09, Classification Accuracy
 Benchmark Report) is dependency-satisfiable (`depends_on: [Group_F03]`, completed), but it's a Tier 2
