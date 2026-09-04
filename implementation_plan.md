@@ -92,8 +92,8 @@ GROUPS:
     # architecture-plan-feature-04.md (Step 5.5) sets Implementation Order — see that file
 
   Group_F05:
-    status: UNCLAIMED
-    owner: null
+    status: IN_PROGRESS
+    owner: Worker-1
     features: [Feature 05]
     owned_files: [backend/app/orchestrator/stages/hubspot_crm_write.py (new),
       backend/app/tests/test_stage_hubspot_crm_write.py (new),
@@ -220,6 +220,7 @@ WORKER_STATE:
     - {group: Group_F03, worker: Worker-1 (single-session sequential run), action: completed, at: "2026-09-04"}
     - {group: Group_F04, worker: Worker-1 (single-session sequential run), action: claimed, at: "2026-09-04"}
     - {group: Group_F04, worker: Worker-1 (single-session sequential run), action: completed, at: "2026-09-04"}
+    - {group: Group_F05, worker: Worker-1 (single-session sequential run), action: claimed, at: "2026-09-04"}
 
 WORKER_POOL_RULES:
   - Agents must claim a group before execution
