@@ -12,18 +12,18 @@ How *this project* is using the Upwork Portfolio Project Pipeline. Distinct from
 **Project Mode:** STANDARD (Intent: PORTFOLIO, Lifetime: MEDIUM, Scale: MEDIUM, Optimization
 Objective: PORTFOLIO_SIGNAL — see `docs/project-strategy.md`). Steps 10-16 are MANDATORY this cycle.
 
-**Step:** Step 5.5: Implementation Planner — complete for Feature 02 (Intake Parsing & Normalization
-Stage). Produced `architecture-plan-feature-02.md`; two Architecture Rule Changes applied to
-`.claude/portfolio-reference.md`'s Key Decisions (per-stage module location under
-`app/orchestrator/stages/`, and the input==output-schema raw-data-seeding convention).
+**Step:** Step 6: Worker Pool Orchestrator — Group_F02 (Feature 02: Intake Parsing & Normalization
+Stage) claimed, implemented, and completed this session. `default_stages()["intake"]` is now a real
+`IntakeStage`; three intake endpoints (`/leads/webform`, `/leads/email`, `/leads/callback`) added.
+29/29 backend tests passing.
 
 **Completed steps:** 1 (Project Advisor), 2 (Roadmap Architect), 3 (Feature Specification Engine), 4
 (Environment Bootstrap), 5.5 (Implementation Planner — Feature 01 and Feature 02; re-entered per
-feature group, see `docs/implementation-planning.md` §16), 6 (Worker Pool Orchestrator — Feature
-01/Group_F01 only so far).
+feature group, see `docs/implementation-planning.md` §16), 6 (Worker Pool Orchestrator —
+Group_F01 and Group_F02 both COMPLETED).
 
 **Gates passed:** None yet — Gate 2 (Step 7, implementation verification) and Gate 1 (Step 13,
-portfolio score ≥9.0/10) are both ahead.
+portfolio score ≥9.0/10) are both ahead. Step 7 has not yet run against either completed feature.
 
 **`.claude/` scaffold status:** Current — full-tier scaffold copied from pipeline templates on
 2026-09-04. See `PIPELINE-SYNC.md`.
@@ -36,12 +36,20 @@ Tier section, STANDARD mode with Tier 2/3 features present falls back to full ti
 
 ## Next Step
 
-**Step 6 (re-entry): Worker Pool Orchestrator claims Group_F02** (Feature 02 — Intake Parsing &
-Normalization Stage). `architecture-plan-feature-02.md` is complete with a 5-step Implementation
-Order (`stages/intake.py` → `schemas/pipeline.py` additions → `routers/leads.py` → `graph.py`
-stub-swap → `main.py` registration). Step 6 should finalize `implementation_plan.md`'s `owned_files`
-for Group_F02 from that Implementation Order (currently `TBD`) before claiming, per
-`prompts/06_worker-pool-orchestrator.md`'s grouping rule #4.
+**Step 5.5 (re-entry): Implementation Planner for Feature 03 (Intent Classification Stage)**, then
+**Step 6 (re-entry): Worker Pool Orchestrator claims Group_F03** — per
+`docs/implementation-planning.md` §16, Step 5.5 re-enters per feature group before Step 6 claims it.
+Feature 03 is the next group in Tier 1's linear build order (`depends_on: [01, 02]`, both now
+COMPLETED) and calls a local Ollama LLM for classification — the first feature to touch AI
+integration, so Step 5.5's Existing Systems Analysis should confirm how `ollama_model`/
+`ollama_base_url` (already in `app/core/config.py`) get wired into a scoped tool binding via
+`tool_scope.py`, and how a classification tool gets registered with `ToolRegistry` in
+`build_production_graph()`.
+
+**Dependency-satisfied but out of scope this round:** Group_F14 (Feature 14, Multi-Channel Intake
+Expansion) also became CLAIMABLE once Group_F02 completed (`depends_on: [Group_F02]`), but it's a
+Tier 3 "FUTURE" item recorded for visibility only per `plan-audit.md`'s Step 3 entry — not part of
+this round's approved build order. Do not claim it ahead of Tier 1/Tier 2 features.
 
 Step 5 (Workspace Recovery) does not apply — this is a fresh bootstrap, not a recovery.
 
