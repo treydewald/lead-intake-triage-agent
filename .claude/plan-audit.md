@@ -164,3 +164,65 @@ Rule Changes to the `Stage` contract itself).
 
 **Next:** Step 6 (Worker Pool Orchestrator) claims Group_F03 using this plan's Implementation Order and
 reuse instructions, and finalizes `implementation_plan.md`'s `owned_files` for that group.
+
+---
+
+## 2026-09-04 — Step 5.5: Implementation Planner — Feature 04 (Data Enrichment Stage)
+
+Produced `architecture-plan-feature-04.md`. Planning Depth: Standard (reuses Feature 03's
+`input_slice`/`ToolRegistry` machinery unchanged — no `Stage` contract change needed — but introduces
+the project's first HubSpot integration code and a new cross-slice question: what "merge into the lead
+record" means when each stage owns only one slice).
+
+**Existing Systems Analysis:** No duplication risk found (grep-confirmed no HubSpot client/lookup code
+exists yet). Reuses `contracts.py`'s `input_slice`/`effective_input_slice` (Enrichment reads `intake`,
+writes `enrichment` — the second stage to do this), `graph.py`'s `_STAGE_ORDER`/`default_stages()` swap
+point and unmodified `_route_after_enrich` (routes purely on `classification.confidence_score`, so
+Enrichment's own success/failure needs no new edge), the `tools/` one-module-per-external-system
+convention, and already-present `hubspot_base_url`/`hubspot_access_token` config + pinned `httpx`.
+**Key finding:** `app/tests/test_orchestrator_tool_scope.py` already anticipated a `"hubspot_write"`
+tool name and a `"data_enrichment"`-named stage proxy that must never reach it — written ahead of this
+feature, the same kind of forward-anticipation Feature 03 found for `"ollama_classify"`. This fixed
+both the stage's `name` and the eventual Feature 05 write-tool name, and made a HubSpot-backed
+read-only search (rather than a new paid third-party lookup service) the natural, free-by-default
+choice for Enrichment's own tool — reusing the project's already-planned HubSpot integration instead of
+adding a new external dependency, and turning the two tools' shared external system into a concrete
+demonstration of the project's stated Critical risk.
+
+**Architecture Rule Changes approved (3, all conflict-checked against existing Key Decisions):**
+1. Wording generalization only (not a new rule) — the existing "recoverable external-system failure
+   encoded as data, never raised" Key Decision's parenthetical examples broadened to include a lookup
+   timeout, since Enrichment is a second real instance of the same already-general principle.
+2. New: a read-only tool and a write tool for the same external system may share one `tools/
+   <system>.py` module but must be registered under distinct names and granted to different stages'
+   `allowed_tools` — never the same name gating both (`hubspot_search_contact` vs. `hubspot_write`).
+   No conflict found; the read/write-scoping analogue of Feature 03's one-module-per-system rule,
+   unaddressed until now because Ollama has only ever had one binding.
+3. New: a "merged lead record" spanning more than one `LeadPipelineState` slice is a read-time concept,
+   never a write-time one — a stage never writes into another stage's owned slice to represent a merge;
+   a downstream consumer (e.g. Feature 05) reads the owning slice first, falling back to another named
+   slice's fields for whatever the owner left null. No conflict found; doesn't change
+   `LeadPipelineState`'s existing "each stage reads/writes only its own slice" boundary, just states for
+   the first time how a multi-slice merge happens within it.
+
+All three applied to `.claude/portfolio-reference.md`'s Key Decisions this session.
+
+**Implementation Order set (4 steps):** `state.py`'s `EnrichmentSlice` extended
+(`attempted_fields`/`match_confidence`/`conflicts`/`lookup_error`) → `app/orchestrator/tools/
+hubspot_tools.py` (`search_contact`, read-only) + `tools/__init__.py` registration → `stages/
+data_enrichment.py` (exact-key phone/email match at confidence 1.0, else fuzzy name match via stdlib
+`difflib` against a `0.85` threshold; never overwrites an already-populated field; never raises on
+lookup failure) → `graph.py` (`default_stages()["enrichment"] = DataEnrichmentStage()`, one line — no
+other change, since `_make_node`/`_route_after_enrich` already generalize).
+
+**Notable design resolution:** Classification's output is deliberately never read by this stage — the
+feature spec's "lead record with classification result attached" phrasing describes the conceptual
+lead moving through the pipeline, not a literal input Enrichment's own logic needs; it only ever reads
+`IntakeSlice` fields.
+
+**Approved by:** auto (Auto Mode + master prompt's "EXECUTE NOW" applied — same standing note as prior
+entries: worth a human look before Step 6 starts writing code, particularly the new HubSpot
+read/write tool-naming convention Feature 05 must follow).
+
+**Next:** Step 6 (Worker Pool Orchestrator) claims Group_F04 using this plan's Implementation Order and
+reuse instructions, and finalizes `implementation_plan.md`'s `owned_files` for that group.

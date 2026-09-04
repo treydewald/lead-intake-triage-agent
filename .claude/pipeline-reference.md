@@ -12,20 +12,20 @@ How *this project* is using the Upwork Portfolio Project Pipeline. Distinct from
 **Project Mode:** STANDARD (Intent: PORTFOLIO, Lifetime: MEDIUM, Scale: MEDIUM, Optimization
 Objective: PORTFOLIO_SIGNAL — see `docs/project-strategy.md`). Steps 10-16 are MANDATORY this cycle.
 
-**Step:** Step 6: Worker Pool Orchestrator — Group_F03 (Feature 03: Intent Classification Stage)
-claimed and completed this session. Implemented per `architecture-plan-feature-03.md`'s Implementation
-Order: `contracts.py`'s `input_slice`/`effective_input_slice` → new `app/orchestrator/tools/` package
-(`ollama_tools.py` + `register_default_tools`) → `stages/intent_classification.py` → `graph.py`
-(`_make_node` reads `effective_input_slice`; real `default_stages()["classification"]`;
-`build_production_graph()` populates `ToolRegistry` for the first time). 44/44 tests passing (15 new);
-grep-verified no direct `ollama` import in the stage module; real end-to-end smoke call against the
-local `llama3.2:3b` daemon returned a valid, in-set label. `implementation_plan.md` marked Feature 03
-`COMPLETED`, Group_F03 `COMPLETED`.
+**Step:** Step 5.5: Implementation Planner — Feature 04 (Data Enrichment Stage) completed this session.
+Produced `architecture-plan-feature-04.md`: a read-only HubSpot contact search
+(`hubspot_search_contact`) fills missing lead fields (exact-key match on phone/email at confidence
+1.0, else a `difflib`-scored fuzzy name match against a `0.85` threshold), reusing Feature 03's
+`input_slice`/`ToolRegistry` machinery unchanged. Three Architecture Rule Changes applied to
+`.claude/portfolio-reference.md`'s Key Decisions (one wording generalization; two new — the
+read/write tool-naming split for a shared external system, and the read-time-only multi-slice merge
+convention). `implementation_plan.md`'s Group_F04 `owned_files` finalized from the plan's Implementation
+Order. Group_F04 not yet claimed by Step 6.
 
 **Completed steps:** 1 (Project Advisor), 2 (Roadmap Architect), 3 (Feature Specification Engine), 4
-(Environment Bootstrap), 5.5 (Implementation Planner — Feature 01, Feature 02, and Feature 03;
-re-entered per feature group, see `docs/implementation-planning.md` §16), 6 (Worker Pool Orchestrator —
-Group_F01, Group_F02, and Group_F03 all COMPLETED).
+(Environment Bootstrap), 5.5 (Implementation Planner — Feature 01, Feature 02, Feature 03, and Feature
+04; re-entered per feature group, see `docs/implementation-planning.md` §16), 6 (Worker Pool
+Orchestrator — Group_F01, Group_F02, and Group_F03 all COMPLETED).
 
 **Gates passed:** None yet — Gate 2 (Step 7, implementation verification) and Gate 1 (Step 13,
 portfolio score ≥9.0/10) are both ahead. Step 7 has not yet run against any completed feature.
@@ -41,19 +41,17 @@ Tier section, STANDARD mode with Tier 2/3 features present falls back to full ti
 
 ## Next Step
 
-**Step 5.5 (re-entry): Implementation Planner for Feature 04 (Data Enrichment Stage).** Per
-`docs/decision-trees.md`'s top-level routing ("Tier 1 features incomplete → Step 5.5 → Step 6"), Tier 1
-still has 5 of 8 features remaining (04-08), so the next step is another Step 5.5/Step 6 round, not
-Step 7 — Step 7 (Implementation Verification) only enters once all Tier 1 features are complete.
-Group_F04 (`depends_on: [Group_F01, Group_F03]`) is now dependency-satisfied now that Group_F03 is
-`COMPLETED`; its `owned_files` are still `TBD` pending this Step 5.5 run, per
-`docs/implementation-planning.md` §16.
+**Step 6: Worker Pool Orchestrator — claim Group_F04 (Feature 04: Data Enrichment Stage).**
+`architecture-plan-feature-04.md` and `implementation_plan.md`'s `owned_files` are both ready; per
+`docs/decision-trees.md`'s top-level routing ("Tier 1 features incomplete → Step 5.5 → Step 6"), this
+round's Step 5.5 is done, so Step 6 executes it directly next.
 
 **Dependency-satisfied but out of scope this round:** Group_F09 (Feature 09, Classification Accuracy
-Benchmark Report) also became dependency-satisfiable once Group_F03 completed (`depends_on:
-[Group_F03]`), but it's a Tier 2 item — Tier 1 (Features 01-08) takes priority per the roadmap's own
-tiering. Group_F14 (Feature 14) remains CLAIMABLE-but-deferred as previously noted (Tier 3, visibility
-only).
+Benchmark Report) is dependency-satisfiable (`depends_on: [Group_F03]`, completed), but it's a Tier 2
+item — Tier 1 (Features 01-08) takes priority per the roadmap's own tiering. Group_F14 (Feature 14)
+remains CLAIMABLE-but-deferred as previously noted (Tier 3, visibility only). Once Group_F04 completes,
+Group_F05 (`depends_on: [Group_F01, Group_F04]`) becomes dependency-satisfied and needs its own Step
+5.5 re-entry before its own Step 6 round, per `docs/implementation-planning.md` §16.
 
 Step 5 (Workspace Recovery) does not apply — this is a fresh bootstrap, not a recovery.
 

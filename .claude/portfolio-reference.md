@@ -119,14 +119,16 @@ that doesn't exist yet.)*
   `IntentClassificationStage`, which reads `intake` but writes `classification`) can read a different
   slice than it owns without a wildcard/multi-slice mechanism. Set by Feature 02's implementation plan
   (`architecture-plan-feature-02.md`); generalized by Feature 03's (`architecture-plan-feature-03.md`).
-- **A stage's own recoverable, per-spec-expected external-system failure (an LLM call failing after one
-  retry, or returning an invalid/out-of-set response after one retry) must be encoded as data in the
-  stage's own output slice — never raised as a `Stage.run()` exception** — so it flows through the
-  graph's existing conditional-confidence routing (`_route_after_enrich`) into Human Review instead of
-  short-circuiting the entire run to `RunStatus.FAILED`/END via `_make_node`'s exception handler.
-  Raising from `Stage.run()` stays reserved for genuinely unexpected/bug-level errors, never a failure
-  mode a feature's own spec already anticipates. Set by Feature 03's implementation plan
-  (`architecture-plan-feature-03.md`).
+- **A stage's own recoverable, per-spec-expected external-system failure (e.g., an LLM call failing
+  after one retry, an external lookup timing out, or a returned invalid/out-of-set response) must be
+  encoded as data in the stage's own output slice — never raised as a `Stage.run()` exception** — so it
+  flows through the graph's existing conditional-confidence routing (`_route_after_enrich`) into Human
+  Review instead of short-circuiting the entire run to `RunStatus.FAILED`/END via `_make_node`'s
+  exception handler. Raising from `Stage.run()` stays reserved for genuinely unexpected/bug-level
+  errors, never a failure mode a feature's own spec already anticipates. Set by Feature 03's
+  implementation plan (`architecture-plan-feature-03.md`); the examples were broadened by Feature 04's
+  (`architecture-plan-feature-04.md`) to reflect a second real instance (a lookup timeout) of the same
+  already-general principle — no semantic change.
 - **Real tool bindings for external systems (LLM calls, lookups, CRM writes) are registered into
   `ToolRegistry` via one dedicated module per external system under `app/orchestrator/tools/`, wired
   together by a single `register_default_tools(registry, settings)` factory that
@@ -134,3 +136,23 @@ that doesn't exist yet.)*
   A stage module still never constructs or imports a tool binding directly; it only ever reaches one
   through its `ScopedToolProxy`. Set by Feature 03's implementation plan
   (`architecture-plan-feature-03.md`).
+- **A read-only tool and a write tool for the same external system may share one `tools/<system>.py`
+  module but must be registered under distinct tool names and granted to different stages'
+  `allowed_tools` — never the same name gating both.** Concretely: `hubspot_search_contact` (Feature
+  04, `data_enrichment`) and `hubspot_write` (Feature 05, `hubspot_crm_write` — name fixed in advance by
+  `app/tests/test_orchestrator_tool_scope.py`) will share `hubspot_tools.py` as two independently-scoped
+  bindings. This is what makes "Enrichment cannot reach CRM write" true under code inspection, the
+  read/write-scoping analogue of the one-module-per-external-system rule above for the first external
+  system two different stages both touch. Set by Feature 04's implementation plan
+  (`architecture-plan-feature-04.md`).
+- **A "merged lead record" spanning more than one `LeadPipelineState` slice is a read-time concept, not
+  a write-time one — a stage never writes into another stage's owned slice to represent a merge.** A
+  downstream consumer needing the full record (CRM Write, Notification, observability) treats the
+  owning slice's fields as primary and falls back to another named slice's own fields for whatever the
+  owner left null — e.g. Feature 05 reads `IntakeSlice` fields first, falling back to
+  `EnrichmentSlice.resolved_fields` for anything `IntakeSlice` left `None`. This doesn't change the
+  existing "each stage reads/writes only its own declared slice" boundary (`LeadPipelineState`'s
+  docstring) — it's the first explicit statement of how a multi-slice merge happens within that
+  boundary, since Feature 04 is the first feature whose spec used "merge into the lead record" language
+  spanning two slices it doesn't jointly own. Set by Feature 04's implementation plan
+  (`architecture-plan-feature-04.md`).
