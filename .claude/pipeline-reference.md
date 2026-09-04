@@ -41,22 +41,19 @@ Tier section, STANDARD mode with Tier 2/3 features present falls back to full ti
 
 ## Next Step
 
-**Step 6 (re-entry): Worker Pool Orchestrator claims Group_F03** (Feature 03: Intent Classification
-Stage) — `architecture-plan-feature-03.md` and `implementation_plan.md`'s `owned_files` are both ready;
-Group_F03 is `CLAIMABLE`. Implementation Order from the plan: (1) `contracts.py`'s `input_slice`/
-`effective_input_slice` → (2) new `app/orchestrator/tools/` package (`ollama_tools.py` +
-`register_default_tools`) → (3) `stages/intent_classification.py` (empty-message short-circuit;
-retry-once-then-fail-closed call/validation policy; `{buyer, browser, spam}` label set) → (4)
-`graph.py` (`_make_node` reads `effective_input_slice`; real `default_stages()["classification"]`;
-`build_production_graph()` populates `ToolRegistry` for the first time). Step 6 must also update
-`test_orchestrator_graph.py`'s `default_stages()`-based test to register a fake `"ollama_classify"`
-tool so it exercises the real stage's success path, not the old stub-failure path — see the
-architecture plan's Implementation Order step 4 and Validation Requirements.
+**Step 5.5 (re-entry): Implementation Planner for Feature 04 (Data Enrichment Stage).** Per
+`docs/decision-trees.md`'s top-level routing ("Tier 1 features incomplete → Step 5.5 → Step 6"), Tier 1
+still has 5 of 8 features remaining (04-08), so the next step is another Step 5.5/Step 6 round, not
+Step 7 — Step 7 (Implementation Verification) only enters once all Tier 1 features are complete.
+Group_F04 (`depends_on: [Group_F01, Group_F03]`) is now dependency-satisfied now that Group_F03 is
+`COMPLETED`; its `owned_files` are still `TBD` pending this Step 5.5 run, per
+`docs/implementation-planning.md` §16.
 
-**Dependency-satisfied but out of scope this round:** Group_F14 (Feature 14, Multi-Channel Intake
-Expansion) also became CLAIMABLE once Group_F02 completed (`depends_on: [Group_F02]`), but it's a
-Tier 3 "FUTURE" item recorded for visibility only per `plan-audit.md`'s Step 3 entry — not part of
-this round's approved build order. Do not claim it ahead of Tier 1/Tier 2 features.
+**Dependency-satisfied but out of scope this round:** Group_F09 (Feature 09, Classification Accuracy
+Benchmark Report) also became dependency-satisfiable once Group_F03 completed (`depends_on:
+[Group_F03]`), but it's a Tier 2 item — Tier 1 (Features 01-08) takes priority per the roadmap's own
+tiering. Group_F14 (Feature 14) remains CLAIMABLE-but-deferred as previously noted (Tier 3, visibility
+only).
 
 Step 5 (Workspace Recovery) does not apply — this is a fresh bootstrap, not a recovery.
 
