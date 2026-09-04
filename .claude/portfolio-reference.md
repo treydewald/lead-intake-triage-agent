@@ -38,13 +38,19 @@ portfolio gate (Mode: STANDARD).
 | `backend/app/models/` | SQLAlchemy ORM models (lead records, stage traces, review queue — populated in Step 6) |
 | `backend/app/schemas/` | Pydantic request/response schemas (populated in Step 6) |
 | `backend/app/routers/` | FastAPI route modules — `health.py` scaffolded; per-feature routers added in Step 6 |
-| `backend/app/orchestrator/` | Pipeline stage-coordination layer (LangGraph) — the state-machine backbone for Feature 01; empty scaffold, implemented in Step 6 |
-| `backend/alembic/` | DB migrations, wired to `app.database.session.Base` and `settings.database_url` |
-| `frontend/src/components/` | Shared UI (`BuildIndicator.tsx`, `Layout.tsx`); feature components added in Step 6 |
-| `frontend/src/pages/` | Route-level pages (observability view, review queue — added in Step 6) |
-| `frontend/src/lib/` | API client and typed helpers (added in Step 6) |
+| `backend/app/orchestrator/contracts.py` | `Stage` ABC contract every pipeline stage implements (input/output schema, `allowed_tools`, `state_slice`) |
+| `backend/app/orchestrator/state.py` | `LeadPipelineState` — one Pydantic slice per stage (intake, classification, enrichment, crm_write, review, notification) + run metadata |
+| `backend/app/orchestrator/tool_scope.py` | `ToolRegistry`/`ScopedToolProxy` — the enforced per-stage tool-access boundary; a stage only ever reaches a tool through its scoped proxy |
+| `backend/app/orchestrator/errors.py` | `OutOfScopeToolError`, `StageExecutionError`, `StateValidationError` |
+| `backend/app/orchestrator/graph.py` | LangGraph `StateGraph` wiring the 6 stages (stub bodies for Features 02-07 until each lands), `run_pipeline()` entry point |
+| `backend/app/models/pipeline_run.py` | `PipelineRun`/`StageTrace` SQLAlchemy models — every stage transition's persisted trace |
+| `backend/app/schemas/pipeline.py` | Pydantic request/response schemas for triggering/querying a pipeline run |
+| `backend/alembic/` | DB migrations, wired to `app.database.session.Base` and `settings.database_url`; `245c694fed3d_*` creates `pipeline_run`/`stage_trace` |
+| `frontend/src/components/` | Shared UI (`BuildIndicator.tsx`, `Layout.tsx`); feature components added as their own Step 6 groups land |
+| `frontend/src/pages/` | Route-level pages (observability view, review queue — added as their own Step 6 groups land) |
+| `frontend/src/lib/` | API client and typed helpers (added as their own Step 6 groups land) |
 
-*(Fill in further as the project's real structure emerges in Step 6 — don't pre-guess a structure
+*(Fill in further as each remaining feature's own Step 6 group lands — don't pre-guess a structure
 that doesn't exist yet.)*
 
 ---

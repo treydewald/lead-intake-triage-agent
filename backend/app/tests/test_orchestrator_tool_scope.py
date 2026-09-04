@@ -1,0 +1,43 @@
+import pytest
+
+from app.orchestrator.errors import OutOfScopeToolError
+from app.orchestrator.tool_scope import ToolRegistry
+
+
+def test_scoped_proxy_allows_declared_tool():
+    registry = ToolRegistry()
+    registry.register("ollama_classify", lambda text: "buyer")
+
+    proxy = registry.scoped_proxy(frozenset({"ollama_classify"}), "intent_classification")
+
+    assert proxy.call("ollama_classify", "hi") == "buyer"
+
+
+def test_classification_stage_proxy_rejects_hubspot_write_call():
+    """Direct test for the project's Critical risk: a stage must not reach a tool
+    outside its declared contract, even when the tool exists in the registry."""
+    registry = ToolRegistry()
+    registry.register("ollama_classify", lambda text: "buyer")
+    registry.register("hubspot_write", lambda record: {"id": "123"})
+
+    proxy = registry.scoped_proxy(frozenset({"ollama_classify"}), "intent_classification")
+
+    with pytest.raises(OutOfScopeToolError):
+        proxy.call("hubspot_write", {"email": "a@b.com"})
+
+
+def test_out_of_scope_call_is_rejected_not_silently_ignored():
+    registry = ToolRegistry()
+    registry.register("hubspot_write", lambda record: {"id": "123"})
+    proxy = registry.scoped_proxy(frozenset(), "data_enrichment")
+
+    with pytest.raises(OutOfScopeToolError):
+        proxy.call("hubspot_write", {})
+
+
+def test_unregistered_tool_name_raises_key_error_even_if_declared_allowed():
+    registry = ToolRegistry()
+    proxy = registry.scoped_proxy(frozenset({"not_registered"}), "some_stage")
+
+    with pytest.raises(KeyError):
+        proxy.call("not_registered")
