@@ -1,0 +1,39 @@
+{
+  "_comment": "Baseline .claude/settings.json for Lead Intake Triage Agent, scaffolded by prompts/04 on 2026-09-04. See docs/claude-directory-spec.md and docs/token-discipline.md §7 for what each section is for.",
+
+  "permissions": {
+    "_comment": "Pre-approve safe, read-only, high-frequency operations so they stop triggering permission prompts. Extend this list from actual usage rather than guessing — see the fewer-permission-prompts skill.",
+    "allow": [
+      "Bash(git status)",
+      "Bash(git diff*)",
+      "Bash(git log*)",
+      "Read(*)",
+      "Grep(*)",
+      "Glob(*)",
+      "Bash(cd backend && pytest*)",
+      "Bash(cd frontend && npm test*)",
+      "Bash(cd frontend && npm run lint*)",
+      "Bash(cd frontend && npm run build*)",
+      "Bash(ollama list)"
+    ]
+  },
+
+  "mcpServers": {
+    "_comment": "See .claude/mcp-servers.md for which servers (if any) this project actually uses and why. Empty by default — most portfolio projects need none. Enable only what's actively integrated; each enabled server adds overhead to every prompt."
+  },
+
+  "modelRouting": {
+    "_comment": "See .claude/model-strategy.md for the full rationale. Keys are illustrative skill/command names — adjust to what this project actually has.",
+    "plan-generation": "opus",
+    "code-review": "opus",
+    "feature-implementation": "sonnet",
+    "test-writing": "sonnet",
+    "lint-fix": "haiku",
+    "validation-loop": "haiku",
+    "reference-doc-update": "haiku"
+  },
+
+  "hooks": {
+    "_comment": "Post-change validation loop (docs/plan-execute-review.md §Execute Phase). Wire an actual hook here only if this project's tooling supports one non-noisily; otherwise apply the loop as a manual discipline within Step 6's prompt and skip this section. Do not add a hook that fires on every tool call without producing actionable output (see docs/token-discipline.md §7)."
+  }
+}
