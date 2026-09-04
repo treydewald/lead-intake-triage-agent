@@ -162,3 +162,74 @@ grep-verified no direct `httpx` import in the stage module)
 **Status:** approved — all 5 of Feature 04's roadmap acceptance criteria verified by test, plus the
 architecture plan's tool-scoping-discipline and boundary-test criteria; `implementation_plan.md`
 marked Feature 04 `COMPLETED`, Group_F04 `COMPLETED`
+
+---
+
+## 2026-09-04 — Step 6: Feature 05 (HubSpot CRM Write Stage), Group_F05
+
+Implemented per `architecture-plan-feature-05.md`'s Implementation Order (7 steps): `contracts.py`
+(`input_slices`) → `state.py` (`CrmWriteSlice` extended + `MergedIntakeEnrichment`) → `graph.py`'s
+`_make_node` (generic multi-slice branch) → `hubspot_tools.py` (`write_contact`, `HubSpotWriteError`)
+→ `tools/__init__.py` (registers `"hubspot_write"`) → `stages/hubspot_crm_write.py` (new
+`HubSpotCrmWriteStage`) → `graph.py`'s `default_stages()["crm_write"]` swap.
+
+**Files modified:**
+- `backend/app/orchestrator/contracts.py` (modified) — `Stage` gains `input_slices:
+  ClassVar[tuple[str, ...] | None] = None`, additive companion to the existing singular
+  `input_slice`; unused by any existing stage
+- `backend/app/orchestrator/state.py` (modified) — `CrmWriteSlice` gains `dedupe_key_used`,
+  `dedupe_uncertain`, `retry_count`, plus a corrected `write_status` doc-comment; new
+  `MergedIntakeEnrichment(intake: IntakeSlice, enrichment: EnrichmentSlice)` read-time merge schema
+- `backend/app/orchestrator/graph.py` (modified) — `_make_node` gains a generic branch: when
+  `stage.input_slices` is set, builds `stage.input_schema(**{name: getattr(state, name) for name in
+  stage.input_slices})` instead of the single-slice `effective_input_slice` lookup;
+  `default_stages()["crm_write"]` now returns a real `HubSpotCrmWriteStage()`
+- `backend/app/orchestrator/tools/hubspot_tools.py` (modified) — new `HubSpotWriteError` and
+  `write_contact(client, base_url, token, *, phone=None, email=None, properties, max_retries=3,
+  base_delay=0.5, sleep=time.sleep)`: each retry re-runs the whole attempt (dedupe lookup + write,
+  not just the write); dedupe lookup reuses `search_contact` directly (unmodified); a match is
+  addressed for PATCH via HubSpot's `idProperty` upsert query parameter (the dedupe key's own value
+  as the path segment) rather than a second lookup to recover the internal HubSpot id — this keeps
+  `search_contact`'s existing return shape (properties only, no id) completely untouched; no
+  match → POST create; neither phone nor email given → POST directly, `dedupe_uncertain=True`, zero
+  lookup calls; 429/5xx retries with backoff up to `max_retries`; 401/403 raises immediately, no
+  retry; other 4xx raises immediately, no retry; retries exhausted raises
+- `backend/app/orchestrator/tools/__init__.py` (modified) — `register_default_tools` additionally
+  registers `write_contact` as `"hubspot_write"` on the same shared `httpx.Client` already
+  constructed for `"hubspot_search_contact"`
+- `backend/app/orchestrator/stages/hubspot_crm_write.py` (new) — `HubSpotCrmWriteStage`: reads
+  `input_slices = ("intake", "enrichment")`, builds `properties` from intake-primary/
+  enrichment-fallback fields, calls `tools.call("hubspot_write", ...)` with **no** try/except (a
+  `HubSpotWriteError` propagates straight out of `run()`, per the reworded Key Decision)
+- `backend/app/tests/test_orchestrator_contracts.py` (modified) — 1 new test: `input_slices`
+  defaults to `None`
+- `backend/app/tests/test_orchestrator_state.py` (modified) — 2 new tests: `CrmWriteSlice`'s
+  extended default shape, `MergedIntakeEnrichment` construction
+- `backend/app/tests/test_orchestrator_graph.py` (modified) — 3 new tests: `_make_node`'s generic
+  multi-slice merge branch (independent minimal fake stage), a real-stage chained success path
+  reaching `notify_stage` (Notification faked, per Feature 04's precedent), a real-stage
+  `HubSpotWriteError` halting the run `FAILED` at `"hubspot_crm_write"`. The existing
+  `test_default_stages_web_form_payload_reaches_enrichment_with_normalized_intake` needed **no**
+  change — with `"hubspot_write"` unregistered in that test's registry, the real stage's
+  `tools.call` now raises `KeyError` instead of hitting a `_StubStage`'s `NotImplementedError`,
+  producing the identical expected outcome (`FAILED` at `"hubspot_crm_write"`)
+- `backend/app/tests/test_orchestrator_tools.py` (modified) — 1 new test (`register_default_tools`
+  registers `"hubspot_write"` distinct from `"hubspot_search_contact"`) + 7 new `write_contact` unit
+  tests (create, update, 429-then-success retry, retries-exhausted, 401 immediate-raise, other-4xx
+  immediate-raise, no-identifying-field)
+- `backend/app/tests/test_orchestrator_tool_scope.py` (modified) — 1 new boundary test: the real
+  `HubSpotCrmWriteStage`'s scoped proxy can call `hubspot_write` but raises `OutOfScopeToolError` on
+  `hubspot_search_contact`
+- `backend/app/tests/test_stage_hubspot_crm_write.py` (new) — 5 tests: successful create, retried-
+  then-succeeded write reflected verbatim, `run()` re-raises a tool exception without catching it,
+  enrichment-fallback field used when intake left it null, intake field takes priority over
+  enrichment's fallback
+
+**Diff size:** ~470 lines added/changed across 10 files (2 new source modules, 1 new test file, 7
+modified)
+**Validation:** PASS — see `.claude/validation-results.md` (79/79 tests passing, first run clean;
+grep-verified no direct `httpx` import and no `try`/`except` around the tool call in the new stage
+module)
+**Status:** approved — all 5 of Feature 05's roadmap acceptance criteria verified by test, plus the
+architecture plan's tool-scoping-discipline, multi-slice-merge, and reworded-failure-handling
+criteria; `implementation_plan.md` marked Feature 05 `COMPLETED`, Group_F05 `COMPLETED`

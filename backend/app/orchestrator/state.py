@@ -53,7 +53,20 @@ class CrmWriteSlice(BaseModel):
     """Feature 05's slice: HubSpot write result."""
 
     hubspot_record_id: str | None = None
-    write_status: str | None = None  # created | updated | failed
+    write_status: str | None = None  # "created" | "updated" — never "failed": a failed
+    # write raises instead of returning a slice, see architecture-plan-feature-05.md
+    dedupe_key_used: str | None = None
+    dedupe_uncertain: bool = False
+    retry_count: int = 0
+
+
+class MergedIntakeEnrichment(BaseModel):
+    """Feature 05's read-time merge input: `HubSpotCrmWriteStage.input_slices` names
+    `("intake", "enrichment")`, and `_make_node` builds this generically by matching
+    field names to slice names — see architecture-plan-feature-05.md."""
+
+    intake: IntakeSlice
+    enrichment: EnrichmentSlice
 
 
 class ReviewSlice(BaseModel):

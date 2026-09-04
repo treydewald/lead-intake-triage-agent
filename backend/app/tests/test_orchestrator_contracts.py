@@ -42,6 +42,11 @@ def test_effective_input_slice_falls_back_to_state_slice_when_unset():
     assert stage.effective_input_slice == "intake"
 
 
+def test_input_slices_defaults_to_none_when_unset():
+    stage = _ConformingStage()
+    assert stage.input_slices is None
+
+
 def test_effective_input_slice_uses_explicit_input_slice_when_set():
     class _CrossSliceStage(Stage):
         name = "cross_slice"

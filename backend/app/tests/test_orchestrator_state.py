@@ -2,9 +2,11 @@ from datetime import datetime, timezone
 
 from app.orchestrator.state import (
     ClassificationSlice,
+    CrmWriteSlice,
     EnrichmentSlice,
     IntakeSlice,
     LeadPipelineState,
+    MergedIntakeEnrichment,
     RunMetadata,
     RunStatus,
 )
@@ -52,3 +54,23 @@ def test_enrichment_slice_defaults_are_empty_and_none():
     assert slice_.match_confidence is None
     assert slice_.conflicts == {}
     assert slice_.lookup_error is None
+
+
+def test_crm_write_slice_defaults():
+    slice_ = CrmWriteSlice()
+
+    assert slice_.hubspot_record_id is None
+    assert slice_.write_status is None
+    assert slice_.dedupe_key_used is None
+    assert slice_.dedupe_uncertain is False
+    assert slice_.retry_count == 0
+
+
+def test_merged_intake_enrichment_constructs_from_both_slices():
+    merged = MergedIntakeEnrichment(
+        intake=IntakeSlice(source_channel="web_form", email=None),
+        enrichment=EnrichmentSlice(resolved_fields={"email": "jane@example.com"}),
+    )
+
+    assert merged.intake.source_channel == "web_form"
+    assert merged.enrichment.resolved_fields["email"] == "jane@example.com"

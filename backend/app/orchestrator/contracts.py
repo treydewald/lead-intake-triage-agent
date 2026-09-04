@@ -27,6 +27,7 @@ class Stage(ABC, Generic[InputT, OutputT]):
     allowed_tools: ClassVar[frozenset[str]] = frozenset()
     state_slice: ClassVar[str]
     input_slice: ClassVar[str | None] = None
+    input_slices: ClassVar[tuple[str, ...] | None] = None
 
     @property
     def effective_input_slice(self) -> str:

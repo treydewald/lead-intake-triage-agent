@@ -135,3 +135,48 @@ available validation signal this run.
 7. Fuzzy name match at/above threshold → merges as phone/email path does → `test_stage_data_enrichment.py::test_name_only_query_at_or_above_threshold_merges_fields`
 8. `default_stages()["enrichment"]` is a real `DataEnrichmentStage`, `build_production_graph()` registers a real `"hubspot_search_contact"` tool → `test_orchestrator_graph.py::test_default_stages_web_form_payload_reaches_enrichment_with_normalized_intake` + `test_orchestrator_tools.py::test_register_default_tools_registers_hubspot_search_contact`
 9. Tool-scoping discipline (no direct `httpx` import in the stage module) → grep check above
+
+---
+
+## 2026-09-04 — Feature 05 (HubSpot CRM Write Stage)
+
+**Checks run:** `pytest app/tests/` (full backend suite, 79 tests) + grep check that
+`app/orchestrator/stages/hubspot_crm_write.py` never imports `httpx` directly (confirmed no match —
+the stage reaches HubSpot only through `tools.call("hubspot_write", ...)`) + grep check that the
+same file contains no `try`/`except` around the tool-call line (confirmed — the only matches are the
+docstring's own description of that deliberate omission, not code) + grep check that
+`HUBSPOT_ACCESS_TOKEN` is set in `.env` (confirmed still empty — standing deviation from Feature 04's
+run, per `.claude/pipeline-reference.md`), so the plan's optional live-sandbox smoke call was again
+skipped — informative-only, not required to pass this gate.
+
+No ruff/mypy installed in this project's `.venv` (same note as prior features) — pytest is the
+available validation signal this run.
+
+**Result:** PASS — `pytest app/tests/` 79 passed (59 pre-existing + 20 new: 5 in
+`test_stage_hubspot_crm_write.py`, 8 in `test_orchestrator_tools.py`, 3 in
+`test_orchestrator_graph.py`, 2 in `test_orchestrator_state.py`, 1 in
+`test_orchestrator_tool_scope.py`, 1 in `test_orchestrator_contracts.py`), 0 failed. No fix cycle
+needed; all tests passed on first run.
+
+**Design note surfaced during implementation (not anticipated by the architecture plan):**
+`search_contact` (Feature 04) returns only a contact's `properties`, never its internal HubSpot
+object id — but a PATCH-based update needs an id to address. Resolved without touching
+`search_contact` or its existing tests: `write_contact` addresses an update via HubSpot's own
+`idProperty` upsert query parameter (`PATCH .../contacts/{dedupe-key-value}?idProperty=phone|email`),
+using the dedupe key's own value as the path segment instead of a second lookup to recover the
+internal id. This is a real, documented HubSpot v3 CRM API capability, not a workaround — and it
+means `search_contact`'s dedupe-lookup reuse (Architecture Rule Change #3) needed no return-shape
+change at all, a stronger form of the "never re-implemented" reuse the plan called for.
+
+**Acceptance criteria coverage (architecture-plan-feature-05.md / roadmap Feature 05):**
+1. A new lead with no existing HubSpot match creates exactly one HubSpot record → `test_orchestrator_tools.py::test_write_contact_creates_when_no_existing_match`
+2. Re-running the same lead's pipeline updates the existing record instead of creating a second one → `test_orchestrator_tools.py::test_write_contact_updates_when_existing_match_found` (a repeated dedupe lookup against the same phone/email always finds the just-created record, by construction)
+3. A simulated HubSpot rate-limit response triggers backoff-and-retry, not immediate failure → `test_orchestrator_tools.py::test_write_contact_retries_once_on_429_then_succeeds`
+4. A write failure after retries are exhausted marks the pipeline run FAILED at this stage, not silently treated as success → `test_orchestrator_tools.py::test_write_contact_raises_after_exhausting_retries_on_429` (tool level) + `test_orchestrator_graph.py::test_default_stages_crm_write_failure_halts_run_via_real_stage` (graph level, real stage)
+5. No pipeline stage other than this one has a successful path to HubSpot's write API → `test_orchestrator_tool_scope.py::test_hubspot_crm_write_stage_proxy_rejects_hubspot_search_contact_call` + the existing `test_data_enrichment_stage_proxy_rejects_hubspot_write_call` (Feature 04, unchanged, still passing) — both directions of the write/search boundary now covered
+6. `HubSpotCrmWriteStage.run()` never catches a tool exception → `test_stage_hubspot_crm_write.py::test_run_reraises_write_error_from_tool_call_without_catching_it` + grep check above
+7. Read-time merge (enrichment fallback when intake left a field null) is actually wired, not just documented → `test_stage_hubspot_crm_write.py::test_enrichment_fallback_email_used_when_intake_email_is_none` + `test_orchestrator_graph.py::test_make_node_builds_merged_input_for_a_stage_declaring_input_slices` (proves `_make_node`'s generic branch itself)
+8. `default_stages()["crm_write"]` is a real `HubSpotCrmWriteStage`, success path reaches Notification → `test_orchestrator_graph.py::test_default_stages_high_confidence_lead_reaches_notify_via_real_crm_write_stage`
+9. `401`/other non-retryable failures raise immediately with zero retries → `test_orchestrator_tools.py::test_write_contact_raises_immediately_on_401_with_no_retry` + `test_write_contact_raises_immediately_on_other_4xx_with_no_retry`
+10. No reliable dedupe key present → always create, flagged uncertain, zero lookup calls → `test_orchestrator_tools.py::test_write_contact_with_no_identifying_field_creates_directly_with_dedupe_uncertain`
+11. Tool-scoping discipline (no direct `httpx` import in the stage module) → grep check above

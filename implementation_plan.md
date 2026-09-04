@@ -92,8 +92,8 @@ GROUPS:
     # architecture-plan-feature-04.md (Step 5.5) sets Implementation Order — see that file
 
   Group_F05:
-    status: IN_PROGRESS
-    owner: Worker-1
+    status: COMPLETED
+    owner: null
     features: [Feature 05]
     owned_files: [backend/app/orchestrator/stages/hubspot_crm_write.py (new),
       backend/app/tests/test_stage_hubspot_crm_write.py (new),
@@ -221,6 +221,7 @@ WORKER_STATE:
     - {group: Group_F04, worker: Worker-1 (single-session sequential run), action: claimed, at: "2026-09-04"}
     - {group: Group_F04, worker: Worker-1 (single-session sequential run), action: completed, at: "2026-09-04"}
     - {group: Group_F05, worker: Worker-1 (single-session sequential run), action: claimed, at: "2026-09-04"}
+    - {group: Group_F05, worker: Worker-1 (single-session sequential run), action: completed, at: "2026-09-04"}
 
 WORKER_POOL_RULES:
   - Agents must claim a group before execution
@@ -535,10 +536,10 @@ Feature 05: HubSpot CRM Write Stage
 Tier: Tier 1
 
 Execution Metadata (REQUIRED)
-status: NOT STARTED
+status: COMPLETED
 group: CRM_INTEGRATION
 locked: false
-assigned_worker: null
+assigned_worker: Worker-1
 is_blocked: false
 depends_on: [01, 04]
 
@@ -588,13 +589,13 @@ Outputs
   logged as a trace entry for Feature 08 and consumed by Feature 06's gate logic
 
 Acceptance Criteria
-- [ ] A new lead with no existing HubSpot match creates exactly one HubSpot record
-- [ ] Re-running the same lead's pipeline (simulated retry) updates the existing record instead of
+- [x] A new lead with no existing HubSpot match creates exactly one HubSpot record
+- [x] Re-running the same lead's pipeline (simulated retry) updates the existing record instead of
   creating a second one
-- [ ] A simulated HubSpot rate-limit response triggers backoff-and-retry rather than immediate failure
-- [ ] A write failure after retries are exhausted marks the pipeline run FAILED at this stage, not
+- [x] A simulated HubSpot rate-limit response triggers backoff-and-retry rather than immediate failure
+- [x] A write failure after retries are exhausted marks the pipeline run FAILED at this stage, not
   silently treated as success
-- [ ] No pipeline stage other than this one has a successful path to HubSpot's write API, verified by
+- [x] No pipeline stage other than this one has a successful path to HubSpot's write API, verified by
   a boundary test
 
 ====================================================================

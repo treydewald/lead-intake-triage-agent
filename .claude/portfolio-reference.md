@@ -1,7 +1,7 @@
 # Portfolio Reference — Lead Intake Triage Agent
 
-**Last Updated:** 2026-09-04 (Key Decisions updated by Feature 05's Step 5.5 plan — see
-`architecture-plan-feature-05.md`)
+**Last Updated:** 2026-09-04 (Key Decisions updated by Feature 05's Step 6 implementation — see
+`execution-log.md`)
 
 Read this before opening source files. Only open the actual code when this doc doesn't answer the
 question.
@@ -46,7 +46,8 @@ portfolio gate (Mode: STANDARD).
 | `backend/app/orchestrator/graph.py` | LangGraph `StateGraph` wiring the 6 stages (stub bodies for Features 05-07 until each lands), `run_pipeline()` entry point |
 | `backend/app/orchestrator/stages/intent_classification.py` | Feature 03's `IntentClassificationStage` — calls `ollama_classify` via the scoped tool proxy, retry-once-then-fail-closed |
 | `backend/app/orchestrator/stages/data_enrichment.py` | Feature 04's `DataEnrichmentStage` — calls `hubspot_search_contact` via the scoped tool proxy; exact-key phone/email match or `difflib`-scored fuzzy name match, merges only fields Intake left null, never raises |
-| `backend/app/orchestrator/tools/` | Real tool bindings for external systems, one module per system (`ollama_tools.py`, `hubspot_tools.py`), wired by `register_default_tools()` |
+| `backend/app/orchestrator/stages/hubspot_crm_write.py` | Feature 05's `HubSpotCrmWriteStage` — write-only (`hubspot_write` alone); reads both `intake` and `enrichment` via `input_slices`; calls `tools.call("hubspot_write", ...)` with no try/except so a write failure halts the run |
+| `backend/app/orchestrator/tools/` | Real tool bindings for external systems, one module per system (`ollama_tools.py`, `hubspot_tools.py`), wired by `register_default_tools()`; `hubspot_tools.py` holds both `search_contact` (read-only) and `write_contact` (write-only, retry-with-backoff) |
 | `backend/app/models/pipeline_run.py` | `PipelineRun`/`StageTrace` SQLAlchemy models — every stage transition's persisted trace |
 | `backend/app/schemas/pipeline.py` | Pydantic request/response schemas for triggering/querying a pipeline run |
 | `backend/alembic/` | DB migrations, wired to `app.database.session.Base` and `settings.database_url`; `245c694fed3d_*` creates `pipeline_run`/`stage_trace` |
@@ -188,3 +189,16 @@ that doesn't exist yet.)*
   search for dedupe purposes — reuse happens at the Python function level, not the tool-scoping level,
   so the write-only boundary the project's Critical risk depends on stays real under code inspection.
   Set by Feature 05's implementation plan (`architecture-plan-feature-05.md`).
+- **A HubSpot record update addresses the contact by its own dedupe-key *value* via HubSpot's
+  `idProperty` upsert query parameter (`PATCH .../contacts/{phone-or-email-value}?idProperty=phone|
+  email`), never by looking up the contact's internal HubSpot object id first.** Discovered during
+  Feature 05's Step 6 implementation, not anticipated by its architecture plan:
+  `hubspot_search_contact` (Feature 04) returns only a matched contact's `properties`, never its
+  internal id, and changing that return shape would have broken Feature 04's own existing tests for
+  no Feature-05-specific benefit. `idProperty` is a real, documented HubSpot v3 CRM API upsert
+  capability — using it means `write_contact`'s dedupe-lookup reuse of `search_contact` (the Key
+  Decision above) needed zero changes to `search_contact` itself, a stronger form of "never
+  re-implemented" reuse than the plan anticipated. Any future stage needing an existing HubSpot
+  record's actual internal id (not just whether a match exists) should follow this same pattern —
+  address by a known unique property's value via `idProperty`, not by extending `search_contact`'s
+  return shape.

@@ -7,7 +7,7 @@ import ollama
 
 from app.core.config import Settings
 from app.orchestrator.tool_scope import ToolRegistry
-from app.orchestrator.tools.hubspot_tools import search_contact
+from app.orchestrator.tools.hubspot_tools import search_contact, write_contact
 from app.orchestrator.tools.ollama_tools import classify_intent
 
 
@@ -22,4 +22,8 @@ def register_default_tools(registry: ToolRegistry, settings: Settings) -> None:
     registry.register(
         "hubspot_search_contact",
         functools.partial(search_contact, http_client, settings.hubspot_base_url, settings.hubspot_access_token),
+    )
+    registry.register(
+        "hubspot_write",
+        functools.partial(write_contact, http_client, settings.hubspot_base_url, settings.hubspot_access_token),
     )

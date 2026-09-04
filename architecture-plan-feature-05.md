@@ -329,6 +329,21 @@ Systems predicted to touch: `Stage` contract (additive `input_slices`), `CrmWrit
 
 --- filled in later, by Step 7, once implementation is verified ---
 Actual Footprint
-Files actually changed: [pending Step 6/Step 7]
-Deviations from plan: [pending Step 6/Step 7]
-Rework required: [pending Step 6/Step 7]
+Files actually changed: matches Predicted Footprint exactly — 2 new
+(`app/orchestrator/stages/hubspot_crm_write.py`, `app/tests/test_stage_hubspot_crm_write.py`) + 9
+modified (`app/orchestrator/contracts.py`, `app/orchestrator/state.py`, `app/orchestrator/graph.py`,
+`app/orchestrator/tools/hubspot_tools.py`, `app/orchestrator/tools/__init__.py`,
+`app/tests/test_orchestrator_contracts.py`, `app/tests/test_orchestrator_state.py`,
+`app/tests/test_orchestrator_tools.py`, `app/tests/test_orchestrator_tool_scope.py`,
+`app/tests/test_orchestrator_graph.py` — 10 modified once fully counted, one more than predicted:
+`.claude/portfolio-reference.md` also gained a Key Decision entry, not itself a code file).
+Deviations from plan: One genuine implementation-time discovery not anticipated by this plan's
+Existing Systems Analysis: `search_contact` returns only a matched contact's `properties`, never its
+internal HubSpot object id, which `write_contact`'s PATCH-based update needs to address the record.
+Resolved without modifying `search_contact` or its existing tests — `write_contact` addresses an
+update via HubSpot's own `idProperty` upsert query parameter (the dedupe key's own value as the path
+segment) instead of a second lookup to recover the id. Recorded as a new Key Decision in
+`.claude/portfolio-reference.md` (see Step 6's `execution-log.md` entry). No other deviation from the
+Implementation Order's 7 steps.
+Rework required: none — all 79 tests (59 pre-existing + 20 new) passed on the first `pytest` run; no
+fix cycle needed.

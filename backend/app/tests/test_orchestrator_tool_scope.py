@@ -2,6 +2,7 @@ import pytest
 
 from app.orchestrator.errors import OutOfScopeToolError
 from app.orchestrator.stages.data_enrichment import DataEnrichmentStage
+from app.orchestrator.stages.hubspot_crm_write import HubSpotCrmWriteStage
 from app.orchestrator.tool_scope import ToolRegistry
 
 
@@ -50,6 +51,23 @@ def test_data_enrichment_stage_proxy_rejects_hubspot_write_call():
     assert proxy.call("hubspot_search_contact") is None
     with pytest.raises(OutOfScopeToolError):
         proxy.call("hubspot_write", {"email": "a@b.com"})
+
+
+def test_hubspot_crm_write_stage_proxy_rejects_hubspot_search_contact_call():
+    """The real `HubSpotCrmWriteStage` (write-only) must not be able to reach
+    `hubspot_search_contact`, even though its own underlying `hubspot_write` tool
+    internally calls `search_contact` for its dedupe lookup — reuse happens at the Python
+    function level, not the tool-scoping level (see architecture-plan-feature-05.md)."""
+    registry = ToolRegistry()
+    registry.register("hubspot_search_contact", lambda **kwargs: None)
+    registry.register("hubspot_write", lambda **kwargs: {"id": "123"})
+    stage = HubSpotCrmWriteStage()
+
+    proxy = registry.scoped_proxy(stage.allowed_tools, stage.name)
+
+    assert proxy.call("hubspot_write") == {"id": "123"}
+    with pytest.raises(OutOfScopeToolError):
+        proxy.call("hubspot_search_contact")
 
 
 def test_unregistered_tool_name_raises_key_error_even_if_declared_allowed():

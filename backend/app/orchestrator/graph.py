@@ -10,6 +10,7 @@ from app.database.session import SessionLocal
 from app.models.pipeline_run import PipelineRun, StageTrace
 from app.orchestrator.contracts import Stage
 from app.orchestrator.stages.data_enrichment import DataEnrichmentStage
+from app.orchestrator.stages.hubspot_crm_write import HubSpotCrmWriteStage
 from app.orchestrator.stages.intake import IntakeStage
 from app.orchestrator.stages.intent_classification import IntentClassificationStage
 from app.orchestrator.state import (
@@ -78,6 +79,7 @@ def default_stages() -> dict[str, Stage]:
     stages["intake"] = IntakeStage()
     stages["classification"] = IntentClassificationStage()
     stages["enrichment"] = DataEnrichmentStage()
+    stages["crm_write"] = HubSpotCrmWriteStage()
     return stages
 
 
@@ -116,7 +118,10 @@ def _make_node(stage: Stage, registry: ToolRegistry, session_factory: SessionFac
             # always routes to END), but never silently proceed past a halted run.
             return {}
 
-        slice_in = getattr(state, stage.effective_input_slice)
+        if stage.input_slices is not None:
+            slice_in = stage.input_schema(**{name: getattr(state, name) for name in stage.input_slices})
+        else:
+            slice_in = getattr(state, stage.effective_input_slice)
         proxy = registry.scoped_proxy(stage.allowed_tools, stage.name)
 
         try:

@@ -2,13 +2,15 @@ from __future__ import annotations
 
 from app.models.pipeline_run import PipelineRun, StageTrace
 from app.orchestrator.contracts import Stage
-from app.orchestrator.graph import build_graph, default_stages, run_pipeline
+from app.orchestrator.graph import _make_node, build_graph, default_stages, run_pipeline
+from app.orchestrator.tools.hubspot_tools import HubSpotWriteError
 from app.orchestrator.state import (
     ClassificationSlice,
     CrmWriteSlice,
     EnrichmentSlice,
     IntakeSlice,
     LeadPipelineState,
+    MergedIntakeEnrichment,
     NotificationSlice,
     ReviewSlice,
     RunStatus,
@@ -274,3 +276,100 @@ def test_failed_stage_transition_is_traced_with_error(db_session_factory):
         assert "boom" in (traces[-1].error or "")
     finally:
         db.close()
+
+
+class _MultiSliceFakeStage(Stage):
+    """Minimal stage declaring `input_slices` (plural), independent of Feature 05's own
+    `HubSpotCrmWriteStage`, to prove `_make_node`'s generic merge branch itself."""
+
+    name = "multi_slice_fake"
+    input_schema = MergedIntakeEnrichment
+    output_schema = CrmWriteSlice
+    allowed_tools = frozenset()
+    state_slice = "crm_write"
+    input_slices = ("intake", "enrichment")
+
+    def run(self, data: MergedIntakeEnrichment, tools) -> CrmWriteSlice:
+        return CrmWriteSlice(hubspot_record_id=data.intake.email, write_status=data.enrichment.resolved_fields.get("source"))
+
+
+def test_make_node_builds_merged_input_for_a_stage_declaring_input_slices(db_session_factory):
+    state = LeadPipelineState(
+        intake=IntakeSlice(source_channel="web_form", email="jane@example.com"),
+        enrichment=EnrichmentSlice(resolved_fields={"source": "hubspot_search_contact"}),
+    )
+    node = _make_node(_MultiSliceFakeStage(), ToolRegistry(), db_session_factory)
+
+    result = node(state)
+
+    assert result["crm_write"].hubspot_record_id == "jane@example.com"
+    assert result["crm_write"].write_status == "hubspot_search_contact"
+
+
+def test_default_stages_high_confidence_lead_reaches_notify_via_real_crm_write_stage(db_session_factory):
+    """Features 02+03+04+05 chained: real IntakeStage -> real IntentClassificationStage ->
+    real DataEnrichmentStage -> real HubSpotCrmWriteStage (fake "hubspot_write" tool).
+    Notification (Feature 07) is still a stub, faked here so this isolates "does the real
+    CRM Write stage's success path reach notify_stage" from "is Notification implemented
+    yet" - mirroring Feature 04's own graph-level chaining test."""
+    stages = default_stages()
+    stages["notification"] = _FakeStage(
+        "outcome_notification",
+        "notification",
+        NotificationSlice,
+        lambda data, tools: NotificationSlice(notified=True, outcome_type="auto_processed"),
+    )
+    registry = ToolRegistry()
+    registry.register("ollama_classify", lambda text: {"intent_label": "buyer", "confidence_score": 0.95})
+    registry.register("hubspot_search_contact", lambda **kwargs: None)
+    registry.register(
+        "hubspot_write",
+        lambda **kwargs: {
+            "id": "hs-1",
+            "status": "created",
+            "dedupe_key_used": "email",
+            "dedupe_uncertain": False,
+            "retry_count": 0,
+        },
+    )
+    graph = build_graph(stages, registry, db_session_factory, confidence_threshold=0.7)
+
+    initial_state = LeadPipelineState(
+        intake=IntakeSlice(
+            source_channel="web_form", name="Jane Doe", email="jane@example.com", message_body="I want to buy now"
+        )
+    )
+    final = run_pipeline("lead-crm-write-success", initial_state, graph=graph, session_factory=db_session_factory)
+
+    assert final.run.status == RunStatus.RUNNING
+    assert final.crm_write.hubspot_record_id == "hs-1"
+    assert final.crm_write.write_status == "created"
+    assert final.notification.notified is True
+
+
+def test_default_stages_crm_write_failure_halts_run_via_real_stage(db_session_factory):
+    """A real `HubSpotCrmWriteStage` whose `"hubspot_write"` tool raises
+    `HubSpotWriteError` must halt the run FAILED at `"hubspot_crm_write"` - proving
+    Architecture Rule Change #2 (write failures are never encoded as data) on the real
+    stage, not just the fake-stage version `test_stage_exception_halts_only_that_leads_run`
+    already covers."""
+    stages = default_stages()
+    registry = ToolRegistry()
+    registry.register("ollama_classify", lambda text: {"intent_label": "buyer", "confidence_score": 0.95})
+    registry.register("hubspot_search_contact", lambda **kwargs: None)
+
+    def _always_raise(**kwargs):
+        raise HubSpotWriteError("HubSpot write failed after 3 retries: simulated")
+
+    registry.register("hubspot_write", _always_raise)
+    graph = build_graph(stages, registry, db_session_factory, confidence_threshold=0.7)
+
+    initial_state = LeadPipelineState(
+        intake=IntakeSlice(
+            source_channel="web_form", name="Jane Doe", email="jane@example.com", message_body="I want to buy now"
+        )
+    )
+    final = run_pipeline("lead-crm-write-fail", initial_state, graph=graph, session_factory=db_session_factory)
+
+    assert final.run.status == RunStatus.FAILED
+    assert final.run.failed_stage == "hubspot_crm_write"
