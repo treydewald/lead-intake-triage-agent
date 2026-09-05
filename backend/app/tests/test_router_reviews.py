@@ -250,6 +250,43 @@ def test_reject_sets_rejected_status_and_creates_a_rejected_notification(client,
         db.close()
 
 
+def test_approve_with_reviewer_name_persists_it(client, db_session_factory):
+    paused = _create_paused_run(db_session_factory)
+    capturing = _CapturingCrmWriteStage()
+    app.dependency_overrides[get_resume_graph_factory] = lambda: _fake_resume_graph_factory(capturing)
+
+    response = client.post(
+        f"/reviews/{paused.run.run_id}/action",
+        json={"action": "approve", "reviewer_name": "Jordan"},
+    )
+
+    assert response.status_code == 200
+
+    db = db_session_factory()
+    try:
+        item = db.query(ReviewQueueItem).filter(ReviewQueueItem.run_id == paused.run.run_id).one()
+        assert item.reviewer_name == "Jordan"
+    finally:
+        db.close()
+
+
+def test_approve_without_reviewer_name_leaves_it_null(client, db_session_factory):
+    paused = _create_paused_run(db_session_factory)
+    capturing = _CapturingCrmWriteStage()
+    app.dependency_overrides[get_resume_graph_factory] = lambda: _fake_resume_graph_factory(capturing)
+
+    response = client.post(f"/reviews/{paused.run.run_id}/action", json={"action": "approve"})
+
+    assert response.status_code == 200
+
+    db = db_session_factory()
+    try:
+        item = db.query(ReviewQueueItem).filter(ReviewQueueItem.run_id == paused.run.run_id).one()
+        assert item.reviewer_name is None
+    finally:
+        db.close()
+
+
 def test_second_action_on_already_actioned_run_returns_409_and_leaves_first_effect_unchanged(
     client, db_session_factory
 ):

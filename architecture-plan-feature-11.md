@@ -277,6 +277,23 @@ path, frontend routing, `LeadDetailPage.tsx`, `ReviewDetailPage.tsx`, one new Al
 
 --- filled in later, by Step 7 / CD-4, once implementation is verified ---
 Actual Footprint
-Files actually changed: [pending Step 6]
-Deviations from plan: [pending Step 6/7]
-Rework required: [pending Step 6/7]
+Files actually changed: 14 (matches the plan's predicted files exactly, plus 3 test files the
+predicted-footprint count didn't itemize: `backend/app/tests/test_router_leads_history.py` (new),
+`backend/app/tests/test_router_reviews.py` (modified), `frontend/src/pages/LeadHistoryPage.test.tsx`
+(new), `frontend/src/pages/ReviewDetailPage.test.tsx` (modified)). Full list in
+`.claude/execution-log.md`'s 2026-09-05 Feature 11 entry.
+Deviations from plan: None in implementation — all 6 steps of the Implementation Order were followed
+exactly, including confirming the actual alembic head (`a95fad549dbf`) matched the plan's stated value
+before writing the migration (unlike Feature 10, no correction was needed here). One deviation in
+verification method: no browser-automation tool was available this session (checked via `ToolSearch`;
+no Playwright package installed under `frontend/`), so the live UI click-through prior features used
+was replaced with (a) real live backend verification via direct HTTP against a running dev server —
+`POST /leads/webform` against the real `llama3.2:3b` model, `POST /reviews/{run_id}/action` against a
+real pending review item, `GET /leads/{lead_id}/history` against both results — plus (b) 14 jsdom/RTL
+component tests that render the actual component tree and assert on real DOM output. Recorded honestly
+in `.claude/execution-log.md`/`validation-results.md` rather than presented as equivalent to a
+browser-verified click-through; no visual/screenshot evidence exists for this feature's UI.
+Rework required: None. One pre-existing, unrelated test failure was found while running the full
+frontend suite (`App.test.tsx` asserting `HomePage.tsx`'s pre-RB-004 placeholder text) — confirmed via
+`git stash` to predate this session and fall outside Group_F11's `owned_files`; logged as
+`.claude/refinement-backlog.md`'s RB-005 rather than fixed here.

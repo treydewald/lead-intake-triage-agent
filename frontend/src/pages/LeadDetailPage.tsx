@@ -77,6 +77,9 @@ export function LeadDetailPage() {
             ← Back to leads
           </Link>
           <h1 className="mt-1 text-xl font-semibold">Lead {lead.lead_id.slice(0, 8)}</h1>
+          <Link to={`/leads/${lead.lead_id}/history`} className="text-sm text-teal-700 hover:underline">
+            View Full History →
+          </Link>
         </div>
         <span className="inline-flex rounded-full bg-slate-100 px-3 py-1 text-sm font-medium text-slate-700">
           {lead.status.replace('_', ' ')}

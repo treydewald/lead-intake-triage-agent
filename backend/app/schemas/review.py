@@ -13,6 +13,7 @@ class ReviewActionRequest(BaseModel):
 
     action: Literal["approve", "reject", "edit"]
     corrected_intent_label: str | None = None
+    reviewer_name: str | None = None
 
 
 class ReviewQueueItemOut(BaseModel):

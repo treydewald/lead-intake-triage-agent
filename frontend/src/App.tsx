@@ -3,6 +3,7 @@ import { Layout } from './components/Layout'
 import { BenchmarkPage } from './pages/BenchmarkPage'
 import { HomePage } from './pages/HomePage'
 import { LeadDetailPage } from './pages/LeadDetailPage'
+import { LeadHistoryPage } from './pages/LeadHistoryPage'
 import { LeadListPage } from './pages/LeadListPage'
 import { ReviewDetailPage } from './pages/ReviewDetailPage'
 import { ReviewQueuePage } from './pages/ReviewQueuePage'
@@ -15,6 +16,7 @@ function App() {
           <Route index element={<HomePage />} />
           <Route path="leads" element={<LeadListPage />} />
           <Route path="leads/:leadId" element={<LeadDetailPage />} />
+          <Route path="leads/:leadId/history" element={<LeadHistoryPage />} />
           <Route path="reviews" element={<ReviewQueuePage />} />
           <Route path="reviews/:runId" element={<ReviewDetailPage />} />
           <Route path="benchmark" element={<BenchmarkPage />} />

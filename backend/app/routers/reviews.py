@@ -90,6 +90,7 @@ def action_review(
                 status="ACTIONED",
                 reviewer_action=payload.action,
                 corrected_intent_label=payload.corrected_intent_label,
+                reviewer_name=payload.reviewer_name,
                 actioned_at=datetime.now(timezone.utc),
             )
         )

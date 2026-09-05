@@ -9,16 +9,19 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 
 from app.database.session import SessionLocal
 from app.models.pipeline_run import PipelineRun, StageTrace
+from app.models.review_queue import ReviewQueueItem
 from app.orchestrator.graph import STAGE_ORDER, run_pipeline
 from app.orchestrator.state import IntakeSlice, LeadPipelineState
 from app.schemas.pipeline import (
     CallbackIntakeRequest,
     EmailIntakeRequest,
     LeadDetailOut,
+    LeadHistoryOut,
     LeadListItemOut,
     LeadListOut,
     PipelineRunOut,
     StageDetailOut,
+    TimelineEntryOut,
     TriggerPipelineRunRequest,
     display_status_for,
     run_status_for_display,
@@ -219,5 +222,69 @@ def get_lead_detail(
             error=error,
             stages=stages,
         )
+    finally:
+        db.close()
+
+
+@router.get("/{lead_id}/history", response_model=LeadHistoryOut)
+def get_lead_history(
+    lead_id: str, session_factory: SessionFactory = Depends(get_session_factory)
+) -> LeadHistoryOut:
+    """Feature 11: full chronological history across every `PipelineRun` attempt
+    sharing this `lead_id` (there is no uniqueness constraint on that column, and none
+    is added here — see architecture-plan-feature-11.md's multi-attempt gap note),
+    merging stage transitions with any actioned human-review decision. Deliberately
+    distinct from `get_lead_detail` above: that endpoint answers "what's true now" for
+    the most recent/only run via `.first()`; this one answers "what happened, in order"
+    across however many runs exist, so it never uses `.first()`."""
+    db = session_factory()
+    try:
+        run_rows = (
+            db.query(PipelineRun).filter(PipelineRun.lead_id == lead_id).order_by(PipelineRun.created_at).all()
+        )
+        if not run_rows:
+            raise HTTPException(status_code=404, detail="Lead not found")
+
+        entries: list[TimelineEntryOut] = []
+        for run_row in run_rows:
+            traces = (
+                db.query(StageTrace)
+                .filter(StageTrace.run_id == run_row.id)
+                .order_by(StageTrace.created_at)
+                .all()
+            )
+            for trace in traces:
+                entries.append(
+                    TimelineEntryOut(
+                        kind="stage",
+                        run_id=run_row.id,
+                        stage_key=trace.stage_name,
+                        stage_label=_STAGE_LABELS.get(trace.stage_name, trace.stage_name),
+                        status=trace.status,
+                        error=trace.error,
+                        created_at=trace.created_at,
+                    )
+                )
+
+        review_items = db.query(ReviewQueueItem).filter(ReviewQueueItem.lead_id == lead_id).all()
+        for item in review_items:
+            if item.status != "ACTIONED":
+                # A PENDING item has no reviewer decision yet - emitting nothing here is
+                # what keeps an auto-processed (or still-pending) lead's timeline free of
+                # a fabricated review entry.
+                continue
+            entries.append(
+                TimelineEntryOut(
+                    kind="review_action",
+                    run_id=item.run_id,
+                    reviewer_action=item.reviewer_action,
+                    corrected_intent_label=item.corrected_intent_label,
+                    reviewer_name=item.reviewer_name,
+                    created_at=item.actioned_at,
+                )
+            )
+
+        entries.sort(key=lambda entry: entry.created_at)
+        return LeadHistoryOut(lead_id=lead_id, entries=entries)
     finally:
         db.close()

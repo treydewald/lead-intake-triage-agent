@@ -1,18 +1,27 @@
 # Portfolio Reference — Lead Intake Triage Agent
 
-**Last Updated:** 2026-09-05 (Step 6 — Feature 10, External Notification Delivery, Group_F10
-COMPLETED. Extended `persist_outcome_notification()` with a best-effort, never-raising external
-webhook delivery gated to `awaiting_review` only; new `webhook_tools.py`, two new nullable
-`Notification` columns, one new `notification_webhook_url` setting. Architecture Map rows updated for
-`config.py`, `graph.py`, `orchestrator/tools/`, `models/notification.py`, `schemas/notification.py`,
-and `alembic/`. Live-verified against the real local model across all three delivery paths (sent/
-failed/skipped) — see `.claude/execution-log.md`/`validation-results.md`'s Feature 10 entries. Prior
-update: `.claude/refinement-backlog.md`'s RB-004 — `HomePage.tsx` rewritten from Step 4's bootstrap
-placeholder into a real landing page linking to `/leads`, `/reviews`, and `/benchmark`. Prior to that:
-RB-003 — Architecture Map backfilled with the remaining Feature 08 rows [`routers/leads.py`,
-`LeadListPage.tsx`, `LeadDetailPage.tsx`, `HomePage.tsx`, `lib/api.ts`, `lib/stageOrder.ts`] and the two
-previously-uncited migrations, plus rewording the three stale directory-level placeholder rows to
-present tense.)
+**Last Updated:** 2026-09-05 (Step 6 — Feature 11, Per-Lead Audit/History Trail UI, Group_F11
+COMPLETED. New `GET /leads/{lead_id}/history` merges every `PipelineRun` row for a `lead_id` with any
+`ACTIONED` `ReviewQueueItem`; new nullable `reviewer_name` column on `ReviewQueueItem`; new
+`LeadHistoryPage.tsx`, bidirectionally linked with `LeadDetailPage.tsx`; optional "Your name" input on
+`ReviewDetailPage.tsx`. Architecture Map rows updated for `models/review_queue.py`,
+`schemas/pipeline.py`, `schemas/review.py`, `routers/reviews.py`, `routers/leads.py`, `alembic/`,
+`LeadDetailPage.tsx`, `ReviewDetailPage.tsx`, `lib/api.ts`, plus the new `LeadHistoryPage.tsx` row. No
+browser-automation tool was available this session (see `.claude/execution-log.md`'s Feature 11 entry)
+— verified instead via real live backend calls against the real local model and a real pending review
+item, plus jsdom-rendered component tests. One pre-existing, unrelated test failure found and logged as
+`.claude/refinement-backlog.md`'s RB-005 (`App.test.tsx` asserts stale pre-RB-004 placeholder text), not
+fixed here (outside Group_F11's `owned_files`). Prior update: Feature 10, External Notification
+Delivery, Group_F10 COMPLETED. Extended `persist_outcome_notification()` with a best-effort,
+never-raising external webhook delivery gated to `awaiting_review` only; new `webhook_tools.py`, two new
+nullable `Notification` columns, one new `notification_webhook_url` setting. Live-verified against the
+real local model across all three delivery paths (sent/failed/skipped) — see
+`.claude/execution-log.md`/`validation-results.md`'s Feature 10 entries. Prior to that:
+`.claude/refinement-backlog.md`'s RB-004 — `HomePage.tsx` rewritten from Step 4's bootstrap placeholder
+into a real landing page linking to `/leads`, `/reviews`, and `/benchmark`. Prior to that: RB-003 —
+Architecture Map backfilled with the remaining Feature 08 rows [`routers/leads.py`, `LeadListPage.tsx`,
+`LeadDetailPage.tsx`, `HomePage.tsx`, `lib/api.ts`, `lib/stageOrder.ts`] and the two previously-uncited
+migrations, plus rewording the three stale directory-level placeholder rows to present tense.)
 
 Read this before opening source files. Only open the actual code when this doc doesn't answer the
 question.
@@ -63,22 +72,23 @@ portfolio gate (Mode: STANDARD).
 | `backend/app/orchestrator/tools/` | Real tool bindings for external systems, one module per system (`ollama_tools.py`, `hubspot_tools.py`, `webhook_tools.py`), wired by `register_default_tools()`; `hubspot_tools.py` holds both `search_contact` (read-only) and `write_contact` (write-only, retry-with-backoff) |
 | `backend/app/orchestrator/tools/webhook_tools.py` | Feature 10's `deliver_webhook_notification()` — single-attempt, never-raising POST of a Slack-compatible payload to an operator-configured incoming webhook; NOT registered through `ToolRegistry` (called directly by `persist_outcome_notification()` — see Key Decisions); `error` built from status code/exception type only, never the webhook URL itself |
 | `backend/app/models/pipeline_run.py` | `PipelineRun`/`StageTrace` SQLAlchemy models — every stage transition's persisted trace |
-| `backend/app/models/review_queue.py` | Feature 06's `ReviewQueueItem` — a reviewer's actionable task for one paused run, carrying its own full-state resume snapshot (`state_snapshot`), distinct from the `PipelineRun`/`StageTrace` execution log |
+| `backend/app/models/review_queue.py` | Feature 06's `ReviewQueueItem` — a reviewer's actionable task for one paused run, carrying its own full-state resume snapshot (`state_snapshot`), distinct from the `PipelineRun`/`StageTrace` execution log; Feature 11 added a nullable `reviewer_name` column (self-reported, no auth model — see Key Decisions) |
 | `backend/app/models/notification.py` | Feature 07's `Notification` — a persisted in-app notification per outcome event; `run_id` FK is not unique (a run can produce more than one over its lifetime); no addressee field (no `User`/auth model exists); Feature 10 added two nullable columns, `external_delivery_status`/`external_delivery_error` (`None` = never attempted — every outcome type other than `awaiting_review`) |
-| `backend/app/schemas/pipeline.py` | Pydantic request/response schemas for triggering/querying a pipeline run |
-| `backend/app/schemas/review.py` | Feature 06's `ReviewActionRequest`/`ReviewQueueItemOut` — reviewer-facing request/response shapes |
+| `backend/app/schemas/pipeline.py` | Pydantic request/response schemas for triggering/querying a pipeline run; Feature 11 added `TimelineEntryOut`/`LeadHistoryOut` — one flat entry shape carrying both stage and review-action fields as optional |
+| `backend/app/schemas/review.py` | Feature 06's `ReviewActionRequest`/`ReviewQueueItemOut` — reviewer-facing request/response shapes; Feature 11 added `ReviewActionRequest.reviewer_name` (optional) |
 | `backend/app/schemas/notification.py` | Feature 07's `NotificationOut` — response shape for `GET /notifications`; Feature 10 added `external_delivery_status`/`external_delivery_error` (optional, `null` for pre-Feature-10 rows) |
-| `backend/app/routers/reviews.py` | Feature 06: `GET /reviews`, `GET /reviews/{run_id}`, `POST /reviews/{run_id}/action` — concurrency-safe claim via an atomic `UPDATE ... WHERE status='PENDING'`; approve/edit re-enter the orchestrator via `resume_pipeline()`, reject sets `RunStatus.REJECTED` directly and also calls `persist_outcome_notification()` |
+| `backend/app/routers/reviews.py` | Feature 06: `GET /reviews`, `GET /reviews/{run_id}`, `POST /reviews/{run_id}/action` — concurrency-safe claim via an atomic `UPDATE ... WHERE status='PENDING'`; approve/edit re-enter the orchestrator via `resume_pipeline()`, reject sets `RunStatus.REJECTED` directly and also calls `persist_outcome_notification()`; Feature 11's `reviewer_name` is persisted in the same atomic `UPDATE`, no second write |
 | `backend/app/routers/notifications.py` | Feature 07: `GET /notifications` (list, newest first) |
-| `backend/app/routers/leads.py` | Feature 08: `GET /leads` (list, paginated, denormalized `source_channel`/`confidence_score` for filter/sort), `GET /leads/{lead_id}` (detail — full stage-trace timeline via `STAGE_ORDER`/`_STAGE_LABELS`, mirrored on the frontend by `lib/stageOrder.ts`) |
-| `backend/alembic/` | DB migrations, wired to `app.database.session.Base` and `settings.database_url`; `245c694fed3d_*` creates `pipeline_run`/`stage_trace`; `68de6a50cacb_*` creates `review_queue_item`; `5f3cbe979b96_*` creates `notification`; `9217c457cc82_*` (Feature 08) adds `pipeline_run.source_channel`/`.confidence_score`; `b86e4d4ef367_*` (Feature 09) creates `benchmark_run`/`benchmark_case`; `a95fad549dbf_*` (Feature 10) adds `notification.external_delivery_status`/`.external_delivery_error` |
+| `backend/app/routers/leads.py` | Feature 08: `GET /leads` (list, paginated, denormalized `source_channel`/`confidence_score` for filter/sort), `GET /leads/{lead_id}` (detail — full stage-trace timeline via `STAGE_ORDER`/`_STAGE_LABELS`, mirrored on the frontend by `lib/stageOrder.ts`); Feature 11 added `GET /leads/{lead_id}/history` — merges every `PipelineRun` row for a `lead_id` (never `.first()` — see Key Decisions) with any `ACTIONED` `ReviewQueueItem`, sorted by `created_at` |
+| `backend/alembic/` | DB migrations, wired to `app.database.session.Base` and `settings.database_url`; `245c694fed3d_*` creates `pipeline_run`/`stage_trace`; `68de6a50cacb_*` creates `review_queue_item`; `5f3cbe979b96_*` creates `notification`; `9217c457cc82_*` (Feature 08) adds `pipeline_run.source_channel`/`.confidence_score`; `b86e4d4ef367_*` (Feature 09) creates `benchmark_run`/`benchmark_case`; `a95fad549dbf_*` (Feature 10) adds `notification.external_delivery_status`/`.external_delivery_error`; `327d880cd1b9_*` (Feature 11) adds `review_queue_item.reviewer_name` |
 | `frontend/src/components/` | Shared UI: `BuildIndicator.tsx`, `Layout.tsx` (persistent sidebar nav — Leads/Reviews/Benchmark) |
 | `frontend/src/pages/` | Route-level pages — each has its own row below: `HomePage.tsx`, `LeadListPage.tsx`/`LeadDetailPage.tsx` (Feature 08), `BenchmarkPage.tsx` (Feature 09), `ReviewQueuePage.tsx`/`ReviewDetailPage.tsx` (Feature 15) |
 | `frontend/src/pages/HomePage.tsx` | Index route (`/`) — landing page linking to Observability (`/leads`), Review Queue (`/reviews`), and Benchmark (`/benchmark`); replaced Step 4's bootstrap placeholder per `.claude/refinement-backlog.md`'s RB-004 (COMPLETED) |
 | `frontend/src/pages/LeadListPage.tsx` | Feature 08: paginated lead list against `GET /leads`, filterable by status/channel |
-| `frontend/src/pages/LeadDetailPage.tsx` | Feature 08: per-lead detail + full stage-trace timeline against `GET /leads/{lead_id}` |
+| `frontend/src/pages/LeadDetailPage.tsx` | Feature 08: per-lead detail + full stage-trace timeline against `GET /leads/{lead_id}`; Feature 11 added a "View Full History →" link to `LeadHistoryPage.tsx` |
+| `frontend/src/pages/LeadHistoryPage.tsx` | Feature 11: merged chronological timeline (stage transitions + human review actions) for a lead against `GET /leads/{lead_id}/history`; links back to `LeadDetailPage.tsx`; no persistent nav entry (reached only via that page's link, same pattern as `ReviewDetailPage.tsx`) |
 | `frontend/src/lib/` | API client and typed helpers — `api.ts` (fetch wrappers for every backend endpoint: leads/reviews/notifications/benchmark) and `stageOrder.ts` (see below) |
-| `frontend/src/lib/api.ts` | Typed `fetch` helpers for every backend endpoint this frontend calls (leads, reviews, notifications, benchmark) |
+| `frontend/src/lib/api.ts` | Typed `fetch` helpers for every backend endpoint this frontend calls (leads, reviews, notifications, benchmark); Feature 11 added `getLeadHistory()`/`TimelineEntry`/`LeadHistory` and `reviewer_name` on `ReviewActionRequest` |
 | `frontend/src/lib/stageOrder.ts` | Feature 08: static TypeScript mirror of the backend's `graph.py` `STAGE_ORDER` (deliberately duplicated — TS can't import a Python constant) — used to render `LeadDetailPage.tsx`'s stage timeline in canonical order |
 | `backend/app/benchmark/dataset.py` | Feature 09's `BENCHMARK_DATASET` — 22 labeled `DatasetItem`s (buyer/browser/spam/ambiguous), ships as a Python-literal fixture |
 | `backend/app/benchmark/harness.py` | Feature 09's `run_benchmark()` — builds one `ToolRegistry`/`register_default_tools()` per run, invokes `IntentClassificationStage().run()` directly (out-of-graph single-stage invocation, see Key Decisions), computes attempt-level accuracy and item-level consistency |
@@ -87,7 +97,7 @@ portfolio gate (Mode: STANDARD).
 | `backend/app/routers/benchmark.py` | Feature 09: `POST /benchmark/run` (synchronous), `GET /benchmark/runs`, `GET /benchmark/runs/{run_id}` |
 | `frontend/src/pages/BenchmarkPage.tsx` | Feature 09: "Run Benchmark" trigger, accuracy/consistency/model stat tiles, ambiguous-or-misclassified case table |
 | `frontend/src/pages/ReviewQueuePage.tsx` | Feature 15 (CD round, addendum): PENDING review-queue list, reading `GET /reviews` |
-| `frontend/src/pages/ReviewDetailPage.tsx` | Feature 15: per-item detail + approve/reject/edit action form against `GET /reviews/{run_id}`/`POST /reviews/{run_id}/action`; surfaces the backend's 409 "already actioned" response as a distinct message, not a generic error |
+| `frontend/src/pages/ReviewDetailPage.tsx` | Feature 15: per-item detail + approve/reject/edit action form against `GET /reviews/{run_id}`/`POST /reviews/{run_id}/action`; surfaces the backend's 409 "already actioned" response as a distinct message, not a generic error; Feature 11 added an optional "Your name" input sent as `reviewer_name` |
 
 *(Fill in further as each remaining feature's own Step 6 group lands — don't pre-guess a structure
 that doesn't exist yet.)*

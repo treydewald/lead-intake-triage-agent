@@ -1,7 +1,8 @@
 # Pipeline Reference — Lead Intake Triage Agent
 
-**Last Updated:** 2026-09-05 (Step 5.5 — Feature 11 (Per-Lead Audit/History Trail UI) planned:
-`architecture-plan-feature-11.md` produced, Group_F11's `owned_files` finalized)
+**Last Updated:** 2026-09-05 (Step 6 — Worker Pool Orchestrator, Group_F11 COMPLETED: Feature 11,
+Per-Lead Audit/History Trail UI, built against `architecture-plan-feature-11.md`'s 6-step
+Implementation Order and fully verified)
 
 How *this project* is using the Upwork Portfolio Project Pipeline. Distinct from
 `portfolio-reference.md`, which is about the product — this file is about pipeline state.
@@ -10,7 +11,31 @@ How *this project* is using the Upwork Portfolio Project Pipeline. Distinct from
 
 ## Current Step
 
-**This session (2026-09-05, fourth session same day):** No Suggestion was given; the refinement backlog
+**This session (2026-09-05, fifth session same day):** Continued directly from the prior session's
+Step 5.5 output — `architecture-plan-feature-11.md`'s Implementation Order was unconditional for
+Step 6 next on Group_F11, so this session claimed it and built Feature 11 (Per-Lead Audit/History
+Trail UI) end-to-end. New `GET /leads/{lead_id}/history` endpoint aggregates every `PipelineRun` row
+for a `lead_id` (never `.first()`) with any `ACTIONED` `ReviewQueueItem`, sorted chronologically; new
+nullable `ReviewQueueItem.reviewer_name` column persisted through the existing atomic claim UPDATE in
+`action_review`; new `LeadHistoryPage.tsx` bidirectionally linked with `LeadDetailPage.tsx`; optional
+"Your name" input added to `ReviewDetailPage.tsx`. 136/136 backend tests passing (8 new), 14/14
+relevant frontend tests passing (4 new/updated), `npm run build`/migration both clean. **Live-verified
+against real data — no mocks:** both dev servers started, a real `POST /leads/webform` call classified
+by the actual local `llama3.2:3b` model, a real pending `ReviewQueueItem` approved with
+`reviewer_name="Jordan"` via `POST /reviews/{run_id}/action`, and `GET /leads/{lead_id}/history`
+confirmed correct chronological merging and the "no fabricated entry" behavior on both resulting leads,
+plus a 404 check. **No browser-automation tool was available this session** (checked via `ToolSearch`;
+no Playwright package installed under `frontend/`) — the live-click-through style of verification prior
+features used (Feature 08/09/10/15) was not possible; compensated with the real HTTP-level live
+verification above plus 14 jsdom/RTL component-render tests. Recorded honestly, not glossed over — see
+`.claude/execution-log.md`/`validation-results.md`'s Feature 11 entries and
+`architecture-plan-feature-11.md`'s Actual Footprint. One pre-existing, unrelated test failure found
+(`src/App.test.tsx` asserts `HomePage.tsx`'s pre-RB-004 placeholder text, broken since that same-day
+RB-004 fix) — confirmed via `git stash` to predate this session, outside Group_F11's `owned_files`,
+logged as `.claude/refinement-backlog.md`'s RB-005 (OPEN) rather than fixed here.
+`implementation_plan.md` marks Feature 11 `COMPLETED`, Group_F11 `COMPLETED`.
+
+Prior to this (fourth session same day): No Suggestion was given; the refinement backlog
 was already empty (RB-001 through RB-004 all COMPLETED, verified this session — no new entries). Three
 foundational paths were available (Step 5.5 for Group_F11, a Gate 2 re-pass covering Features 09/10, or
 Dynamic Next-Action Selection); asked the user directly rather than guessing, since
@@ -134,11 +159,10 @@ has not yet run against any completed feature, including this one.
 **Completed steps:** 1 (Project Advisor), 2 (Roadmap Architect), 3 (Feature Specification Engine), 4
 (Environment Bootstrap), 5.5 (Implementation Planner — Feature 01 through Feature 11, plus Feature 15's
 CD-2.5; re-entered per feature group, see `docs/implementation-planning.md` §16), 6 (Worker Pool
-Orchestrator — Group_F01 through Group_F10 all COMPLETED — all 8 Tier 1 features plus Feature 09 and
-Feature 10 [Tier 2] implemented end-to-end; Group_F11 planned but not yet claimed), 7 (Implementation
-Verification — Gate 2 — PASSED, against Tier 1 only; Feature 09/10 not yet covered by a Gate 2 pass),
-Continued Development Round 1 (CD-1 through CD-4 — Feature 15, Review Queue Frontend UI, COMPLETED and
-verified).
+Orchestrator — Group_F01 through Group_F11 all COMPLETED — all 8 Tier 1 features plus Feature 09,
+Feature 10, and Feature 11 [Tier 2] implemented end-to-end), 7 (Implementation Verification — Gate 2 —
+PASSED, against Tier 1 only; Feature 09/10/11 not yet covered by a Gate 2 pass), Continued Development
+Round 1 (CD-1 through CD-4 — Feature 15, Review Queue Frontend UI, COMPLETED and verified).
 
 **Gates passed:** Gate 2 (Step 7, implementation verification) — PASSED, 2026-09-04. Gate 1 (Step 13,
 portfolio score ≥9.0/10, per `docs/premium-ui-standard.md`) is still ahead.
@@ -154,24 +178,24 @@ Tier section, STANDARD mode with Tier 2/3 features present falls back to full ti
 
 ## Next Step
 
-**Feature 11 is now PLANNED (`architecture-plan-feature-11.md` produced)** — this session's Step 5.5
-run. Per the decision tree, Step 5.5's output is unconditional for Step 6 next on this group.
+**Feature 11 is now COMPLETED** (Group_F11, this session's Step 6 run) — `implementation_plan.md`
+marks both Feature 11 and Group_F11 `COMPLETED`.
 
 Paths available next session:
-- **Step 6 (Worker Pool Orchestrator) claims Group_F11** and builds Feature 11 against
-  `architecture-plan-feature-11.md`'s 6-step Implementation Order — the natural next step now that
-  planning is done for this group.
-- **A Gate 2 (Step 7) re-pass covering Feature 09 and Feature 10** — the last full Gate 2 run only
-  verified Tier 1; both Tier 2 features have their own full validation loops already recorded in
-  `.claude/execution-log.md`/`validation-results.md` but have not been through a dedicated
+- **A Gate 2 (Step 7) re-pass covering Feature 09, Feature 10, and Feature 11** — the last full Gate 2
+  run only verified Tier 1; all three Tier 2 features have their own full validation loops already
+  recorded in `.claude/execution-log.md`/`validation-results.md` but have not been through a dedicated
   Implementation Verification gate the way the 8 Tier 1 features were as a batch. Feature 15 has its
   own CD-4 verification recorded in `architecture-plan-feature-15.md` and does not need a separate
-  Gate 2 pass.
-- With no Suggestion and an empty backlog, an idle session (none of the above chosen) should run
-  `docs/next-action-selection.md`'s Dynamic Next-Action Selection rather than defaulting to Scope
-  Expansion — this project has landed several backend/frontend features across recent Step 6 and CD
-  rounds with no full In-App Cohesion Audit or UI Audit & Refinement pass since Step 7's Tier-1-only
-  Gate 2 run.
+  Gate 2 pass. This is now the strongest candidate — three Tier 2 features have accumulated without a
+  batch Gate 2 pass.
+- **`.claude/refinement-backlog.md`'s RB-005 is OPEN** — a contained, single-file fix to
+  `frontend/src/App.test.tsx`'s stale assertion (see that entry's "Routes to"). Per Master Prompt
+  Step 2, an OPEN backlog entry routes ahead of idle-branch selection when no Suggestion is given.
+- With no Suggestion given and RB-005 the only OPEN backlog entry, the next idle session should still
+  weigh `docs/next-action-selection.md`'s Dynamic Next-Action Selection against picking up RB-005 first
+  — this project has landed several backend/frontend features across recent Step 6 and CD rounds with
+  no full In-App Cohesion Audit or UI Audit & Refinement pass since Step 7's Tier-1-only Gate 2 run.
 - Group_F13 (Feature 13, Tier 3) is also dependency-satisfiable but lower priority; Group_F14
   (Feature 14) remains CLAIMABLE-but-deferred (Tier 3, visibility only).
 

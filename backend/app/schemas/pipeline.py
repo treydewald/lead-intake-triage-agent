@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from datetime import datetime
-from typing import Any
+from typing import Any, Literal
 
 from pydantic import BaseModel, ConfigDict
 
@@ -124,3 +124,27 @@ class LeadDetailOut(BaseModel):
     failed_stage: str | None = None
     error: str | None = None
     stages: list[StageDetailOut]
+
+
+class TimelineEntryOut(BaseModel):
+    """Feature 11: one chronological entry in a lead's full history — either a pipeline
+    stage transition (possibly from any of several `PipelineRun` attempts sharing this
+    `lead_id`) or a human review action. Deliberately a single flat shape carrying both
+    kinds' fields as optional, rather than two entry types, so the frontend can render
+    one sorted list without a union type — see architecture-plan-feature-11.md."""
+
+    kind: Literal["stage", "review_action"]
+    run_id: str
+    created_at: datetime
+    stage_key: str | None = None
+    stage_label: str | None = None
+    status: str | None = None
+    error: str | None = None
+    reviewer_action: str | None = None
+    corrected_intent_label: str | None = None
+    reviewer_name: str | None = None
+
+
+class LeadHistoryOut(BaseModel):
+    lead_id: str
+    entries: list[TimelineEntryOut]

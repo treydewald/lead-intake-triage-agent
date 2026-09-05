@@ -61,6 +61,29 @@ export async function getLeadDetail(leadId: string): Promise<LeadDetail> {
   return response.data
 }
 
+export interface TimelineEntry {
+  kind: 'stage' | 'review_action'
+  run_id: string
+  created_at: string
+  stage_key: string | null
+  stage_label: string | null
+  status: string | null
+  error: string | null
+  reviewer_action: string | null
+  corrected_intent_label: string | null
+  reviewer_name: string | null
+}
+
+export interface LeadHistory {
+  lead_id: string
+  entries: TimelineEntry[]
+}
+
+export async function getLeadHistory(leadId: string): Promise<LeadHistory> {
+  const response = await api.get<LeadHistory>(`/leads/${leadId}/history`)
+  return response.data
+}
+
 export interface BenchmarkCase {
   case_id: string
   category: string
@@ -115,6 +138,7 @@ export type ReviewAction = 'approve' | 'reject' | 'edit'
 export interface ReviewActionRequest {
   action: ReviewAction
   corrected_intent_label?: string | null
+  reviewer_name?: string | null
 }
 
 export interface StageTraceSummary {

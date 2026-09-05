@@ -39,6 +39,7 @@ class ReviewQueueItem(Base):
     status: Mapped[str] = mapped_column(String(16), default="PENDING")
     reviewer_action: Mapped[str | None] = mapped_column(String(16), nullable=True)
     corrected_intent_label: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    reviewer_name: Mapped[str | None] = mapped_column(String(128), nullable=True)
     state_snapshot: Mapped[str] = mapped_column(Text)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_utcnow)
     actioned_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)

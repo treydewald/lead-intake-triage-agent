@@ -51,6 +51,33 @@ describe('ReviewDetailPage', () => {
     expect(api.actionReview).toHaveBeenCalledWith('run-abc12345', {
       action: 'approve',
       corrected_intent_label: undefined,
+      reviewer_name: undefined,
+    })
+  })
+
+  it('submits the optional reviewer name when supplied', async () => {
+    vi.spyOn(api, 'getReview').mockResolvedValue(ITEM)
+    vi.spyOn(api, 'actionReview').mockResolvedValue({
+      id: 'run-abc12345',
+      lead_id: 'lead-abc12345',
+      status: 'COMPLETED',
+      created_at: '2026-09-04T12:00:00Z',
+      updated_at: '2026-09-04T12:00:05Z',
+      stage_traces: [],
+    })
+
+    renderDetail()
+
+    await waitFor(() => expect(screen.getByText('buyer')).toBeInTheDocument())
+
+    await userEvent.type(screen.getByPlaceholderText('Your name (optional)'), 'Jordan')
+    await userEvent.click(screen.getByRole('button', { name: 'Submit' }))
+
+    await waitFor(() => expect(screen.getByText(/Run status is now/)).toBeInTheDocument())
+    expect(api.actionReview).toHaveBeenCalledWith('run-abc12345', {
+      action: 'approve',
+      corrected_intent_label: undefined,
+      reviewer_name: 'Jordan',
     })
   })
 

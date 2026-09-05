@@ -525,3 +525,66 @@ at Feature 15 — the real model is consistently overconfident on ambiguous test
 webhook_url` verifies the returned `error` string never contains the configured webhook URL — the plan's
 own Risks section flagged this as a potential secret/destination leak since `GET /notifications` has no
 auth in this project.
+
+---
+
+## 2026-09-05 — Feature 11 (Per-Lead Audit/History Trail UI)
+
+**Checks run:** `pytest app/tests/` (full backend suite) + `alembic upgrade head` on the dev SQLite DB +
+`npm run build` (`tsc -b && vite build`) + `npm test -- --run` (frontend) + live manual dev-server
+verification against the real local `llama3.2:3b` model and a real pre-existing pending review item.
+
+**Result:** PASS on first run — 136/136 backend tests (128 pre-existing + 8 new: 2 in
+`test_router_reviews.py`, 6 in the new `test_router_leads_history.py`), no fix cycle needed.
+`alembic upgrade head` applied `327d880cd1b9` cleanly onto the actual head `a95fad549dbf` (confirmed via
+`alembic heads` before writing the migration, per the plan's Validation Requirements). Frontend:
+`npm run build` clean; 14/14 relevant frontend tests passing (13 pre-existing/updated + 3 new in
+`LeadHistoryPage.test.tsx`, 1 new in `ReviewDetailPage.test.tsx`); one pre-existing, unrelated failure
+in `App.test.tsx` (asserts stale `HomePage.tsx` placeholder text removed by RB-004) — confirmed via
+`git stash` that it fails identically on the unmodified working tree, logged as RB-005 rather than fixed
+here (outside Group_F11's `owned_files`).
+
+**Live run result (real model, real HTTP, no browser-automation tool available this session — see
+`.claude/execution-log.md`'s Feature 11 entry for what compensated):**
+1. Submitted `POST /leads/webform` with an ambiguous message against the real `llama3.2:3b` model — the
+   run completed intake/classification/enrichment/notification live, failed at `hubspot_crm_write` with
+   the expected pre-existing "no sandbox token configured" error (a known, documented project deviation,
+   not a Feature 11 defect). `GET /leads/{lead_id}/history` on this lead returned all 5 real stage
+   entries in correct chronological order and **zero** `review_action` entries — confirming the "no
+   fabricated review entry for an auto-processed/non-reviewed lead" behavior against real data, not just
+   the unit test.
+2. Found a real pending item via `GET /reviews` (left over from an earlier session's live testing) and
+   called `POST /reviews/{run_id}/action` with `{"action": "approve", "reviewer_name": "Jordan"}` against
+   it — the real resume graph executed, reaching `hubspot_crm_write` (same expected token-not-configured
+   failure) then `outcome_notification`. `GET /leads/{lead_id}/history` on this lead showed the review
+   action correctly interleaved chronologically between the pause and the post-approval stage entries,
+   with `reviewer_action="approve"` and `reviewer_name="Jordan"` both correct.
+3. `GET /leads/does-not-exist-abc/history` returned `404`, matching `GET /leads/{lead_id}`'s existing
+   behavior.
+
+**Acceptance criteria coverage (architecture-plan-feature-11.md):**
+1. A lead that went through Human Review shows both stage transitions and the reviewer's action,
+   correctly ordered by time → live run #2 above +
+   `test_history_reviewed_lead_shows_stage_and_review_action_ordered`
+2. An auto-processed lead's timeline contains no fabricated review-related entries → live run #1 above +
+   `test_history_pending_review_produces_no_fabricated_review_entry` (the `PENDING`, not-yet-actioned
+   case) + `test_history_auto_processed_lead_has_stage_entries_only`
+3. Navigating from Feature 08's detail view reaches this timeline view for the same lead, and back →
+   `LeadDetailPage.tsx`'s new "View Full History →" link and `LeadHistoryPage.tsx`'s "← Back to lead
+   detail" link, both to the correct `lead_id`-scoped path; verified by code review and the clean
+   `npm run build` (no route/type errors) — no live-browser click-through available this session (see
+   execution-log's verification note)
+4. A fixture-seeded lead with two `PipelineRun` rows sharing one `lead_id` shows both attempts' stage
+   transitions distinctly, in chronological order →
+   `test_history_multi_run_lead_shows_both_attempts_distinctly` (direct DB fixture, per the plan's
+   multi-attempt gap note — no live endpoint produces this scenario)
+5. A review action taken with `reviewer_name` supplied displays that name; one taken without it displays
+   the "Reviewer" fallback → live run #2 above (name path) +
+   `test_history_reject_shows_terminal_review_action_distinct_from_failed_stage` (no-name path, backend)
+   + `LeadHistoryPage.test.tsx`'s two fallback-rendering tests (frontend, jsdom-rendered)
+6. `GET /leads/{lead_id}/history` 404s for an unknown `lead_id` → live run #3 above +
+   `test_history_unknown_lead_id_returns_404`
+
+**Additional confirmation:** `GET /leads/{lead_id}` (Feature 08) re-verified unchanged — same response
+shape, same `.first()` semantics — via the full existing `test_router_leads_list.py` suite passing
+unmodified; Feature 11 adds a new endpoint alongside it rather than altering it.

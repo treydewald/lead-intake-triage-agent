@@ -544,3 +544,72 @@ row recorded `external_delivery_status="sent"`; (2) an unreachable URL (`127.0.0
 kept `external_delivery_status=null`, proving the outcome-type gate).
 **Status:** approved — all 5 of Feature 10's acceptance criteria verified live against the real model;
 `implementation_plan.md` marks Feature 10 `COMPLETED`, Group_F10 `COMPLETED`.
+
+---
+
+## 2026-09-05 — Step 6: Feature 11 (Per-Lead Audit/History Trail UI), Group_F11
+
+Built against `architecture-plan-feature-11.md`'s 6-step Implementation Order exactly: `reviewer_name`
+column + migration → `ReviewActionRequest`/`action_review` persist it → `TimelineEntryOut`/
+`LeadHistoryOut` schemas + `GET /leads/{lead_id}/history` → `LeadHistoryPage.tsx` + route →
+`LeadDetailPage.tsx` link → `ReviewDetailPage.tsx` name input. Confirmed the actual alembic head at
+claim time (`a95fad549dbf`) matched the plan's stated value exactly — no correction needed this time
+(unlike Feature 10's stale `down_revision`).
+
+**Files touched:**
+- `backend/app/models/review_queue.py` (modified) — one new nullable `reviewer_name: str | None` column
+- `backend/alembic/versions/327d880cd1b9_add_reviewer_name_column.py` (new) — chains onto the actual
+  head `a95fad549dbf`; applied cleanly against the dev SQLite DB with existing rows intact
+- `backend/app/schemas/review.py` (modified) — `ReviewActionRequest.reviewer_name: str | None = None`
+- `backend/app/routers/reviews.py` (modified) — `action_review`'s existing atomic `UPDATE ...
+  WHERE status='PENDING'` now also sets `reviewer_name`; no second write, no change to the
+  concurrency-safe claim logic
+- `backend/app/schemas/pipeline.py` (modified) — new `TimelineEntryOut`/`LeadHistoryOut` shapes (one
+  flat entry type carrying both stage and review-action fields as optional, per the plan)
+- `backend/app/routers/leads.py` (modified) — new `GET /leads/{lead_id}/history`: queries **all**
+  `PipelineRun` rows for a `lead_id` (never `.first()`), merges each run's `StageTrace` rows with any
+  `ACTIONED` `ReviewQueueItem` for that lead, sorted by `created_at`; 404 for an unknown `lead_id`,
+  matching `get_lead_detail`'s existing behavior
+- `backend/app/tests/test_router_reviews.py` (modified) — 2 new tests: `reviewer_name` persists when
+  supplied, stays `null` when omitted
+- `backend/app/tests/test_router_leads_history.py` (new) — 6 tests: 404, auto-processed lead shows
+  stage entries only, a still-`PENDING` review produces no fabricated entry, a reviewed lead shows both
+  stage and review-action entries in chronological order, a rejected lead's review-action entry is
+  distinct from any `FAILED` stage entry, and a fixture-seeded two-run `lead_id` (direct DB insert —
+  no live endpoint produces this scenario, per the plan's multi-attempt gap note) shows both attempts'
+  stage transitions distinctly and in order
+- `frontend/src/lib/api.ts` (modified) — `TimelineEntry`/`LeadHistory` types, `getLeadHistory()`;
+  `ReviewActionRequest` gains optional `reviewer_name`
+- `frontend/src/pages/LeadHistoryPage.tsx` (new) — renders the merged timeline, review-action rows
+  styled distinctly (teal) from stage rows, "Reviewer" fallback text when `reviewer_name` is null, a
+  back-link to `/leads/:leadId`
+- `frontend/src/App.tsx` (modified) — new `leads/:leadId/history` route
+- `frontend/src/pages/LeadDetailPage.tsx` (modified) — "View Full History →" link next to the existing
+  "← Back to leads" link
+- `frontend/src/pages/ReviewDetailPage.tsx` (modified) — optional "Your name" text input on the
+  approve/reject/edit form, sent as `reviewer_name`; omitting it does not block submission
+- `frontend/src/pages/ReviewDetailPage.test.tsx` (modified) — updated the existing approve-action
+  assertion for the new `reviewer_name` field, added 1 new test for a supplied name
+- `frontend/src/pages/LeadHistoryPage.test.tsx` (new) — 3 tests: ordered stage+review-action rendering,
+  the "Reviewer" fallback with no name, the not-found state
+
+**Diff size:** ~340 lines added/changed across 14 files (1 new migration, 2 new frontend components/
+tests, 1 new backend test file, 9 modified files)
+
+**Verification note — no browser-automation tool available this session:** unlike prior features'
+Playwright-driven click-throughs, this session had no browser tool (checked via `ToolSearch`, confirmed
+no Playwright package installed under `frontend/`). Compensated with: (1) real live backend
+verification — both dev servers started, `POST /leads/webform` against the real local `llama3.2:3b`
+model, `POST /reviews/{run_id}/action` against a real pre-existing pending review item, `GET /leads/
+{lead_id}/history` against both resulting leads, not mocked; (2) `npm run build` (`tsc -b && vite
+build`) clean; (3) Vite dev server serving `LeadHistoryPage.tsx`'s module with no compile error; (4)
+14/14 frontend component tests passing, which render the actual component tree via jsdom/RTL and assert
+on real rendered DOM text (not just a build check). No live-browser screenshot exists for this feature —
+recorded here rather than silently treated as equivalent to prior sessions' Playwright verification.
+
+**Validation:** PASS — see `.claude/validation-results.md`. 136/136 backend tests (128 pre-existing +
+8 new), 14/14 frontend tests unchanged-plus-new (1 pre-existing unrelated failure in `App.test.tsx`,
+logged as RB-005, not caused by this session — confirmed via `git stash`).
+**Status:** approved — all 6 of Feature 11's acceptance criteria verified against real live data (see
+`.claude/validation-results.md`'s Feature 11 entry for each criterion's evidence);
+`implementation_plan.md` marks Feature 11 `COMPLETED`, Group_F11 `COMPLETED`.

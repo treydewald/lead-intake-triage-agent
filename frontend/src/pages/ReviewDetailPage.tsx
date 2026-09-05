@@ -11,6 +11,7 @@ export function ReviewDetailPage() {
 
   const [selectedAction, setSelectedAction] = useState<ReviewAction>('approve')
   const [correctedLabel, setCorrectedLabel] = useState('')
+  const [reviewerName, setReviewerName] = useState('')
   const [validationError, setValidationError] = useState<string | null>(null)
   const [submitting, setSubmitting] = useState(false)
   const [alreadyActioned, setAlreadyActioned] = useState(false)
@@ -58,6 +59,7 @@ export function ReviewDetailPage() {
       const data = await actionReview(runId, {
         action: selectedAction,
         corrected_intent_label: selectedAction === 'edit' ? correctedLabel.trim() : undefined,
+        reviewer_name: reviewerName.trim() || undefined,
       })
       setResult(data)
     } catch (err: unknown) {
@@ -153,6 +155,14 @@ export function ReviewDetailPage() {
               onChange={(e) => setCorrectedLabel(e.target.value)}
             />
           )}
+
+          <input
+            type="text"
+            placeholder="Your name (optional)"
+            className="rounded-md border border-slate-300 px-3 py-1.5 text-sm"
+            value={reviewerName}
+            onChange={(e) => setReviewerName(e.target.value)}
+          />
 
           {validationError && <p className="text-sm text-red-600">{validationError}</p>}
           {submitError && <p className="text-sm text-red-600">{submitError}</p>}

@@ -217,8 +217,8 @@ GROUPS:
     # architecture-plan-feature-10.md (Step 5.5) sets Implementation Order — see that file
 
   Group_F11:
-    status: IN_PROGRESS
-    owner: Worker-1
+    status: COMPLETED
+    owner: null
     features: [Feature 11]
     owned_files: [
       backend/app/models/review_queue.py (modify — reviewer_name column),
@@ -1021,7 +1021,7 @@ Feature 11: Per-Lead Audit/History Trail UI
 Tier: Tier 2
 
 Execution Metadata (REQUIRED)
-status: NOT STARTED
+status: COMPLETED
 group: FRONTEND
 locked: false
 assigned_worker: null

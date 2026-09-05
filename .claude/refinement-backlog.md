@@ -177,4 +177,29 @@ renumber.]
   file covered `HomePage.tsx` (`BenchmarkPage.test.tsx`/`LeadListPage.test.tsx`/
   `ReviewDetailPage.test.tsx`/`ReviewQueuePage.test.tsx` exist, no `HomePage.test.tsx`), so none needed
   updating. No backend or routing changes — `App.tsx`'s `<Route index element={<HomePage />} />` is
-  unchanged, only the component's rendered content changed.
+  unchanged, only the component's rendered content changed. **New finding surfaced by this fix, not
+  caught at the time:** `src/App.test.tsx`'s only test still asserts the old placeholder text
+  (`/Observability view/i`) on the home route, so RB-004's own fix broke it — logged separately as
+  RB-005 rather than fixed here, since `App.test.tsx` was outside RB-004's own scope/owned files.
+
+### RB-005 — `App.test.tsx` asserts stale HomePage placeholder text, fails since RB-004
+- **Status:** OPEN
+- **Dimension:** 6 (Testing/Reliability, per `docs/continual-refinement.md`'s Eight Dimensions)
+- **Priority:** P3
+- **Discovered:** Step 6 (Group_F11, Feature 11), 2026-09-05 — not a Continual Refinement round, but
+  logged here per the same backlog mechanism as RB-001/002/003/004, since it surfaced while running the
+  full frontend test suite for Feature 11 and is out of scope for Group_F11's `owned_files`.
+- **Finding:** `frontend/src/App.test.tsx`'s only test, `renders the observability placeholder on the
+  home route`, asserts `screen.getByText(/Observability view/i)` on the `/` route. RB-004 (2026-09-05,
+  same day, earlier session) rewrote `HomePage.tsx`'s content away from that exact placeholder string as
+  part of its own fix, but never updated this test to match — the test's own name still describes the
+  behavior RB-004 deliberately removed.
+- **Rationale / Evidence:** Confirmed via `git stash` (isolating this session's Feature 11 changes) and
+  re-running `npm test -- --run src/App.test.tsx` against the unmodified working tree: same failure,
+  proving this predates Feature 11 and is unrelated to it. `App.test.tsx` is not in Group_F11's
+  `owned_files` (`implementation_plan.md`), so this session did not fix it in place.
+- **Routes to:** A contained, single-file test-fixture fix — update `App.test.tsx`'s assertion (and
+  ideally its test name) to match `HomePage.tsx`'s current real landing-page copy from RB-004 (title,
+  summary, and the three linked cards). Per `docs/continual-refinement.md`'s routing table this is a
+  contained correctness fix, the same class of fix RB-001 used — doesn't need a fresh Step 5.5 plan.
+- **Implementation notes:** [pending]
