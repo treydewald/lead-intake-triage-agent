@@ -75,3 +75,19 @@ def test_list_notifications_empty_when_none_created(client, db_session_factory):
 
     assert response.status_code == 200
     assert response.json() == []
+
+
+def test_list_notifications_serializes_pre_feature_10_rows_with_null_delivery_fields(client, db_session_factory):
+    """Feature 10 added `external_delivery_status`/`_error` as nullable columns - a row
+    created without them (as every pre-Feature-10 row was) must still validate against
+    `NotificationOut` and serialize both fields as `null`."""
+    run_id = _seed_run_and_notifications(db_session_factory)
+
+    response = client.get("/notifications")
+
+    assert response.status_code == 200
+    matching = [n for n in response.json() if n["run_id"] == run_id]
+    assert len(matching) == 2
+    for notification in matching:
+        assert notification["external_delivery_status"] is None
+        assert notification["external_delivery_error"] is None

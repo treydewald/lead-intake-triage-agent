@@ -201,8 +201,8 @@ GROUPS:
     # architecture-plan-feature-09.md (Step 5.5) sets Implementation Order — see that file
 
   Group_F10:
-    status: IN_PROGRESS
-    owner: Worker-1
+    status: COMPLETED
+    owner: null
     features: [Feature 10]
     owned_files: [
       backend/app/models/notification.py (modify — external_delivery_status/_error columns),
@@ -297,6 +297,8 @@ WORKER_STATE:
     - {group: Group_F06, worker: Worker-1 (single-session sequential run), action: completed, at: "2026-09-04"}
     - {group: Group_F08, worker: Worker-1 (single-session sequential run), action: claimed, at: "2026-09-04"}
     - {group: Group_F08, worker: Worker-1 (single-session sequential run), action: completed, at: "2026-09-04"}
+    - {group: Group_F10, worker: Worker-1 (single-session sequential run), action: claimed, at: "2026-09-05"}
+    - {group: Group_F10, worker: Worker-1 (single-session sequential run), action: completed, at: "2026-09-05"}
 
 WORKER_POOL_RULES:
   - Agents must claim a group before execution
@@ -947,7 +949,7 @@ Feature 10: External Notification Delivery
 Tier: Tier 2
 
 Execution Metadata (REQUIRED)
-status: NOT STARTED
+status: COMPLETED
 group: NOTIFICATIONS
 locked: false
 assigned_worker: null

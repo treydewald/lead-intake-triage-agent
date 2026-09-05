@@ -17,3 +17,5 @@ class NotificationOut(BaseModel):
     message: str
     detail_link: str
     created_at: datetime
+    external_delivery_status: str | None = None
+    external_delivery_error: str | None = None

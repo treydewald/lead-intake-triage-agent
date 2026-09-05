@@ -495,3 +495,52 @@ repeats, nav link correct, failure/ambiguous table rendered all 4 ambiguous item
 misclassified cases with zero console errors).
 **Status:** approved — all 6 of Feature 09's acceptance criteria verified live against the real model;
 `implementation_plan.md` marks Feature 09 `COMPLETED`, Group_F09 `COMPLETED`.
+
+## 2026-09-05 — Step 6: Feature 10 (External Notification Delivery), Group_F10
+
+Built against `architecture-plan-feature-10.md`'s 6-step Implementation Order exactly — extended
+`persist_outcome_notification()` (Feature 07's own extension point, named in advance), no new Stage, no
+new frontend surface. Corrected one stale detail from the plan: its stated migration `down_revision`
+(`5f3cbe979b96_*`) was the alembic head at plan time, but Feature 09's `b86e4d4ef367` migration landed
+first — the new migration chains onto that actual head instead.
+
+**Files touched:**
+- `backend/app/models/notification.py` (modified) — two new nullable columns,
+  `external_delivery_status`/`external_delivery_error`
+- `backend/alembic/versions/a95fad549dbf_add_notification_delivery_columns.py` (new) — chains onto
+  `b86e4d4ef367` (the actual current head, not the plan's stated `5f3cbe979b96`); applied cleanly
+  against the dev SQLite DB with existing rows intact
+- `backend/app/core/config.py` (modified) — `notification_webhook_url: str | None = None`
+- `backend/.env.example` (modified) — `NOTIFICATION_WEBHOOK_URL=`, unset by default
+- `backend/app/orchestrator/tools/webhook_tools.py` (new) — `deliver_webhook_notification()`: single-
+  attempt Slack-compatible `{"text": ...}` POST, never raises (catches `httpx.HTTPStatusError`/
+  `HTTPError`), returns `{"delivered", "status_code", "error"}`; `error` built from status code/
+  exception type only, never the webhook URL itself (risk mitigation from the plan)
+- `backend/app/orchestrator/graph.py` (modified) — `persist_outcome_notification()` now gates delivery
+  to `output.outcome_type == "awaiting_review"` only; lazy-imports `settings` and `webhook_tools`
+  matching `build_production_graph()`'s existing local-import style; records `"skipped"` when
+  `notification_webhook_url` is unset, `"sent"`/`"failed"` otherwise — all three call sites unchanged,
+  no signature changes
+- `backend/app/schemas/notification.py` (modified) — `NotificationOut` + 2 optional fields
+- `backend/app/tests/test_webhook_tools.py` (new) — 5 tests: success, non-2xx, connection error,
+  timeout, and a dedicated test confirming the webhook URL never leaks into the returned `error` string
+- `backend/app/tests/test_orchestrator_graph.py` (modified) — 4 new tests calling
+  `persist_outcome_notification()` directly: skip (unset URL), sent (successful delivery), failed
+  (delivery error, never raises), and confirms `auto_processed`/`failed`/`rejected` outcomes never
+  attempt delivery (asserts the webhook function is never even called)
+- `backend/app/tests/test_router_notifications.py` (modified) — 1 new test confirming pre-Feature-10
+  rows still validate against `NotificationOut` with both new fields `null`
+
+**Diff size:** ~180 lines added/changed across 9 files (1 new migration, 1 new tool module, 4 modified
+source files, 3 modified/new test files)
+**Validation:** PASS — see `.claude/validation-results.md` (128/128 backend tests — 118 pre-existing +
+10 new; `alembic upgrade head` applied cleanly to a single head; live manual dev-server verification
+against the real local `llama3.2:3b` model — not mocked — across all three delivery paths: (1) a local
+disposable HTTP receiver on `127.0.0.1:8999` received the exact `message`/`detail_link` payload and the
+row recorded `external_delivery_status="sent"`; (2) an unreachable URL (`127.0.0.1:1`) produced
+`external_delivery_status="failed"`/`external_delivery_error="ConnectError"` with the run still reaching
+`AWAITING_REVIEW` normally; (3) `NOTIFICATION_WEBHOOK_URL` unset produced `external_delivery_status=
+"skipped"`; confirmed pre-existing `rejected`/`failed` notification rows from earlier in the session
+kept `external_delivery_status=null`, proving the outcome-type gate).
+**Status:** approved — all 5 of Feature 10's acceptance criteria verified live against the real model;
+`implementation_plan.md` marks Feature 10 `COMPLETED`, Group_F10 `COMPLETED`.

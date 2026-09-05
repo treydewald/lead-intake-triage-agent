@@ -467,3 +467,61 @@ than crashing or showing a stale value. Zero console errors on `/benchmark`.
    confirms direct reuse; a deliberately-failing case (scripted double-raise, matching the stage's own
    internal retry) is counted as incorrect not excluded →
    `test_deliberately_failing_case_counts_as_incorrect_not_excluded`
+
+## 2026-09-05 — Feature 10 (External Notification Delivery)
+
+**Checks run:** `pytest app/tests/` (full backend suite) + `alembic upgrade head` on the dev SQLite DB
+(added `external_delivery_status`/`external_delivery_error` to `notification` cleanly, chaining onto
+`b86e4d4ef367` — the actual current head, not the plan's stated `5f3cbe979b96`) + a manual dev-server
+live verification against the real local `llama3.2:3b` model (not mocked) covering all three delivery
+paths named in the plan's Validation Requirements. No frontend change (Feature 10 has no UI surface).
+
+**Result:** PASS — backend: 128 passed (118 pre-existing + 10 new: 5 in `test_webhook_tools.py`, 4 new
+in `test_orchestrator_graph.py`, 1 new in `test_router_notifications.py`), 0 failed on first run after
+implementation, no fix cycle needed.
+
+**Live run result (real model, real HTTP, three separate submissions via `POST /leads/webform` with
+`CONFIDENCE_THRESHOLD=0.95` temporarily overridden in `.env`, not committed, matching the precedent set
+at Feature 15 — the real model is consistently overconfident on ambiguous test messages):**
+1. **Sent path** — `NOTIFICATION_WEBHOOK_URL` pointed at a disposable local HTTP receiver
+   (`127.0.0.1:8999`, a throwaway script, not part of the repo): the receiver's log shows the exact
+   payload `{"text": "Lead Test Webhook Lead is awaiting human review.\n/reviews/<run_id>"}`, matching
+   the in-app `Notification` row's `message`/`detail_link` exactly. `GET /notifications` showed
+   `external_delivery_status="sent"`, `external_delivery_error=null`.
+2. **Failed path** — `NOTIFICATION_WEBHOOK_URL` pointed at a deliberately unreachable address
+   (`127.0.0.1:1`): `GET /notifications` showed `external_delivery_status="failed"`,
+   `external_delivery_error="ConnectError"`; the run still reached `AWAITING_REVIEW` normally (confirmed
+   via the `POST /leads/webform` response), proving the delivery failure never raised out of
+   `persist_outcome_notification()` or affected `PipelineRun.status`.
+3. **Skipped path** — `NOTIFICATION_WEBHOOK_URL` unset (the default): `GET /notifications` showed
+   `external_delivery_status="skipped"`, no HTTP call attempted (no `webhook_tools` invocation, verified
+   by the absence of any new receiver-log entry), the in-app `Notification` row created exactly as
+   before Feature 10.
+4. **Outcome-type gate** — pre-existing `rejected`/`failed` notification rows from earlier in the same
+   session (Feature 15/RB-002 verification) were re-checked via `GET /notifications` and still showed
+   `external_delivery_status=null` — confirming delivery is never attempted for outcome types other than
+   `awaiting_review`, using real historical data rather than only the unit tests.
+
+**Acceptance criteria coverage (architecture-plan-feature-10.md):**
+1. An `awaiting_review` outcome triggers both the in-app `Notification` and, when configured, one
+   external webhook POST with the outcome's `message`/`detail_link` → live run #1 above +
+   `test_persist_outcome_notification_records_sent_on_successful_delivery`
+2. A webhook delivery failure is caught, recorded as `external_delivery_status="failed"`/
+   `external_delivery_error=<reason>`, never raises, never changes `PipelineRun.status` → live run #2
+   above + `test_persist_outcome_notification_records_failed_without_raising` +
+   `test_deliver_webhook_notification_non_2xx_returns_failed_without_raising` +
+   `test_deliver_webhook_notification_connection_error_returns_failed_without_raising`
+3. `auto_processed`/`failed`/`rejected` outcomes never attempt external delivery,
+   `external_delivery_status` stays `None` → live run #4 above +
+   `test_persist_outcome_notification_never_attempts_delivery_for_non_awaiting_review_outcomes`
+4. `NOTIFICATION_WEBHOOK_URL` unset → `external_delivery_status="skipped"`, no HTTP call attempted, the
+   in-app `Notification` row still created → live run #3 above +
+   `test_persist_outcome_notification_skips_delivery_when_webhook_url_unset`
+5. No retry loop — exactly one delivery attempt per event → `deliver_webhook_notification`'s
+   implementation makes exactly one `client.post()` call with no loop, per the risk mitigation named in
+   the plan; confirmed by code review (no retry construct anywhere in `webhook_tools.py`)
+
+**Additional risk mitigation confirmed:** `test_deliver_webhook_notification_error_never_includes_the_
+webhook_url` verifies the returned `error` string never contains the configured webhook URL — the plan's
+own Risks section flagged this as a potential secret/destination leak since `GET /notifications` has no
+auth in this project.

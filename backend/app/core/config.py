@@ -27,5 +27,11 @@ class Settings(BaseSettings):
 
     cors_origins: list[str] = ["http://localhost:5173"]
 
+    # Optional Slack-compatible incoming webhook for external delivery of
+    # awaiting_review notifications (Feature 10). Unset by default — free-by-default,
+    # no paid delivery service required; a missing URL is a normal, expected config,
+    # not an error.
+    notification_webhook_url: str | None = None
+
 
 settings = Settings()

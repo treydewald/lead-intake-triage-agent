@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from app.core.config import settings
+from app.models.notification import Notification
 from app.models.pipeline_run import PipelineRun, StageTrace
 from app.models.review_queue import ReviewQueueItem
 from app.orchestrator.contracts import Stage
@@ -8,6 +10,7 @@ from app.orchestrator.graph import (
     build_graph,
     build_resume_graph,
     default_stages,
+    persist_outcome_notification,
     resume_pipeline,
     run_pipeline,
 )
@@ -458,5 +461,102 @@ def test_resume_pipeline_continues_paused_run_through_crm_write_and_notify(db_se
         run_row = db.get(PipelineRun, paused.run.run_id)
         assert run_row.status == RunStatus.COMPLETED.value
         assert db.query(PipelineRun).filter(PipelineRun.lead_id == "lead-resume").count() == 1
+    finally:
+        db.close()
+
+
+def _awaiting_review_state(run_id: str) -> LeadPipelineState:
+    state = _initial_state()
+    state.run = state.run.model_copy(update={"run_id": run_id, "lead_id": "lead-awaiting"})
+    return state
+
+
+def _notification_stage(outcome_type: str) -> Stage:
+    return _FakeStage(
+        "outcome_notification",
+        "notification",
+        NotificationSlice,
+        lambda data, tools: NotificationSlice(
+            notified=True,
+            outcome_type=outcome_type,
+            message="Lead Jane Doe is awaiting human review.",
+            detail_link="/reviews/run-awaiting",
+        ),
+    )
+
+
+def test_persist_outcome_notification_skips_delivery_when_webhook_url_unset(db_session_factory, monkeypatch):
+    monkeypatch.setattr(settings, "notification_webhook_url", None)
+    state = _awaiting_review_state("run-skip")
+
+    persist_outcome_notification(state, _notification_stage("awaiting_review"), ToolRegistry(), db_session_factory)
+
+    db = db_session_factory()
+    try:
+        row = db.query(Notification).filter(Notification.run_id == "run-skip").one()
+        assert row.external_delivery_status == "skipped"
+        assert row.external_delivery_error is None
+    finally:
+        db.close()
+
+
+def test_persist_outcome_notification_records_sent_on_successful_delivery(db_session_factory, monkeypatch):
+    monkeypatch.setattr(settings, "notification_webhook_url", "https://hooks.example.com/incoming")
+    monkeypatch.setattr(
+        "app.orchestrator.tools.webhook_tools.deliver_webhook_notification",
+        lambda *args, **kwargs: {"delivered": True, "status_code": 200, "error": None},
+    )
+    state = _awaiting_review_state("run-sent")
+
+    persist_outcome_notification(state, _notification_stage("awaiting_review"), ToolRegistry(), db_session_factory)
+
+    db = db_session_factory()
+    try:
+        row = db.query(Notification).filter(Notification.run_id == "run-sent").one()
+        assert row.external_delivery_status == "sent"
+        assert row.external_delivery_error is None
+    finally:
+        db.close()
+
+
+def test_persist_outcome_notification_records_failed_without_raising(db_session_factory, monkeypatch):
+    monkeypatch.setattr(settings, "notification_webhook_url", "https://hooks.example.com/incoming")
+    monkeypatch.setattr(
+        "app.orchestrator.tools.webhook_tools.deliver_webhook_notification",
+        lambda *args, **kwargs: {"delivered": False, "status_code": None, "error": "ConnectError"},
+    )
+    state = _awaiting_review_state("run-failed-delivery")
+
+    persist_outcome_notification(state, _notification_stage("awaiting_review"), ToolRegistry(), db_session_factory)
+
+    db = db_session_factory()
+    try:
+        row = db.query(Notification).filter(Notification.run_id == "run-failed-delivery").one()
+        assert row.external_delivery_status == "failed"
+        assert row.external_delivery_error == "ConnectError"
+    finally:
+        db.close()
+
+
+def test_persist_outcome_notification_never_attempts_delivery_for_non_awaiting_review_outcomes(
+    db_session_factory, monkeypatch
+):
+    monkeypatch.setattr(settings, "notification_webhook_url", "https://hooks.example.com/incoming")
+
+    def _fail_if_called(*args, **kwargs):
+        raise AssertionError("delivery should not be attempted for this outcome_type")
+
+    monkeypatch.setattr("app.orchestrator.tools.webhook_tools.deliver_webhook_notification", _fail_if_called)
+
+    for outcome_type in ("auto_processed", "failed", "rejected"):
+        state = _awaiting_review_state(f"run-{outcome_type}")
+        persist_outcome_notification(state, _notification_stage(outcome_type), ToolRegistry(), db_session_factory)
+
+    db = db_session_factory()
+    try:
+        for outcome_type in ("auto_processed", "failed", "rejected"):
+            row = db.query(Notification).filter(Notification.run_id == f"run-{outcome_type}").one()
+            assert row.external_delivery_status is None
+            assert row.external_delivery_error is None
     finally:
         db.close()

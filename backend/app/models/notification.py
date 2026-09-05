@@ -37,3 +37,9 @@ class Notification(Base):
     message: Mapped[str] = mapped_column(Text)
     detail_link: Mapped[str] = mapped_column(String(255))
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_utcnow)
+
+    # Feature 10: best-effort external (webhook) delivery status for this notification.
+    # Nullable — `None` means "no delivery ever attempted" (every outcome type other than
+    # `awaiting_review`, and every pre-Feature-10 row), not a migration gap to backfill.
+    external_delivery_status: Mapped[str | None] = mapped_column(String(16), nullable=True)
+    external_delivery_error: Mapped[str | None] = mapped_column(Text, nullable=True)

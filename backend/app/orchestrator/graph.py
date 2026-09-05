@@ -139,6 +139,21 @@ def persist_outcome_notification(
     output = stage.run(slice_in, proxy)
     _write_trace(session_factory, state.run.run_id, stage.name, slice_in, output, "COMPLETED", None)
 
+    external_delivery_status: str | None = None
+    external_delivery_error: str | None = None
+    if output.outcome_type == "awaiting_review":
+        from app.core.config import settings
+        from app.orchestrator.tools.webhook_tools import deliver_webhook_notification
+
+        if settings.notification_webhook_url:
+            result = deliver_webhook_notification(
+                settings.notification_webhook_url, message=output.message, detail_link=output.detail_link
+            )
+            external_delivery_status = "sent" if result["delivered"] else "failed"
+            external_delivery_error = result["error"]
+        else:
+            external_delivery_status = "skipped"
+
     db = session_factory()
     try:
         db.add(
@@ -148,6 +163,8 @@ def persist_outcome_notification(
                 outcome_type=output.outcome_type,
                 message=output.message,
                 detail_link=output.detail_link,
+                external_delivery_status=external_delivery_status,
+                external_delivery_error=external_delivery_error,
             )
         )
         db.commit()

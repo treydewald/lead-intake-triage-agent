@@ -1,13 +1,18 @@
 # Portfolio Reference — Lead Intake Triage Agent
 
-**Last Updated:** 2026-09-05 (`.claude/refinement-backlog.md`'s RB-004 — `HomePage.tsx` rewritten from
-Step 4's bootstrap placeholder into a real landing page linking to `/leads`, `/reviews`, and
-`/benchmark`. RB-004 is now COMPLETED. Prior update: RB-003 — Architecture Map backfilled with the
-remaining Feature 08 rows [`routers/leads.py`, `LeadListPage.tsx`, `LeadDetailPage.tsx`,
-`HomePage.tsx`, `lib/api.ts`, `lib/stageOrder.ts`] and the two previously-uncited migrations, plus
-rewording the three stale directory-level placeholder rows to present tense. Prior to that: Step 5.5
-for Feature 10, External Notification Delivery — two new Key Decisions added, see
-`architecture-plan-feature-10.md`.)
+**Last Updated:** 2026-09-05 (Step 6 — Feature 10, External Notification Delivery, Group_F10
+COMPLETED. Extended `persist_outcome_notification()` with a best-effort, never-raising external
+webhook delivery gated to `awaiting_review` only; new `webhook_tools.py`, two new nullable
+`Notification` columns, one new `notification_webhook_url` setting. Architecture Map rows updated for
+`config.py`, `graph.py`, `orchestrator/tools/`, `models/notification.py`, `schemas/notification.py`,
+and `alembic/`. Live-verified against the real local model across all three delivery paths (sent/
+failed/skipped) — see `.claude/execution-log.md`/`validation-results.md`'s Feature 10 entries. Prior
+update: `.claude/refinement-backlog.md`'s RB-004 — `HomePage.tsx` rewritten from Step 4's bootstrap
+placeholder into a real landing page linking to `/leads`, `/reviews`, and `/benchmark`. Prior to that:
+RB-003 — Architecture Map backfilled with the remaining Feature 08 rows [`routers/leads.py`,
+`LeadListPage.tsx`, `LeadDetailPage.tsx`, `HomePage.tsx`, `lib/api.ts`, `lib/stageOrder.ts`] and the two
+previously-uncited migrations, plus rewording the three stale directory-level placeholder rows to
+present tense.)
 
 Read this before opening source files. Only open the actual code when this doc doesn't answer the
 question.
@@ -40,7 +45,7 @@ portfolio gate (Mode: STANDARD).
 | Path | Purpose |
 |---|---|
 | `backend/main.py` | FastAPI app entrypoint — CORS, router registration |
-| `backend/app/core/config.py` | Pydantic settings (env-driven): DB URL, Ollama config, HubSpot token, confidence threshold |
+| `backend/app/core/config.py` | Pydantic settings (env-driven): DB URL, Ollama config, HubSpot token, confidence threshold, `notification_webhook_url` (Feature 10, unset by default) |
 | `backend/app/database/session.py` | SQLAlchemy engine/session/Base (SQLite dev DB: `backend/leads.db`) |
 | `backend/app/models/` | SQLAlchemy ORM models (lead records, stage traces, review queue — populated in Step 6) |
 | `backend/app/schemas/` | Pydantic request/response schemas (populated in Step 6) |
@@ -49,23 +54,24 @@ portfolio gate (Mode: STANDARD).
 | `backend/app/orchestrator/state.py` | `LeadPipelineState` — one Pydantic slice per stage (intake, classification, enrichment, crm_write, review, notification) + run metadata |
 | `backend/app/orchestrator/tool_scope.py` | `ToolRegistry`/`ScopedToolProxy` — the enforced per-stage tool-access boundary; a stage only ever reaches a tool through its scoped proxy |
 | `backend/app/orchestrator/errors.py` | `OutOfScopeToolError`, `StageExecutionError`, `StateValidationError` |
-| `backend/app/orchestrator/graph.py` | LangGraph `StateGraph` wiring the 6 stages, `run_pipeline()`/`resume_pipeline()` entry points; `persist_outcome_notification()` fires the notification stage directly for the three terminal transitions (failure, awaiting-review, reject) that never reach the graph's own `notify_stage` node; `_mark_completed_if_still_running()` is the sole place `RunStatus.COMPLETED` is assigned |
+| `backend/app/orchestrator/graph.py` | LangGraph `StateGraph` wiring the 6 stages, `run_pipeline()`/`resume_pipeline()` entry points; `persist_outcome_notification()` fires the notification stage directly for the three terminal transitions (failure, awaiting-review, reject) that never reach the graph's own `notify_stage` node; `_mark_completed_if_still_running()` is the sole place `RunStatus.COMPLETED` is assigned; also where Feature 10's external delivery hook lives, gated to `outcome_type == "awaiting_review"` only, calling `webhook_tools.py` directly (bypassing `ToolRegistry`/`ScopedToolProxy` — see Key Decisions) |
 | `backend/app/orchestrator/stages/intent_classification.py` | Feature 03's `IntentClassificationStage` — calls `ollama_classify` via the scoped tool proxy, retry-once-then-fail-closed |
 | `backend/app/orchestrator/stages/data_enrichment.py` | Feature 04's `DataEnrichmentStage` — calls `hubspot_search_contact` via the scoped tool proxy; exact-key phone/email match or `difflib`-scored fuzzy name match, merges only fields Intake left null, never raises |
 | `backend/app/orchestrator/stages/hubspot_crm_write.py` | Feature 05's `HubSpotCrmWriteStage` — write-only (`hubspot_write` alone); reads both `intake` and `enrichment` via `input_slices`; calls `tools.call("hubspot_write", ...)` with no try/except so a write failure halts the run |
 | `backend/app/orchestrator/stages/human_review.py` | Feature 06's `HumanReviewStage` — pure gate, no tool access; unconditionally returns `ReviewSlice(queued=True, ...)` (the routing decision was already made by `_route_after_enrich`) |
 | `backend/app/orchestrator/stages/outcome_notification.py` | Feature 07's `OutcomeNotificationStage` — pure signaling, no tool access; maps `run.status` to one of `auto_processed`/`awaiting_review`/`rejected`/`failed` and builds `message`/`detail_link` |
-| `backend/app/orchestrator/tools/` | Real tool bindings for external systems, one module per system (`ollama_tools.py`, `hubspot_tools.py`), wired by `register_default_tools()`; `hubspot_tools.py` holds both `search_contact` (read-only) and `write_contact` (write-only, retry-with-backoff) |
+| `backend/app/orchestrator/tools/` | Real tool bindings for external systems, one module per system (`ollama_tools.py`, `hubspot_tools.py`, `webhook_tools.py`), wired by `register_default_tools()`; `hubspot_tools.py` holds both `search_contact` (read-only) and `write_contact` (write-only, retry-with-backoff) |
+| `backend/app/orchestrator/tools/webhook_tools.py` | Feature 10's `deliver_webhook_notification()` — single-attempt, never-raising POST of a Slack-compatible payload to an operator-configured incoming webhook; NOT registered through `ToolRegistry` (called directly by `persist_outcome_notification()` — see Key Decisions); `error` built from status code/exception type only, never the webhook URL itself |
 | `backend/app/models/pipeline_run.py` | `PipelineRun`/`StageTrace` SQLAlchemy models — every stage transition's persisted trace |
 | `backend/app/models/review_queue.py` | Feature 06's `ReviewQueueItem` — a reviewer's actionable task for one paused run, carrying its own full-state resume snapshot (`state_snapshot`), distinct from the `PipelineRun`/`StageTrace` execution log |
-| `backend/app/models/notification.py` | Feature 07's `Notification` — a persisted in-app notification per outcome event; `run_id` FK is not unique (a run can produce more than one over its lifetime); no addressee field (no `User`/auth model exists) |
+| `backend/app/models/notification.py` | Feature 07's `Notification` — a persisted in-app notification per outcome event; `run_id` FK is not unique (a run can produce more than one over its lifetime); no addressee field (no `User`/auth model exists); Feature 10 added two nullable columns, `external_delivery_status`/`external_delivery_error` (`None` = never attempted — every outcome type other than `awaiting_review`) |
 | `backend/app/schemas/pipeline.py` | Pydantic request/response schemas for triggering/querying a pipeline run |
 | `backend/app/schemas/review.py` | Feature 06's `ReviewActionRequest`/`ReviewQueueItemOut` — reviewer-facing request/response shapes |
-| `backend/app/schemas/notification.py` | Feature 07's `NotificationOut` — response shape for `GET /notifications` |
+| `backend/app/schemas/notification.py` | Feature 07's `NotificationOut` — response shape for `GET /notifications`; Feature 10 added `external_delivery_status`/`external_delivery_error` (optional, `null` for pre-Feature-10 rows) |
 | `backend/app/routers/reviews.py` | Feature 06: `GET /reviews`, `GET /reviews/{run_id}`, `POST /reviews/{run_id}/action` — concurrency-safe claim via an atomic `UPDATE ... WHERE status='PENDING'`; approve/edit re-enter the orchestrator via `resume_pipeline()`, reject sets `RunStatus.REJECTED` directly and also calls `persist_outcome_notification()` |
 | `backend/app/routers/notifications.py` | Feature 07: `GET /notifications` (list, newest first) |
 | `backend/app/routers/leads.py` | Feature 08: `GET /leads` (list, paginated, denormalized `source_channel`/`confidence_score` for filter/sort), `GET /leads/{lead_id}` (detail — full stage-trace timeline via `STAGE_ORDER`/`_STAGE_LABELS`, mirrored on the frontend by `lib/stageOrder.ts`) |
-| `backend/alembic/` | DB migrations, wired to `app.database.session.Base` and `settings.database_url`; `245c694fed3d_*` creates `pipeline_run`/`stage_trace`; `68de6a50cacb_*` creates `review_queue_item`; `5f3cbe979b96_*` creates `notification`; `9217c457cc82_*` (Feature 08) adds `pipeline_run.source_channel`/`.confidence_score`; `b86e4d4ef367_*` (Feature 09) creates `benchmark_run`/`benchmark_case` |
+| `backend/alembic/` | DB migrations, wired to `app.database.session.Base` and `settings.database_url`; `245c694fed3d_*` creates `pipeline_run`/`stage_trace`; `68de6a50cacb_*` creates `review_queue_item`; `5f3cbe979b96_*` creates `notification`; `9217c457cc82_*` (Feature 08) adds `pipeline_run.source_channel`/`.confidence_score`; `b86e4d4ef367_*` (Feature 09) creates `benchmark_run`/`benchmark_case`; `a95fad549dbf_*` (Feature 10) adds `notification.external_delivery_status`/`.external_delivery_error` |
 | `frontend/src/components/` | Shared UI: `BuildIndicator.tsx`, `Layout.tsx` (persistent sidebar nav — Leads/Reviews/Benchmark) |
 | `frontend/src/pages/` | Route-level pages — each has its own row below: `HomePage.tsx`, `LeadListPage.tsx`/`LeadDetailPage.tsx` (Feature 08), `BenchmarkPage.tsx` (Feature 09), `ReviewQueuePage.tsx`/`ReviewDetailPage.tsx` (Feature 15) |
 | `frontend/src/pages/HomePage.tsx` | Index route (`/`) — landing page linking to Observability (`/leads`), Review Queue (`/reviews`), and Benchmark (`/benchmark`); replaced Step 4's bootstrap placeholder per `.claude/refinement-backlog.md`'s RB-004 (COMPLETED) |
