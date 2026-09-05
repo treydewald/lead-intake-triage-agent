@@ -562,3 +562,57 @@ access).
 
 **Next:** Step 6 (Worker Pool Orchestrator) claims Group_F10 using this plan's Implementation Order and
 reuse instructions; `implementation_plan.md`'s `owned_files` for Group_F10 finalized this session.
+
+---
+
+## 2026-09-05 — Step 5.5: Implementation Planner — Feature 11 (Per-Lead Audit/History Trail UI)
+
+Produced `architecture-plan-feature-11.md`. Planning Depth: Standard (a new read-only aggregation view
+over two existing systems — `PipelineRun`/`StageTrace` and `ReviewQueueItem` — plus one new frontend
+page; not Deep, since no new persistent data model beyond one nullable column and no 4+ system reach).
+
+**Existing Systems Analysis:** No duplication risk found. Reuses `PipelineRun`/`StageTrace`,
+`ReviewQueueItem`, `STAGE_ORDER`/`_STAGE_LABELS`, and `frontend/src/lib/stageOrder.ts` as-is; adds a new
+endpoint (`GET /leads/{lead_id}/history`) and one new frontend page (`LeadHistoryPage.tsx`) rather than
+a second lead list/detail mechanism.
+
+**Genuine architecture gap surfaced (not a duplication risk):** the feature spec's own acceptance
+criterion — "a retried lead's timeline shows both attempts distinctly" — describes a scenario no current
+code path produces. Every intake endpoint mints a brand-new `lead_id` per submission; no
+retry/resubmit endpoint exists anywhere. Decision: do not build a retry mechanism (out of scope for this
+feature's spec); instead the new history endpoint queries *all* `PipelineRun` rows sharing a `lead_id`
+(never `.first()`), making the criterion satisfiable via a fixture-seeded two-run test and
+forward-compatible with any future retry feature, without inventing one now. Flagged explicitly in the
+plan's Validation Requirements so Step 7/CD-4 doesn't waste time looking for a live flow that doesn't
+exist.
+
+**Second gap surfaced:** the feature spec requires showing a review action "by whom," but this project
+has no User/auth model anywhere (Feature 07's Key Decision already noted this for a different reason).
+Decision: add an optional, free-text, self-reported `reviewer_name` field to `ReviewQueueItem`/
+`ReviewActionRequest` rather than building authentication — proportionate to a single-operator review
+workflow, and explicitly documented as a deliberate scope decision (not an oversight) via the new Key
+Decision below.
+
+**Architecture Rule Changes approved (2, both conflict-checked against existing Key Decisions, none
+found):**
+1. A per-lead history-aggregating read view must query every `PipelineRun` row sharing a `lead_id`,
+   never assume exactly one — additive to, not a restatement of, Feature 08's `.first()`-based
+   current-state endpoint, which answers a different question.
+2. Reviewer identity is captured as an optional, free-text, self-reported `reviewer_name` field,
+   populated at action time — generalizes Feature 07's existing "no addressee field (no auth model)"
+   note into an explicit pattern for any future "who did X" requirement.
+
+**Implementation Order (6 steps):** `ReviewQueueItem.reviewer_name` column + migration →
+`ReviewActionRequest`/`reviews.py` persist it → `TimelineEntryOut`/`LeadHistoryOut` schemas +
+`GET /leads/{lead_id}/history` → `LeadHistoryPage.tsx` + routing → `LeadDetailPage.tsx` "View Full
+History" link → `ReviewDetailPage.tsx` optional "Your name" input. Predicted footprint: 10 files (2 new,
+8 modified).
+
+**Approved by:** auto (Auto Mode + master prompt's "EXECUTE NOW" applied, per the user's explicit choice
+of "Step 5.5 for Group_F11" among three offered paths this session — same standing note as prior
+entries: worth a human look before Step 6 starts writing code, particularly the reviewer-identity
+scope decision).
+
+**Next:** Step 6 (Worker Pool Orchestrator) claims Group_F11 using this plan's Implementation Order and
+reuse instructions; `implementation_plan.md`'s `owned_files` for Group_F11 to be finalized when Step 6
+claims it.

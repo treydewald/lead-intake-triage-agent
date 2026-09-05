@@ -1,7 +1,7 @@
 # Pipeline Reference — Lead Intake Triage Agent
 
-**Last Updated:** 2026-09-05 (Step 6 — Group_F10 claimed and COMPLETED: Feature 10, External
-Notification Delivery)
+**Last Updated:** 2026-09-05 (Step 5.5 — Feature 11 (Per-Lead Audit/History Trail UI) planned:
+`architecture-plan-feature-11.md` produced, Group_F11's `owned_files` finalized)
 
 How *this project* is using the Upwork Portfolio Project Pipeline. Distinct from
 `portfolio-reference.md`, which is about the product — this file is about pipeline state.
@@ -10,22 +10,39 @@ How *this project* is using the Upwork Portfolio Project Pipeline. Distinct from
 
 ## Current Step
 
-**This session (2026-09-05, third session same day):** No Suggestion was given; `.claude/
-refinement-backlog.md`'s only OPEN entry (RB-004, a small self-contained HomePage.tsx fix) was
-consumed first — resolved via option (b) from its own "Routes to" (rewrite the page's copy into a real
-landing page with links, rather than a bare redirect). With the backlog empty, this session then
-advanced the actual next foundational step: **Step 6 (Worker Pool Orchestrator) claimed Group_F10 and
-built Feature 10 (External Notification Delivery)** against `architecture-plan-feature-10.md`'s 6-step
-Implementation Order — see `.claude/execution-log.md`/`validation-results.md`'s Feature 10 entries for
-full detail. 128/128 backend tests passing (10 new), `alembic upgrade head` applied cleanly (one
-correction from the plan: chained onto the actual current head `b86e4d4ef367`, not the plan's stated
-`5f3cbe979b96`, since Feature 09's migration landed after the plan was written). Live-verified against
-the real local `llama3.2:3b` model across all three delivery paths (sent, failed, skipped) plus the
-outcome-type gate, using a disposable local HTTP receiver — not mocked. No frontend change (Feature 10
-has no UI surface). `implementation_plan.md` marks Feature 10 `COMPLETED`, Group_F10 `COMPLETED`.
+**This session (2026-09-05, fourth session same day):** No Suggestion was given; the refinement backlog
+was already empty (RB-001 through RB-004 all COMPLETED, verified this session — no new entries). Three
+foundational paths were available (Step 5.5 for Group_F11, a Gate 2 re-pass covering Features 09/10, or
+Dynamic Next-Action Selection); asked the user directly rather than guessing, since
+`.claude/pipeline-reference.md` itself listed all three without ranking one as default. **User chose
+Step 5.5 for Group_F11 — Implementation Planner ran for Feature 11 (Per-Lead Audit/History Trail UI),
+producing `architecture-plan-feature-11.md`.** Planning Depth: Standard. Two Architecture Rule Changes
+approved (both conflict-checked, none found) and applied to this file's Key Decisions: (1) a per-lead
+history view must query every `PipelineRun` row sharing a `lead_id`, never assume exactly one; (2)
+reviewer identity is captured as an optional free-text `reviewer_name` field, not authentication (this
+project has no User/auth model). Two genuine architecture gaps surfaced and resolved during planning
+rather than deferred to Step 6: the spec's "retried lead" acceptance criterion describes a scenario no
+current code path produces (no retry/resubmit endpoint exists anywhere) — resolved by querying all runs
+per `lead_id` rather than building a retry mechanism, with Step 7/CD-4 told explicitly to seed the
+multi-run test fixture directly since no live flow produces it; and the spec's "by whom" requirement has
+no auth system to source it from — resolved via the new `reviewer_name` field rather than building
+authentication. 6-step Implementation Order produced (migration → schema/router → new aggregation
+endpoint → new frontend page → two existing-page link/form additions). `implementation_plan.md`'s
+Group_F11 `owned_files` finalized (11 files: 2 new, 9 modified). No code written this session — Step 6
+is next. Full detail: `.claude/plan-audit.md`'s Feature 11 entry; `architecture-plan-feature-11.md`.
 
-Prior to this: Backlog consumption — RB-003 COMPLETED (documentation-only Architecture Map backfill
-for Features 02-08). No pipeline step advanced that session.
+Prior to this: Step 6 (Worker Pool Orchestrator) claimed Group_F10 and built Feature 10 (External
+Notification Delivery) against `architecture-plan-feature-10.md`'s 6-step Implementation Order — see
+`.claude/execution-log.md`/`validation-results.md`'s Feature 10 entries for full detail. 128/128 backend
+tests passing (10 new), `alembic upgrade head` applied cleanly (one correction from the plan: chained
+onto the actual current head `b86e4d4ef367`, not the plan's stated `5f3cbe979b96`, since Feature 09's
+migration landed after the plan was written). Live-verified against the real local `llama3.2:3b` model
+across all three delivery paths (sent, failed, skipped) plus the outcome-type gate, using a disposable
+local HTTP receiver — not mocked. No frontend change (Feature 10 has no UI surface).
+`implementation_plan.md` marks Feature 10 `COMPLETED`, Group_F10 `COMPLETED`.
+
+Prior to that: Backlog consumption — RB-003 COMPLETED (documentation-only Architecture Map backfill
+for Features 02-08), RB-004 COMPLETED (HomePage.tsx real landing page).
 
 **Project Mode:** STANDARD (Intent: PORTFOLIO, Lifetime: MEDIUM, Scale: MEDIUM, Optimization
 Objective: PORTFOLIO_SIGNAL — see `docs/project-strategy.md`). Steps 10-16 are MANDATORY this cycle.
@@ -115,12 +132,13 @@ renders nothing (see `architecture-plan-feature-08.md`'s Risks). Step 7 (Impleme
 has not yet run against any completed feature, including this one.
 
 **Completed steps:** 1 (Project Advisor), 2 (Roadmap Architect), 3 (Feature Specification Engine), 4
-(Environment Bootstrap), 5.5 (Implementation Planner — Feature 01 through Feature 10, plus Feature 15's
+(Environment Bootstrap), 5.5 (Implementation Planner — Feature 01 through Feature 11, plus Feature 15's
 CD-2.5; re-entered per feature group, see `docs/implementation-planning.md` §16), 6 (Worker Pool
 Orchestrator — Group_F01 through Group_F10 all COMPLETED — all 8 Tier 1 features plus Feature 09 and
-Feature 10 [Tier 2] implemented end-to-end), 7 (Implementation Verification — Gate 2 — PASSED, against
-Tier 1 only; Feature 09/10 not yet covered by a Gate 2 pass), Continued Development Round 1 (CD-1
-through CD-4 — Feature 15, Review Queue Frontend UI, COMPLETED and verified).
+Feature 10 [Tier 2] implemented end-to-end; Group_F11 planned but not yet claimed), 7 (Implementation
+Verification — Gate 2 — PASSED, against Tier 1 only; Feature 09/10 not yet covered by a Gate 2 pass),
+Continued Development Round 1 (CD-1 through CD-4 — Feature 15, Review Queue Frontend UI, COMPLETED and
+verified).
 
 **Gates passed:** Gate 2 (Step 7, implementation verification) — PASSED, 2026-09-04. Gate 1 (Step 13,
 portfolio score ≥9.0/10, per `docs/premium-ui-standard.md`) is still ahead.
@@ -136,25 +154,26 @@ Tier section, STANDARD mode with Tier 2/3 features present falls back to full ti
 
 ## Next Step
 
-**Feature 10 (Group_F10) is now COMPLETED** — this session's Step 6 run. `.claude/refinement-
-backlog.md` has zero OPEN/IN_PROGRESS entries (RB-001 through RB-004 all COMPLETED).
+**Feature 11 is now PLANNED (`architecture-plan-feature-11.md` produced)** — this session's Step 5.5
+run. Per the decision tree, Step 5.5's output is unconditional for Step 6 next on this group.
 
 Paths available next session:
-- **Step 5.5 for Group_F11** (Feature 11, Per-Lead Audit/History Trail UI,
-  `depends_on: [Group_F08, Group_F06]`, both COMPLETED) — dependency-satisfiable, no
-  `architecture-plan-*.md` yet. Group_F13 (Feature 13, Tier 3) is also dependency-satisfiable but lower
-  priority; Group_F14 (Feature 14) remains CLAIMABLE-but-deferred (Tier 3, visibility only).
+- **Step 6 (Worker Pool Orchestrator) claims Group_F11** and builds Feature 11 against
+  `architecture-plan-feature-11.md`'s 6-step Implementation Order — the natural next step now that
+  planning is done for this group.
 - **A Gate 2 (Step 7) re-pass covering Feature 09 and Feature 10** — the last full Gate 2 run only
   verified Tier 1; both Tier 2 features have their own full validation loops already recorded in
   `.claude/execution-log.md`/`validation-results.md` but have not been through a dedicated
   Implementation Verification gate the way the 8 Tier 1 features were as a batch. Feature 15 has its
   own CD-4 verification recorded in `architecture-plan-feature-15.md` and does not need a separate
   Gate 2 pass.
-- With no Suggestion and an empty backlog, the next idle session should run
+- With no Suggestion and an empty backlog, an idle session (none of the above chosen) should run
   `docs/next-action-selection.md`'s Dynamic Next-Action Selection rather than defaulting to Scope
   Expansion — this project has landed several backend/frontend features across recent Step 6 and CD
   rounds with no full In-App Cohesion Audit or UI Audit & Refinement pass since Step 7's Tier-1-only
   Gate 2 run.
+- Group_F13 (Feature 13, Tier 3) is also dependency-satisfiable but lower priority; Group_F14
+  (Feature 14) remains CLAIMABLE-but-deferred (Tier 3, visibility only).
 
 Step 5 (Workspace Recovery) does not apply — this is a fresh bootstrap, not a recovery.
 

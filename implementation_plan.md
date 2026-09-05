@@ -220,9 +220,21 @@ GROUPS:
     status: UNCLAIMED
     owner: null
     features: [Feature 11]
-    owned_files: [TBD — pending Step 5.5 architecture plan for Feature 11]
+    owned_files: [
+      backend/app/models/review_queue.py (modify — reviewer_name column),
+      backend/alembic/versions/<new>_add_reviewer_name.py (new),
+      backend/app/schemas/review.py (modify — ReviewActionRequest.reviewer_name),
+      backend/app/routers/reviews.py (modify — action_review persists reviewer_name),
+      backend/app/schemas/pipeline.py (modify — TimelineEntryOut/LeadHistoryOut),
+      backend/app/routers/leads.py (modify — GET /leads/{lead_id}/history),
+      frontend/src/pages/LeadHistoryPage.tsx (new),
+      frontend/src/pages/LeadDetailPage.tsx (modify — "View Full History" link),
+      frontend/src/pages/ReviewDetailPage.tsx (modify — optional reviewer name input),
+      frontend/src/lib/api.ts (modify — getLeadHistory(), reviewer_name param),
+      frontend/src/App.tsx (modify — leads/:leadId/history route)]
     dependency_groups: [Group_F08, Group_F06]
     isolation_level: HIGH
+    # architecture-plan-feature-11.md (Step 5.5) sets Implementation Order — see that file
 
   Group_F12:
     status: UNCLAIMED

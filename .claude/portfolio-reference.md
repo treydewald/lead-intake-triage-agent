@@ -332,3 +332,19 @@ that doesn't exist yet.)*
   whether to halt *this lead's run*; this rule governs plumbing invoked strictly *after* a stage has
   already completed, where halting was never an option. Set by Feature 10's implementation plan
   (`architecture-plan-feature-10.md`).
+- **A per-lead read view that aggregates pipeline execution history must query every `PipelineRun` row
+  sharing a `lead_id` (ordered by `created_at`), never assume exactly one — even though today's three
+  intake endpoints each mint a fresh `lead_id` per submission and no code path currently produces a
+  second `PipelineRun` for an existing `lead_id`.** `PipelineRun.lead_id` carries no uniqueness
+  constraint specifically so multi-attempt history stays representable if a future feature ever adds a
+  retry/resubmit path. This does not change Feature 08's `GET /leads/{lead_id}`, which correctly uses
+  `.first()` because its job is "current state of the most recent/only attempt" — a different question
+  than a *history* view answers. Set by Feature 11's implementation plan
+  (`architecture-plan-feature-11.md`).
+- **Reviewer identity is captured as an optional, free-text, self-reported `reviewer_name` field on
+  `ReviewQueueItem`/`ReviewActionRequest`, populated at action time — this project has no User/auth
+  model, and building one is out of scope for what is architecturally a single-operator review
+  workflow.** Any future feature needing "who did X" should extend this same field/pattern rather than
+  introducing authentication. This generalizes, rather than contradicts, Feature 07's existing note that
+  `Notification` has "no addressee field (no User/auth model exists)" — same underlying constraint,
+  different original reason. Set by Feature 11's implementation plan (`architecture-plan-feature-11.md`).
