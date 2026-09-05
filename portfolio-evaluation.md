@@ -107,23 +107,61 @@ dimensions directly):
   interesting result should be legible at a glance, not read row-by-row | Est. Effort: 2-3 hours
   (promoted from Round 2's P2-01 — it's the single most promising remaining lever per that round's
   own Score Path note, and the raw data is already in place)
+  **Status: Completed.** New `components/ui/TrendChart.tsx` — a hand-rolled inline SVG line chart (no
+  new dependency), y-axis auto-scaled to where the real accuracy/consistency values actually cluster
+  (a fixed 0-100% axis pinned both metrics to the top with a large empty void beneath, re-verified live
+  and fixed before this item was called done — see Batch Verification), gridlines with percent labels,
+  a draw-in reveal (`.chart-line`, respects `prefers-reduced-motion`), and a `<title>` tooltip per point.
+  Merged into the same Card as Run History (`SectionLabel` "Run History & Trend") rather than a
+  separate section, both to read as one coherent view and to recover the vertical space the merge
+  needed for the no-scroll invariant (see Batch Verification). Plotted against real data: 2 live
+  benchmark runs already in the dev DB (both ~87.0%/90.9% — a flat but honest line, not fabricated
+  variance).
 - P1-02: Close Review Detail's remaining composition gap — the Reviewer Decision column specifically,
   not just the left column — with genuinely useful content (e.g., a confidence/classification
   explanation panel, related-lead context, or a redesigned single-column layout that doesn't leave a
   small card floating over empty space) | Est. Effort: 2-3 hours
+  **Status: Completed.** Moved the "Draft classification / Confidence / Queued" `dl` out of the left
+  column entirely and rebuilt it as a new "Classification signal" card in the right column, directly
+  above the Reviewer Decision card — draft label, the new `ConfidenceMeter` (see P1-04), one honest
+  sentence of context ("This draft classification didn't clear the auto-approval threshold, so the
+  pipeline paused here for a human decision instead of resuming on its own" — no fabricated threshold
+  number, since the client-side app has no access to the real configured value), and the queued
+  timestamp. This gives the right column two real cards instead of one short one, closing the height
+  mismatch against the left column without inventing filler content. Verified live via screenshot
+  (`06-review-detail.png`) — the void is gone.
 - P1-03: Add a purposeful motion/microinteraction layer on primary actions — a visible success
   confirmation after Review Detail's Submit, a subtle transition on navigation/content load — enough
   to confirm cause→action→result without adding decoration for its own sake (respect
   prefers-reduced-motion) | Est. Effort: 2 hours
+  **Status: Completed.** Two additions, both in `index.css` and both gated behind
+  `@media (prefers-reduced-motion: reduce)`: (1) `.page-transition`, a 280ms fade-slide-in applied in
+  `Layout.tsx` to a `key={location.pathname}`-keyed wrapper around `<Outlet/>`, so every route change
+  gets a subtle content transition; (2) `.success-pop`, a spring-eased scale/fade-in applied to Review
+  Detail's existing "Action submitted" banner, so completing a review reads as a confirmed result, not
+  just a text swap. Live-verified in a real browser via network-intercepted Playwright (see Batch
+  Verification) — `getComputedStyle` confirmed `animation-name: pop-in` on the success banner and
+  `animation-name: fade-slide-in` on page load, without touching the real seeded review item.
 - P1-04: Give the interface one identifiable signature visual characteristic beyond the current teal
   accent + card grid (per `docs/premium-ui-standard.md` §5's Anti-Generic-UI test) — e.g., a distinctive
   dashboard composition on Home, a considered secondary color used for confidence/status signaling, or
   a typographic treatment unique to this project rather than a standard admin-dashboard shape |
   Est. Effort: 2-3 hours
+  **Status: Completed.** Chose the backlog's own named option — "a considered secondary color used for
+  confidence/status signaling" — since it ties the signature visual directly to the product's actual
+  value proposition (an AI confidence judgment) rather than adding decoration unrelated to what the app
+  does. New `components/ui/ConfidenceMeter.tsx`: a red→amber→emerald gradient "spectrum" track with a
+  marker at the real score, replacing every plain `0.90`/`90%` confidence number in the app. Applied
+  consistently across Lead List's table, Lead Detail's summary card, Review Detail's new Classification
+  signal card, and Benchmark's Failure & Ambiguous Cases table — the same visual language everywhere a
+  classification confidence appears, which is the "one identifiable signature" the item asked for.
 
 P2 (High Priority):
 - P2-01: Close Lead Detail's remaining below-the-fold empty space (both columns) with additional
   genuinely useful content, not more stat tiles | Est. Effort: 1-2 hours
+- P2-02: A pre-existing, previously-undetected mobile (390×844) vertical-scroll regression, found
+  while verifying this round's own no-scroll invariant check | Est. Effort: 2-3 hours (new this
+  round — see Batch Verification for full detail and per-page numbers)
 
 P3 (Nice-to-Have):
 - P3-01: Add a first-visit onboarding cue on Home (e.g., pointing at the one pending review item) | Est.
@@ -141,3 +179,51 @@ competent" gap per the Premium Product Test. Once those four clear, Professional
 success-state gap (P2/P3-adjacent, cheap) is the last item standing between 9.0 and 9.5. P3 polish
 (onboarding, dark mode, saved views) is what would close the remaining gap toward 9.5-10 once the gate
 is cleared, per the Zero-Upkeep Luxury Principle.
+
+BATCH VERIFICATION (Step 12, Round 3 — 2026-09-05):
+
+Tests: full backend suite 138/138 passed (unchanged — no backend files touched this batch), full
+frontend suite 18/18 passed (17 pre-existing + 1 updated — `BenchmarkPage.test.tsx`'s "Run History"
+text assertion updated to "Run History & Trend" after the section was merged with the new chart).
+`tsc -b` and `vite build` both clean.
+
+No-scroll invariant (`docs/ui-design-standards.md` §1), re-measured live via a real browser
+(`playwright-core`, not guessed) across all four touched pages × the 4 target viewports:
+
+- 1920×1080, 1440×900, 1366×768: **zero overflow on all four pages** (Lead List, Lead Detail, Review
+  Detail, Benchmark).
+- **Real regression found and fixed before this batch was called done:** the trend chart initially
+  reintroduced the exact composition problem it was built to fix — an unconstrained SVG defaulted to
+  an intrinsic aspect-ratio height (~370-480px in a wide card) and a fixed 0-100% y-axis pinned both
+  near-identical metrics to the top, leaving a large empty area beneath — plus it pushed Benchmark
+  289-307px past the viewport at 1440×900/1366×768. Fixed by: auto-scaling the y-axis to the data's
+  actual range with padding (not a fixed 0-1 domain), giving the chart's container an explicit height
+  instead of relying on intrinsic SVG sizing, merging the Trend and Run History sections into one Card
+  (removed a redundant `SectionLabel`+`Card` wrapper), and tightening table row padding on both
+  Benchmark tables (`py-2.5` → `py-1.5`) and the page's root gap (`gap-4` → `gap-2`). Re-measured after
+  each change until 1920×1080/1440×900/1366×768 all read exactly 0px overflow.
+- **390×844 (mobile): a pre-existing, previously-undetected regression, not introduced by this
+  batch.** Verified via `git stash` against the pre-batch baseline before attributing it: Lead List
+  (257px), Lead Detail (463px baseline → 465px, +2px from this batch), Review Detail (126px baseline →
+  222px, +96px from this batch's legitimate new Classification signal card), and Benchmark (96px
+  baseline, plus a pre-existing 34px *horizontal* overflow unrelated to the trend chart → 109px after
+  heavy optimization, +13px net) were already scrolling vertically at this viewport before today's
+  session — i.e., mobile has drifted since Step 8's original zero-overflow pass across all four of
+  these pages, most likely from content added across Steps 9-12 that was never re-verified at 390px.
+  This is out of this batch's own scope (Step 12 processes named backlog items, not a general
+  responsive audit), so it was not fixed here — logged as new backlog item P2-02 instead, per this
+  step's own "split it into a new backlog item rather than abandoning it half-done" failure-mode
+  guidance, since fully closing it is a wider responsive pass than any single P1 item's scope.
+
+Live verification (real browser, real backend, not mocked): all 9 portfolio screenshots re-captured
+against the fixed code (`.claude/skills/capture-screenshots.mjs` extended with a 1000ms post-load wait
+on the Benchmark route so the chart's line-draw animation finishes before the screenshot, rather than
+capturing mid-animation) and visually re-inspected directly. Review Detail's composition gap is
+visually closed; Benchmark's trend chart renders as a properly-scaled, legible line chart merged
+cleanly with Run History; the confidence-spectrum meter appears consistently on Lead List, Lead Detail,
+Review Detail, and Benchmark. The motion layer was verified with real computed styles in a live browser
+rather than assumed from the CSS alone: Playwright confirmed `animation-name: fade-slide-in` on initial
+page load and, via a network-intercepted (not real-backend) Review Detail submit, `animation-name:
+pop-in` on the success banner — chosen specifically so this verification did not consume the one real
+`awaiting_review` seed item other sessions' screenshots/QA depend on (confirmed via `GET /reviews`
+after the check: the real item is still queued, untouched).

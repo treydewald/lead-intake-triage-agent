@@ -1,5 +1,5 @@
 import { Activity, ClipboardCheck, Gauge } from 'lucide-react'
-import { NavLink, Outlet } from 'react-router-dom'
+import { NavLink, Outlet, useLocation } from 'react-router-dom'
 import { BuildIndicator } from './BuildIndicator'
 
 const navItems = [
@@ -9,6 +9,8 @@ const navItems = [
 ]
 
 export function Layout() {
+  const location = useLocation()
+
   return (
     <div className="flex h-screen flex-col overflow-hidden bg-slate-50 text-slate-900 md:flex-row">
       <aside className="hidden w-60 shrink-0 flex-col border-r border-slate-200 bg-white px-4 py-6 md:flex">
@@ -66,7 +68,9 @@ export function Layout() {
         </nav>
       </header>
       <main className="min-w-0 flex-1 overflow-auto p-4 sm:p-6">
-        <Outlet />
+        <div key={location.pathname} className="page-transition">
+          <Outlet />
+        </div>
       </main>
       <BuildIndicator />
     </div>

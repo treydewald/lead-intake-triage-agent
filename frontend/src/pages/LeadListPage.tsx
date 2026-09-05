@@ -7,6 +7,7 @@ import { StatCard } from '../components/ui/StatCard'
 import { Card } from '../components/ui/Card'
 import { Select } from '../components/ui/Select'
 import { EmptyState, ErrorState, LoadingState } from '../components/ui/States'
+import { ConfidenceMeter } from '../components/ui/ConfidenceMeter'
 
 const STATUS_OPTIONS = [
   { value: '', label: 'All statuses' },
@@ -207,8 +208,8 @@ export function LeadListPage() {
                     <StatusBadge status={item.status} />
                   </td>
                   <td className="px-4 py-2.5 text-slate-600">{item.source_channel ?? '—'}</td>
-                  <td className="px-4 py-2.5 text-slate-600">
-                    {item.confidence_score != null ? item.confidence_score.toFixed(2) : '—'}
+                  <td className="px-4 py-2.5">
+                    <ConfidenceMeter value={item.confidence_score} />
                   </td>
                   <td className="px-4 py-2.5 text-slate-600">{new Date(item.created_at).toLocaleString()}</td>
                 </tr>

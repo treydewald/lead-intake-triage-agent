@@ -82,7 +82,7 @@ describe('BenchmarkPage', () => {
 
     render(<BenchmarkPage />)
 
-    await waitFor(() => expect(screen.getByText('Run History')).toBeInTheDocument())
+    await waitFor(() => expect(screen.getByText('Run History & Trend')).toBeInTheDocument())
     const runHistoryTable = screen.getByRole('table', { name: 'Run history' })
     // header row + one row per run (2 runs)
     expect(within(runHistoryTable).getAllByRole('row')).toHaveLength(3)

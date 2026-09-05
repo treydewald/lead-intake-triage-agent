@@ -1,8 +1,7 @@
 # Pipeline Reference — Lead Intake Triage Agent
 
-**Last Updated:** 2026-09-05 (Step 11, Portfolio Evaluator — Round 3 re-evaluation. **OVERALL SCORE:
-7/10** (up from 6/10), still below the 9.0 gate on Visual & UI/UX (8/10) — routes to another Step 12
-batch. See Current Step)
+**Last Updated:** 2026-09-05 (Step 12, Batch Backlog Processor — Round 3 batch. All 4 P1 items from
+Round 3's evaluation Completed; routes to a fresh Step 11 Round 4 re-evaluation. See Current Step)
 
 How *this project* is using the Upwork Portfolio Project Pipeline. Distinct from
 `portfolio-reference.md`, which is about the product — this file is about pipeline state.
@@ -11,7 +10,56 @@ How *this project* is using the Upwork Portfolio Project Pipeline. Distinct from
 
 ## Current Step
 
-**This session (2026-09-05, fifteenth session same day):** Ran Step 11 (Portfolio Evaluator), Round 3
+**This session (2026-09-05, sixteenth session same day):** Ran Step 12 (Batch Backlog Processor),
+Round 3 — processed all 4 P1 items from Round 3's `portfolio-evaluation.md` backlog (Benchmark trend
+visualization, Review Detail composition fix, motion/microinteraction layer, signature visual
+characteristic). All 4 marked Completed with implementation notes; full detail in
+`portfolio-evaluation.md`'s per-item notes and its new "Batch Verification" block.
+
+**Summary:** New `components/ui/TrendChart.tsx` (hand-rolled inline SVG, no new dependency) merged
+into Benchmark's Run History card as "Run History & Trend". New `components/ui/ConfidenceMeter.tsx` —
+a red→amber→emerald confidence-spectrum gauge — applied consistently across Lead List, Lead Detail,
+Review Detail, and Benchmark as this round's chosen signature visual (P1-04), tying the signature
+directly to the product's actual AI-confidence value proposition rather than adding unrelated
+decoration. Review Detail's composition gap (P1-02) closed by moving the classification `dl` out of
+the left column into a new "Classification signal" card in the right column, giving that column two
+real cards instead of one short one. Motion layer (P1-03): a page-transition fade on route change
+(`Layout.tsx`, keyed by `location.pathname`) and a success-pop animation on Review Detail's submit
+confirmation, both in `index.css` and both gated behind `prefers-reduced-motion`.
+
+**Real regression found and fixed mid-batch, not part of any single item's own scope:** the trend
+chart initially reintroduced the exact composition problem it was meant to fix — an SVG with no
+explicit height defaulted to a large intrinsic-aspect-ratio box, and a fixed 0-100% y-axis pinned both
+near-identical metrics to the top with a large empty void beneath — while also pushing Benchmark
+289-307px past the viewport at 1440×900/1366×768. Fixed via auto-scaled y-axis domain, an explicit
+chart height, merging Trend into the Run History card, and tightened table/row spacing; re-measured
+live after each change until 1920×1080/1440×900/1366×768 all read exactly 0px overflow on all four
+touched pages.
+
+**New finding, logged not fixed (out of this batch's scope):** verifying the no-scroll invariant
+surfaced a pre-existing, previously-undetected mobile (390×844) vertical-scroll regression across all
+four touched pages (96-465px, confirmed via `git stash` against the pre-batch baseline to rule out this
+session's own changes) — mobile has drifted since Step 8's original zero-overflow pass, most likely
+from content added across Steps 9-12 that was never re-verified at 390px. Logged as
+`portfolio-evaluation.md`'s new P2-02, per Step 12's own "split it into a new backlog item" guidance —
+closing it fully is a wider responsive pass than any single P1 item's scope.
+
+Verification: full backend suite 138/138 passed (unchanged), full frontend suite 18/18 passed (1 test
+updated for the Run History→"Run History & Trend" rename), `tsc -b`/`vite build` clean. All 9 portfolio
+screenshots re-captured and visually re-inspected directly. The motion layer was verified with real
+computed styles in a live browser (`animation-name: fade-slide-in` / `pop-in` confirmed via Playwright)
+using a network-intercepted Review Detail submit specifically so verification did not consume the one
+real `awaiting_review` seed item other sessions depend on (confirmed still queued afterward via
+`GET /reviews`).
+
+Pipeline-level friction check: none found this session.
+
+**Routing per `prompts/12_batch-backlog-processor.md`'s Next Steps: unconditional loop back to Step 11
+(Portfolio Evaluator) to re-evaluate — Round 4.**
+
+---
+
+**Prior session (2026-09-05, fifteenth session same day):** Ran Step 11 (Portfolio Evaluator), Round 3
 — re-evaluated against the 9 screenshots already in `./portfolio-screenshots/` (Step 12's own Round 2
 batch had re-captured them as part of its verification, per that session's Next Step note) plus a
 direct visual read of all 9 PNGs. **OVERALL SCORE: 7/10** (up from 6/10) — Visual & UI/UX 8, Feature
@@ -546,16 +594,17 @@ Round 1 (CD-1 through CD-4 — Feature 15, Review Queue Frontend UI, COMPLETED a
 (Viewport-First Refactor, COMPLETED 2026-09-05), 9 (Unified QA & Repair, COMPLETED 2026-09-05), 10
 (Screenshot Capture, COMPLETED 2026-09-05), 11 (Portfolio Evaluator, COMPLETED 2026-09-05, run three
 times — Round 1 OVERALL SCORE 5/10, Round 2 OVERALL SCORE 6/10, Round 3 OVERALL SCORE 7/10, all below
-gate — see Current Step), 12 (Batch Backlog Processor, run twice — Round 1's P1-01 through P1-04
+gate — see Current Step), 12 (Batch Backlog Processor, run three times — Round 1's P1-01 through P1-04
 COMPLETED 2026-09-05 routing to Step 11 Round 2; Round 2's P1-01 through P1-03 COMPLETED 2026-09-05
-routing to Step 11 Round 3 — see Current Step).
+routing to Step 11 Round 3; Round 3's P1-01 through P1-04 COMPLETED 2026-09-05 routing to Step 11
+Round 4 — see Current Step).
 
 **Gates passed:** Gate 2 (Step 7, implementation verification) — PASSED, 2026-09-04 (Tier 1) and
 2026-09-05 (Features 09/10/11 batch). Gate 1 (Step 13, portfolio score ≥9.0/10, per
 `docs/premium-ui-standard.md`) is still ahead — Step 11 last scored 7/10 (Round 3), below gate on
-Visual & UI/UX (8) and Feature Signaling (7). Next action is a third Step 12 batch against Round 3's
-4 P1 items (Benchmark trend visualization, Review Detail composition, motion layer, signature visual
-characteristic), then loop back to Step 11 Round 4.
+Visual & UI/UX (8) and Feature Signaling (7). Round 3's 4 P1 items are now Completed (this session's
+Step 12 batch); next action is a fresh Step 11 Round 4 re-evaluation against the re-captured
+screenshots to see whether the gate clears.
 
 **`.claude/` scaffold status:** Current — full-tier scaffold copied from pipeline templates on
 2026-09-04. See `PIPELINE-SYNC.md`.
@@ -568,15 +617,21 @@ Tier section, STANDARD mode with Tier 2/3 features present falls back to full ti
 
 ## Next Step
 
-**This session (2026-09-05, fifteenth session same day):** Step 11 (Portfolio Evaluator), Round 3,
+**This session (2026-09-05, sixteenth session same day):** Step 12 (Batch Backlog Processor), Round 3
+batch, COMPLETED — all 4 P1 items Completed (Benchmark trend visualization, Review Detail composition
+fix, motion/microinteraction layer, signature confidence-spectrum visual). **Next Step is Step 11
+(Portfolio Evaluator), Round 4** — unconditional per `prompts/12_batch-backlog-processor.md`'s own Next
+Steps section — re-evaluate against the freshly re-captured screenshots in `./portfolio-screenshots/`
+to see whether Visual & UI/UX and Feature Signaling clear the 9.0 gate. Note for that session:
+`portfolio-evaluation.md`'s new P2-02 (a pre-existing mobile 390×844 vertical-scroll regression across
+4 pages, found but not fixed this round — out of this batch's own scope) should factor into Feature
+Signaling/Professional Readiness scoring if it's visually apparent in a mobile screenshot, and is a
+strong candidate for a future batch regardless of what Round 4 scores.
+
+**Prior session (2026-09-05, fifteenth session same day):** Step 11 (Portfolio Evaluator), Round 3,
 COMPLETED — see Current Step above for full detail. **OVERALL SCORE 7/10 (up from 6/10), still below
-the 9.0 gate on Visual & UI/UX (8) and Feature Signaling (7). Next Step is Step 12 (Batch Backlog
-Processor), Round 3**, per `prompts/11_portfolio-evaluator.md`'s own Next Steps section — process
-`portfolio-evaluation.md`'s 4 P1 items (start with P1-01, the Benchmark trend visualization — highest
-remaining ROI since the raw data already exists via the Run History table), then loop back to Step 11
-Round 4 to re-evaluate against fresh screenshots. Note for that session: P1-02 (Review Detail's
-Reviewer Decision column composition) and P1-04 (a signature visual characteristic) are judgment-heavy
-design work, not mechanical fixes — budget accordingly within Step 12's 3-5 item batch range.
+the 9.0 gate on Visual & UI/UX (8) and Feature Signaling (7).** Routed to this session's Step 12
+Round 3 batch.
 
 **Prior session (2026-09-05, fourteenth session same day):** Step 12 (Batch Backlog Processor), Round 2
 batch, COMPLETED — Round 2's 3 P1 items all Completed, routing to this session's Step 11 Round 3 — see

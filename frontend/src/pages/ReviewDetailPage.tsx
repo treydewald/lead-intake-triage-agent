@@ -13,6 +13,7 @@ import {
 import { Card } from '../components/ui/Card'
 import { ErrorState, LoadingState } from '../components/ui/States'
 import { TimelineRow } from '../components/ui/TimelineRow'
+import { ConfidenceMeter } from '../components/ui/ConfidenceMeter'
 
 const ACTION_LABELS: Record<ReviewAction, string> = {
   approve: 'Approve',
@@ -156,7 +157,7 @@ export function ReviewDetailPage() {
       )}
 
       {result && !alreadyActioned && (
-        <div className="flex items-center gap-2 rounded-xl border border-emerald-300 bg-emerald-50 p-4 text-sm text-emerald-800">
+        <div className="success-pop flex items-center gap-2 rounded-xl border border-emerald-300 bg-emerald-50 p-4 text-sm text-emerald-800">
           <CheckCircle2 className="h-4 w-4 shrink-0" aria-hidden="true" />
           Action submitted. Run status is now <span className="font-medium">{result.status}</span>.
         </div>
@@ -172,25 +173,6 @@ export function ReviewDetailPage() {
             <p className="whitespace-pre-wrap text-sm leading-relaxed text-slate-800">
               {item.message_body?.trim() ? item.message_body : 'This lead was submitted with no message content.'}
             </p>
-          </Card>
-
-          <Card className="p-5">
-            <dl className="grid grid-cols-2 gap-4 text-sm sm:grid-cols-3">
-              <div>
-                <dt className="text-xs font-medium uppercase tracking-wide text-slate-500">Draft classification</dt>
-                <dd className="mt-0.5 font-medium text-slate-900">{item.draft_intent_label ?? '—'}</dd>
-              </div>
-              <div>
-                <dt className="text-xs font-medium uppercase tracking-wide text-slate-500">Confidence</dt>
-                <dd className="mt-0.5 font-medium text-slate-900">
-                  {item.confidence_score != null ? item.confidence_score.toFixed(2) : '—'}
-                </dd>
-              </div>
-              <div>
-                <dt className="text-xs font-medium uppercase tracking-wide text-slate-500">Queued</dt>
-                <dd className="mt-0.5 font-medium text-slate-900">{new Date(item.created_at).toLocaleString()}</dd>
-              </div>
-            </dl>
           </Card>
 
           {recentActivity && recentActivity.length > 0 && (
@@ -219,7 +201,21 @@ export function ReviewDetailPage() {
           )}
         </div>
 
-        {!result && !alreadyActioned && (
+        <div className="flex flex-col gap-4">
+          <Card className="flex flex-col gap-3 p-5">
+            <h2 className="text-xs font-semibold uppercase tracking-wider text-slate-500">Classification signal</h2>
+            <div className="flex items-center justify-between gap-2">
+              <span className="text-sm font-semibold text-slate-900">{item.draft_intent_label ?? 'Unclassified'}</span>
+            </div>
+            <ConfidenceMeter value={item.confidence_score} />
+            <p className="text-sm leading-relaxed text-slate-600">
+              This draft classification didn&apos;t clear the auto-approval threshold, so the pipeline paused here
+              for a human decision instead of resuming on its own.
+            </p>
+            <p className="text-xs text-slate-500">Queued {new Date(item.created_at).toLocaleString()}</p>
+          </Card>
+
+          {!result && !alreadyActioned && (
           <Card className="flex h-fit flex-col gap-3.5 p-5">
             <h2 className="text-xs font-semibold uppercase tracking-wider text-slate-500">Reviewer decision</h2>
             <div role="radiogroup" aria-label="Reviewer decision" className="flex flex-wrap gap-2">
@@ -275,7 +271,8 @@ export function ReviewDetailPage() {
               {submitting ? 'Submitting…' : 'Submit'}
             </button>
           </Card>
-        )}
+          )}
+        </div>
       </div>
     </div>
   )

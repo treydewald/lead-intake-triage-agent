@@ -88,6 +88,9 @@ async function run() {
 
   await nav(page).getByRole('link', { name: 'Benchmark', exact: true }).click()
   await waitForPage(page, 'Classification Accuracy Benchmark')
+  // Trend chart's line-draw animation (see index.css's .chart-line, 900ms) runs on mount;
+  // wait for it to finish so the screenshot doesn't capture a partially-drawn line.
+  await page.waitForTimeout(1000)
   await shot(page, '07-benchmark')
 
   await desktopCtx.close()

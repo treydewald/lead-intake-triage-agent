@@ -6,6 +6,7 @@ import { STAGE_ORDER } from '../lib/stageOrder'
 import { Card } from '../components/ui/Card'
 import { ErrorState, LoadingState } from '../components/ui/States'
 import { TimelineRow } from '../components/ui/TimelineRow'
+import { ConfidenceMeter } from '../components/ui/ConfidenceMeter'
 
 const STAGE_STATUS_CLASSES: Record<string, string> = {
   COMPLETED: 'border-emerald-300 bg-emerald-50',
@@ -179,8 +180,8 @@ export function LeadDetailPage() {
               </div>
               <div>
                 <dt className="text-xs font-medium uppercase tracking-wide text-slate-500">Confidence</dt>
-                <dd className="mt-0.5 font-medium text-slate-900">
-                  {lead.confidence_score != null ? lead.confidence_score.toFixed(2) : '—'}
+                <dd className="mt-1">
+                  <ConfidenceMeter value={lead.confidence_score} />
                 </dd>
               </div>
               <div className="col-span-2">

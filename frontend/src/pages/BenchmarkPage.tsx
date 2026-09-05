@@ -12,6 +12,8 @@ import { PageHeader } from '../components/ui/PageHeader'
 import { StatCard } from '../components/ui/StatCard'
 import { Card, SectionLabel } from '../components/ui/Card'
 import { EmptyState, ErrorState } from '../components/ui/States'
+import { ConfidenceMeter } from '../components/ui/ConfidenceMeter'
+import { TrendChart } from '../components/ui/TrendChart'
 
 function formatPercent(value: number): string {
   return `${(value * 100).toFixed(1)}%`
@@ -81,8 +83,22 @@ export function BenchmarkPage() {
 
   const misclassifiedAndAmbiguous = latestRun?.cases.filter((c) => c.is_ambiguous || !c.correct) ?? []
 
+  const trendPoints = [...runs]
+    .sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime())
+    .map((run, index) => ({
+      label: `#${index + 1}`,
+      dateLabel: new Date(run.created_at).toLocaleString(undefined, {
+        month: 'short',
+        day: 'numeric',
+        hour: 'numeric',
+        minute: '2-digit',
+      }),
+      accuracy: run.accuracy,
+      consistency: run.consistency,
+    }))
+
   return (
-    <div className="flex flex-col gap-4">
+    <div className="flex flex-col gap-2">
       <PageHeader
         title="Classification Accuracy Benchmark"
         description="Accuracy and consistency measured against a fixed set of known cases."
@@ -134,11 +150,11 @@ export function BenchmarkPage() {
               <table className="w-full min-w-[640px] text-left text-sm">
                 <thead className="border-b border-slate-200 bg-slate-50 text-xs uppercase tracking-wide text-slate-500">
                   <tr>
-                    <th className="px-4 py-2.5 font-medium">Case</th>
-                    <th className="px-4 py-2.5 font-medium">Status</th>
-                    <th className="px-4 py-2.5 font-medium">Expected</th>
-                    <th className="px-4 py-2.5 font-medium">Predicted</th>
-                    <th className="px-4 py-2.5 font-medium">Confidence</th>
+                    <th className="px-4 py-1.5 font-medium">Case</th>
+                    <th className="px-4 py-1.5 font-medium">Status</th>
+                    <th className="px-4 py-1.5 font-medium">Expected</th>
+                    <th className="px-4 py-1.5 font-medium">Predicted</th>
+                    <th className="px-4 py-1.5 font-medium">Confidence</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -147,14 +163,14 @@ export function BenchmarkPage() {
                       key={item.case_id}
                       className="border-b border-slate-100 transition-colors last:border-0 hover:bg-slate-50"
                     >
-                      <td className="px-4 py-2.5 font-medium text-slate-800">{item.case_id}</td>
-                      <td className="px-4 py-2.5">
+                      <td className="px-4 py-1.5 font-medium text-slate-800">{item.case_id}</td>
+                      <td className="px-4 py-1.5">
                         <CaseStatusBadge item={item} />
                       </td>
-                      <td className="px-4 py-2.5 text-slate-600">{item.expected_label ?? '—'}</td>
-                      <td className="px-4 py-2.5 text-slate-600">{item.predicted_label ?? '—'}</td>
-                      <td className="px-4 py-2.5 text-slate-600">
-                        {item.confidence != null ? item.confidence.toFixed(2) : '—'}
+                      <td className="px-4 py-1.5 text-slate-600">{item.expected_label ?? '—'}</td>
+                      <td className="px-4 py-1.5 text-slate-600">{item.predicted_label ?? '—'}</td>
+                      <td className="px-4 py-1.5">
+                        <ConfidenceMeter value={item.confidence} />
                       </td>
                     </tr>
                   ))}
@@ -165,45 +181,50 @@ export function BenchmarkPage() {
 
           {runs.length > 0 && (
             <>
-              <SectionLabel>Run History</SectionLabel>
-              <Card className="overflow-x-auto">
-                <table aria-label="Run history" className="w-full min-w-[560px] text-left text-sm">
-                  <thead className="border-b border-slate-200 bg-slate-50 text-xs uppercase tracking-wide text-slate-500">
-                    <tr>
-                      <th className="px-4 py-2.5 font-medium">Run</th>
-                      <th className="px-4 py-2.5 font-medium">Model</th>
-                      <th className="px-4 py-2.5 font-medium">Accuracy</th>
-                      <th className="px-4 py-2.5 font-medium">Consistency</th>
-                      <th className="px-4 py-2.5 font-medium">Cases × Repeats</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {runs.map((run) => {
-                      const isSelected = run.id === latestRun.id
-                      return (
-                        <tr
-                          key={run.id}
-                          onClick={() => handleSelectRun(run.id)}
-                          aria-current={isSelected ? 'true' : undefined}
-                          className={`cursor-pointer border-b border-slate-100 transition-colors last:border-0 ${
-                            isSelected ? 'bg-teal-50 hover:bg-teal-50' : 'hover:bg-slate-50'
-                          } ${switchingRunId === run.id ? 'opacity-50' : ''}`}
-                        >
-                          <td className="px-4 py-2.5 font-medium text-slate-800">
-                            {new Date(run.created_at).toLocaleString()}
-                            {isSelected && <span className="ml-2 text-xs font-normal text-teal-700">Viewing</span>}
-                          </td>
-                          <td className="px-4 py-2.5 text-slate-600">{run.model_used}</td>
-                          <td className="px-4 py-2.5 text-slate-600">{formatPercent(run.accuracy)}</td>
-                          <td className="px-4 py-2.5 text-slate-600">{formatPercent(run.consistency)}</td>
-                          <td className="px-4 py-2.5 text-slate-600">
-                            {run.total_cases} × {run.repeats}
-                          </td>
-                        </tr>
-                      )
-                    })}
-                  </tbody>
-                </table>
+              <SectionLabel>Run History &amp; Trend</SectionLabel>
+              <Card>
+                <div className="p-3 pb-2">
+                  <TrendChart points={trendPoints} />
+                </div>
+                <div className="overflow-x-auto border-t border-slate-200">
+                  <table aria-label="Run history" className="w-full min-w-[560px] text-left text-sm">
+                    <thead className="border-b border-slate-200 bg-slate-50 text-xs uppercase tracking-wide text-slate-500">
+                      <tr>
+                        <th className="px-4 py-1.5 font-medium">Run</th>
+                        <th className="px-4 py-1.5 font-medium">Model</th>
+                        <th className="px-4 py-1.5 font-medium">Accuracy</th>
+                        <th className="px-4 py-1.5 font-medium">Consistency</th>
+                        <th className="px-4 py-1.5 font-medium">Cases × Repeats</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {runs.map((run) => {
+                        const isSelected = run.id === latestRun.id
+                        return (
+                          <tr
+                            key={run.id}
+                            onClick={() => handleSelectRun(run.id)}
+                            aria-current={isSelected ? 'true' : undefined}
+                            className={`cursor-pointer border-b border-slate-100 transition-colors last:border-0 ${
+                              isSelected ? 'bg-teal-50 hover:bg-teal-50' : 'hover:bg-slate-50'
+                            } ${switchingRunId === run.id ? 'opacity-50' : ''}`}
+                          >
+                            <td className="px-4 py-1.5 font-medium text-slate-800">
+                              {new Date(run.created_at).toLocaleString()}
+                              {isSelected && <span className="ml-2 text-xs font-normal text-teal-700">Viewing</span>}
+                            </td>
+                            <td className="px-4 py-1.5 text-slate-600">{run.model_used}</td>
+                            <td className="px-4 py-1.5 text-slate-600">{formatPercent(run.accuracy)}</td>
+                            <td className="px-4 py-1.5 text-slate-600">{formatPercent(run.consistency)}</td>
+                            <td className="px-4 py-1.5 text-slate-600">
+                              {run.total_cases} × {run.repeats}
+                            </td>
+                          </tr>
+                        )
+                      })}
+                    </tbody>
+                  </table>
+                </div>
               </Card>
             </>
           )}
