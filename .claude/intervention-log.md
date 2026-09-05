@@ -198,3 +198,24 @@ edit to that same entry once the round they belong to is scored, not a new entry
   touched but did not close the underlying gap. Logged as a pipeline-level insight (composition/
   whitespace claims should be pixel-measured, not eyeballed) to `meta/PIPELINE_INSIGHTS_LOG.md`.
 - Agent: claude/claude_code
+
+### 2026-09-05 — portfolio_evaluation (Round 6)
+- Trigger: Step 12 (Batch Backlog Processor) completed Round 5's P1-01 (project-wide whitespace fix)
+  and P2-01 (mobile density exceptions, closed as a side effect) and re-captured screenshots; Step 11
+  re-ran unconditionally per `prompts/12_batch-backlog-processor.md`'s own Next Steps section.
+- Expected effect: an anchored 0-10 re-score per `QUALITY_RUBRIC.md`'s four dimensions, gating routing
+  to either Step 13 (≥9.0, Visual & UI/UX ≥9.0) or another Step 12 batch.
+- Outcome: OVERALL SCORE 9/10 (Visual & UI/UX 9, Feature Signaling 9, Professional Readiness 9, Client
+  Impact 9) — up from 7/10, **first round to clear the 9.0 gate on all four dimensions.** Backlog is
+  empty at P1/P2; only 5 P3 nice-to-haves remain (3 carried forward, 2 new optional 9→9.5 polish items).
+  `.claude/project-metrics.md`'s `PROJECT_COMPLETED` entry appended with matching numbers. Routes to
+  Step 13 (Portfolio Score Gate) for the first time this project.
+- Surprise: given this exact defect class (a fix that looks complete without being independently
+  re-verified) had already bitten this project twice — Round 4's chart-label fix, and Round 5's own
+  measurement-script sidebar-exclusion bug — this round deliberately re-ran the pixel-scan script fresh
+  against the current screenshots rather than trusting Round 5's self-reported numbers before scoring
+  Visual & UI/UX at 9. The independent re-run reproduced Round 5's exact figures (2.0-2.9% desktop,
+  2.4-2.7% mobile), confirming the fix generalizes rather than being an artifact of who measured it —
+  not a surprise in outcome, but the specific verification step that made scoring 9 with confidence
+  possible rather than repeating the same "looks fixed" mistake a third time.
+- Agent: claude/claude_code

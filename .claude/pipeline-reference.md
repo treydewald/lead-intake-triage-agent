@@ -1,9 +1,8 @@
 # Pipeline Reference — Lead Intake Triage Agent
 
-**Last Updated:** 2026-09-05 (Step 12, Batch Backlog Processor — Round 5. Processed the full "Not
-Started" backlog (P1-01 project-wide whitespace fix, P2-01 mobile density exceptions closed as a side
-effect). Pixel-measured empty space dropped from 30-57% to 2-3% across all 7 desktop pages. Routes to
-Step 11, Round 6. See Current Step)
+**Last Updated:** 2026-09-05 (Step 13, Portfolio Score Gate — **PASS**. First Gate 1 pass in this
+project's history, and the first in this pipeline's own recorded history — `meta/
+PROJECT_METRICS_AGGREGATE.md` went from 0 to 1 project recorded. Next: Step 14, README Generator.)
 
 How *this project* is using the Upwork Portfolio Project Pipeline. Distinct from
 `portfolio-reference.md`, which is about the product — this file is about pipeline state.
@@ -12,7 +11,58 @@ How *this project* is using the Upwork Portfolio Project Pipeline. Distinct from
 
 ## Current Step
 
-**This session (2026-09-05, twentieth session same day):** Ran Step 12 (Batch Backlog Processor),
+**This session (2026-09-05, twenty-first session same day):** Ran Step 11 (Portfolio Evaluator), Round
+6, then Step 13 (Portfolio Score Gate).
+
+**Step 11, Round 6 — OVERALL SCORE: 9/10** (up from 7/10) — Visual & UI/UX 9, Feature Signaling 9,
+Professional Readiness 9, Client Impact 9. First round to clear the 9.0 gate on every dimension. Rather
+than trusting Step 12 Round 5's self-reported whitespace numbers (this exact "looks fixed vs. is fixed"
+gap has bitten this project twice before — Round 4's chart-label fix, Round 5's own measurement-script
+sidebar bug), this session independently re-ran `.claude/skills/measure-page-whitespace.py` against the
+current `./portfolio-screenshots/` directory before scoring. Result matched Round 5's report exactly:
+2.0-2.9% empty space across all 7 desktop pages, 2.4-2.7% on both mobile screenshots — confirming the
+project-wide composition fix is real, not an artifact of who measured it. All 9 screenshots also
+reviewed directly via the Read tool. Full detail, strengths/weaknesses, and the remaining 5 P3-only
+backlog (2 new: a second signature-visual typography pass, Lead Detail's last 15px mobile exception —
+both optional 9→9.5 polish, not gate-blocking): `portfolio-evaluation.md` (project root, fully
+rewritten). `.claude/project-metrics.md`'s `PROJECT_COMPLETED` (Round 6) entry appended (portfolio_value
+9/10, professional_readiness 9/10, both HIGH confidence). `.claude/intervention-log.md` gained this
+round's own entry.
+
+**Step 13 (Portfolio Score Gate) — PASS.** Overall 9/10, Visual & UI/UX 9/10 — both clear the 9.0
+threshold. Per Step 13's Step 3 (new in v20.0), appended a `PROJECT_FINAL_EVALUATION` entry to
+`.claude/project-metrics.md`: `outcome_achievement` 10/10 (every Must-Have feature tier item shipped and
+independently verified — multi-stage pipeline with architecturally-real per-stage tool/state separation,
+idempotent HubSpot sandbox writes, human-review approval gate, observability view — plus all three
+Nice-to-Have items also shipped: benchmark trend visualization, webhook notifications, per-lead audit/
+history trail); `initial_to_final_delta` +1 (portfolio_value 9 FINAL vs. portfolio_value_potential 8
+CREATED) — SIGNIFICANT_IMPROVEMENT; `quality_status` STRONG; outcome `COMPLETED_SUCCESSFULLY`. Two
+metric fields (`completeness`, `validation_quality`) recorded as "not scored" rather than fabricated —
+this project never ran the separate, optional Continual Refinement loop those fields are normally
+mirrored from; logged as a pipeline-level insight (see below) since the schema doesn't state what to do
+when that source loop never ran.
+
+**Since a local pipeline clone is available, also appended this project's Layer-2 summary to
+`meta/PROJECT_METRICS_AGGREGATE.md`** (pipeline repo) — this is the *first project ever* to reach
+`PROJECT_FINAL_EVALUATION` in this pipeline's history, closing the "0 projects recorded" state that
+`meta/PIPELINE_SELF_SCORE.md` Dimension 6 and `meta/METAPIPELINE.md`'s Real-World Dry-Run Tracker have
+both named since Iteration 7 (still `INSUFFICIENT_DATA` at 1 project — needs 3+ for `EARLY_SIGNAL` —
+but the long-standing zero is closed). Committed and pushed to the pipeline repo.
+
+Pipeline-level friction check: found one real, generalizable gap — `docs/quality-metrics.md`'s
+`PROJECT_FINAL_EVALUATION` schema assumes `completeness`/`validation_quality` are always available by
+mirroring from Continual Refinement, but that loop is optional and this project reached Gate 1 without
+ever running it, leaving no value to mirror. Logged to `meta/PIPELINE_INSIGHTS_LOG.md` and pushed.
+
+**Note:** this Gate 1 PASS is not yet the "Steps 1→16 dry run" `meta/METAPIPELINE.md`'s tracker is
+waiting on — Steps 14-16 (README, publish) haven't run yet. That tracker update belongs to whichever
+session runs Step 16.
+
+**Routing per `prompts/13_portfolio-score-gate.md`'s Next Steps: PASS → Step 14 (README Generator).**
+
+---
+
+**Prior session (2026-09-05, twentieth session same day):** Ran Step 12 (Batch Backlog Processor),
 Round 5 — processed Round 5's full backlog (only 2 items remained: 1 P1, 1 P2; within the step's 3-5
 item range only by virtue of there not being more available).
 
