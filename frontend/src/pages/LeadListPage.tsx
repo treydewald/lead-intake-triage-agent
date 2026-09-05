@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useSearchParams } from 'react-router-dom'
 import { listLeads, type LeadListItem, type ListLeadsParams } from '../lib/api'
 
 const STATUS_OPTIONS = [
@@ -37,14 +37,27 @@ function StatusBadge({ status }: { status: string }) {
 const PAGE_SIZE = 10
 
 export function LeadListPage() {
+  const [searchParams, setSearchParams] = useSearchParams()
   const [items, setItems] = useState<LeadListItem[]>([])
   const [total, setTotal] = useState(0)
-  const [page, setPage] = useState(1)
-  const [status, setStatus] = useState('')
-  const [sourceChannel, setSourceChannel] = useState('')
-  const [sort, setSort] = useState<ListLeadsParams['sort']>('created_desc')
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+
+  const status = searchParams.get('status') ?? ''
+  const sourceChannel = searchParams.get('channel') ?? ''
+  const sort = (searchParams.get('sort') as ListLeadsParams['sort']) || 'created_desc'
+  const page = Number(searchParams.get('page') ?? '1') || 1
+
+  const updateParams = (updates: Record<string, string | undefined>) => {
+    setSearchParams((prev) => {
+      const next = new URLSearchParams(prev)
+      for (const [key, value] of Object.entries(updates)) {
+        if (value) next.set(key, value)
+        else next.delete(key)
+      }
+      return next
+    })
+  }
 
   useEffect(() => {
     let cancelled = false
@@ -81,12 +94,10 @@ export function LeadListPage() {
 
       <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap">
         <select
+          aria-label="Filter by status"
           className="w-full rounded-md border border-slate-300 bg-white px-3 py-1.5 text-sm sm:w-auto"
           value={status}
-          onChange={(e) => {
-            setPage(1)
-            setStatus(e.target.value)
-          }}
+          onChange={(e) => updateParams({ status: e.target.value || undefined, page: undefined })}
         >
           {STATUS_OPTIONS.map((o) => (
             <option key={o.value} value={o.value}>
@@ -96,12 +107,10 @@ export function LeadListPage() {
         </select>
 
         <select
+          aria-label="Filter by channel"
           className="w-full rounded-md border border-slate-300 bg-white px-3 py-1.5 text-sm sm:w-auto"
           value={sourceChannel}
-          onChange={(e) => {
-            setPage(1)
-            setSourceChannel(e.target.value)
-          }}
+          onChange={(e) => updateParams({ channel: e.target.value || undefined, page: undefined })}
         >
           {SOURCE_CHANNEL_OPTIONS.map((o) => (
             <option key={o.value} value={o.value}>
@@ -111,9 +120,10 @@ export function LeadListPage() {
         </select>
 
         <select
+          aria-label="Sort by"
           className="w-full rounded-md border border-slate-300 bg-white px-3 py-1.5 text-sm sm:w-auto"
           value={sort}
-          onChange={(e) => setSort(e.target.value as ListLeadsParams['sort'])}
+          onChange={(e) => updateParams({ sort: e.target.value })}
         >
           <option value="created_desc">Newest first</option>
           <option value="confidence_desc">Confidence: high to low</option>
@@ -137,7 +147,7 @@ export function LeadListPage() {
           <tbody>
             {!loading && items.length === 0 && (
               <tr>
-                <td colSpan={5} className="px-4 py-6 text-center text-slate-400">
+                <td colSpan={5} className="px-4 py-6 text-center text-slate-500">
                   No leads found.
                 </td>
               </tr>
@@ -172,7 +182,10 @@ export function LeadListPage() {
             type="button"
             className="rounded-md border border-slate-300 px-3 py-1 disabled:opacity-40"
             disabled={page <= 1}
-            onClick={() => setPage((p) => Math.max(1, p - 1))}
+            onClick={() => {
+              const next = Math.max(1, page - 1)
+              updateParams({ page: next === 1 ? undefined : String(next) })
+            }}
           >
             Previous
           </button>
@@ -180,7 +193,10 @@ export function LeadListPage() {
             type="button"
             className="rounded-md border border-slate-300 px-3 py-1 disabled:opacity-40"
             disabled={page >= totalPages}
-            onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+            onClick={() => {
+              const next = Math.min(totalPages, page + 1)
+              updateParams({ page: next === 1 ? undefined : String(next) })
+            }}
           >
             Next
           </button>
