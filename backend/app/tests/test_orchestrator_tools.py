@@ -126,6 +126,11 @@ def test_search_contact_propagates_http_error():
         search_contact(client, "https://api.hubapi.com", "token-123", email="nobody@example.com")
 
 
+def test_search_contact_raises_clear_error_when_token_missing():
+    with pytest.raises(HubSpotWriteError, match="access token is not configured"):
+        search_contact(None, "https://api.hubapi.com", "", email="nobody@example.com")
+
+
 def test_search_contact_uses_fuzzy_name_filter_when_no_phone_or_email():
     response = _FakeHttpResponse({"results": []})
     client = _FakeHttpClient(response)
@@ -173,6 +178,22 @@ class _FakeWriteClient:
     def patch(self, url, *, json, headers):
         self.calls.append(("patch", url, json))
         return self._responses.pop(0)
+
+
+def test_write_contact_raises_clear_error_when_token_missing():
+    client = _FakeWriteClient([])
+
+    with pytest.raises(HubSpotWriteError, match="access token is not configured"):
+        write_contact(
+            client,
+            "https://api.hubapi.com",
+            "",
+            email="jane@example.com",
+            properties={"email": "jane@example.com"},
+            sleep=lambda _seconds: None,
+        )
+
+    assert client.calls == []
 
 
 def test_write_contact_creates_when_no_existing_match():

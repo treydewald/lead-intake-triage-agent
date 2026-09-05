@@ -33,6 +33,21 @@ class HubSpotWriteError(Exception):
     not continue past a write failure."""
 
 
+def _require_token(token: str | None) -> str:
+    """A blank token (unset `HUBSPOT_ACCESS_TOKEN`) produces an `Authorization: Bearer `
+    header value ending in whitespace, which httpx/h11 rejects at send-time as an
+    `httpx.LocalProtocolError` ("Illegal header value b'Bearer '") — a raw transport
+    exception, not `httpx.HTTPStatusError`, so it isn't caught by either caller's own
+    error handling and instead leaks verbatim into the pipeline run's failure message.
+    Checked up front so a missing token fails with a message that actually says so."""
+    if not token:
+        raise HubSpotWriteError(
+            "HubSpot access token is not configured (HUBSPOT_ACCESS_TOKEN is empty) — "
+            "see backend/.env.example."
+        )
+    return token
+
+
 def _build_filter(*, phone: str | None, email: str | None, name: str | None) -> dict:
     if phone is not None:
         return {"propertyName": "phone", "operator": "EQ", "value": phone}
@@ -56,6 +71,7 @@ def search_contact(
     confidence scoring here — that's `DataEnrichmentStage`'s responsibility, keeping this
     binding thin and swappable, matching `classify_intent`'s precedent. Raises on
     HTTP/timeout error; the stage owns all failure handling."""
+    token = _require_token(token)
     response = client.post(
         f"{base_url}/crm/v3/objects/contacts/search",
         json={"filterGroups": [{"filters": [_build_filter(phone=phone, email=email, name=name)]}]},
@@ -107,6 +123,7 @@ def write_contact(
     injected so tests never incur real delay); 401/403 raises immediately, no retry; any
     other 4xx raises immediately, no retry; retries exhausted on a retryable error raises.
     """
+    token = _require_token(token)
     headers = {"Authorization": f"Bearer {token}"}
     retry_count = 0
 
