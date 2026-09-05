@@ -82,3 +82,33 @@ renumber.]
   entire workflow since Feature 06). Surface at the next idle-session Dynamic Next-Action Selection
   (`docs/next-action-selection.md`) or the next In-App Cohesion Audit, whichever comes first.
 - **Implementation notes:** _(pending)_
+
+### RB-003 — `.claude/portfolio-reference.md`'s Architecture Map was never backfilled for Features 02-08
+- **Status:** OPEN
+- **Dimension:** Documentation / Onboarding Accuracy (not one of `docs/continual-refinement.md`'s
+  Eight Dimensions directly, but affects every future session's Step 0 orientation read)
+- **Priority:** P3
+- **Discovered:** Step 6 (Group_F09, Feature 09), 2026-09-04 — not a Continual Refinement round, but
+  logged here per the same backlog mechanism as RB-001/RB-002 since it surfaced while adding Feature
+  09's own rows and is out of scope for this group to fix.
+- **Finding:** `.claude/portfolio-reference.md`'s Architecture Map table still has generic placeholder
+  rows for `backend/app/models/`, `backend/app/schemas/`, `backend/app/routers/`,
+  `frontend/src/pages/`, `frontend/src/lib/` (e.g. "populated in Step 6" / "added as their own Step 6
+  groups land") even though Features 02 through 08 each landed real files in every one of those
+  directories across 7 completed Step 6 groups (e.g. `routers/leads.py`, `routers/reviews.py`,
+  `routers/notifications.py`, `models/pipeline_run.py`, `models/review_queue.py`,
+  `models/notification.py`, `LeadListPage.tsx`, `LeadDetailPage.tsx`, `lib/api.ts`'s lead/review/
+  notification helpers — none of these appear as their own row). Only Feature 09's rows (added this
+  session) and the original Feature 01/03/04/05/06/07 orchestrator-stage rows (added at their own Step
+  6 time) are present.
+- **Rationale / Evidence:** Grep-confirmed: no occurrence of `leads.py`, `LeadListPage`,
+  `LeadDetailPage`, `reviews.py`, `notifications.py`, `review_queue.py`, or `notification.py` (the
+  model) anywhere in `.claude/portfolio-reference.md` prior to this session's edit. This doc is read
+  first at Step 0 ("Read this before opening source files") — a future session orienting from it alone
+  would not know these files exist without falling back to a full codebase scan, which is exactly what
+  this doc exists to avoid.
+- **Routes to:** A scoped documentation-only pass adding one row per missing file across Features
+  02-08 (7 features' worth) — no code change, so it doesn't need a fresh Step 5.5 plan. Could be done
+  as part of a future Continual Refinement round (Documentation dimension) or picked up directly as a
+  Suggestion, whichever comes first.
+- **Implementation notes:** _(pending)_

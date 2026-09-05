@@ -181,8 +181,8 @@ GROUPS:
     # architecture-plan-feature-08.md (Step 5.5) sets Implementation Order — see that file
 
   Group_F09:
-    status: IN_PROGRESS
-    owner: Worker-1
+    status: COMPLETED
+    owner: null
     features: [Feature 09]
     owned_files: [backend/app/benchmark/dataset.py (new),
       backend/app/benchmark/harness.py (new),
@@ -874,7 +874,7 @@ Feature 09: Classification Accuracy Benchmark Report
 Tier: Tier 2
 
 Execution Metadata (REQUIRED)
-status: NOT STARTED
+status: COMPLETED
 group: BENCHMARKING
 locked: false
 assigned_worker: null
@@ -921,12 +921,12 @@ Outputs
   labels and confidence scores
 
 Acceptance Criteria
-- [ ] The benchmark dataset includes at least buyer, browser, spam, and ambiguous example categories
-- [ ] The report states an accuracy percentage computed against ground truth, not self-reported by
+- [x] The benchmark dataset includes at least buyer, browser, spam, and ambiguous example categories
+- [x] The report states an accuracy percentage computed against ground truth, not self-reported by
   the model
-- [ ] Every misclassified test case appears in the failure-case list with its predicted and actual
+- [x] Every misclassified test case appears in the failure-case list with its predicted and actual
   label
-- [ ] Re-running the benchmark on the same dataset and model produces a consistency metric, not just
+- [x] Re-running the benchmark on the same dataset and model produces a consistency metric, not just
   a single-pass accuracy number
 
 ====================================================================

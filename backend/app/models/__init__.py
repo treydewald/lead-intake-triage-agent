@@ -1,5 +1,13 @@
+from app.models.benchmark import BenchmarkCase, BenchmarkRun
 from app.models.notification import Notification
 from app.models.pipeline_run import PipelineRun, StageTrace
 from app.models.review_queue import ReviewQueueItem
 
-__all__ = ["PipelineRun", "StageTrace", "ReviewQueueItem", "Notification"]
+__all__ = [
+    "PipelineRun",
+    "StageTrace",
+    "ReviewQueueItem",
+    "Notification",
+    "BenchmarkRun",
+    "BenchmarkCase",
+]

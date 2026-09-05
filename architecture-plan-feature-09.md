@@ -224,3 +224,27 @@ routers/benchmark.py, 1 migration, BenchmarkPage.tsx, plus 2-3 test files) + 4 m
 App.tsx, Layout.tsx, lib/api.ts) + 1 modified (`.claude/portfolio-reference.md`)
 Systems predicted to touch: orchestrator tool-scope/tools (read-only reuse), database/alembic (new
 tables), FastAPI routers, React pages/routing/nav.
+
+Actual Footprint
+Files actually changed: 12 (as predicted — `app/benchmark/__init__.py`, `app/benchmark/dataset.py`,
+`app/benchmark/harness.py`, `app/models/benchmark.py`, `app/schemas/benchmark.py`,
+`app/routers/benchmark.py`, 1 migration (`b86e4d4ef367_add_benchmark_tables.py`), `BenchmarkPage.tsx`,
+2 new backend test files (`test_benchmark_harness.py`, `test_router_benchmark.py`), 1 new frontend test
+(`BenchmarkPage.test.tsx`); modified `main.py`, `models/__init__.py` (barrel export, not in the
+original `owned_files` list — caught by Step 6's "don't forget these" checklist), `lib/api.ts`,
+`App.tsx`, `components/Layout.tsx`).
+Deviations from plan: none of substance. `BenchmarkCase` gained two columns beyond the plan's four
+(`predicted_label`, `confidence`) to hold the first attempt's label/confidence as the single
+representative prediction shown in the failure table — the plan's `correct: bool | None` field implied
+a case-level correctness verdict but didn't specify which attempt it was derived from; this was decided
+during implementation (see harness.py's docstring) and is a refinement of the plan, not a contradiction
+of it. `models/__init__.py` needed updating for the new `BenchmarkRun`/`BenchmarkCase` barrel exports —
+not listed in `owned_files` originally, added per Step 6's companion-file checklist.
+Rework required: none. All 6 acceptance criteria passed on first test run (118/118 backend tests,
+5/5 frontend tests, `npm run build`/`tsc -b` clean, `oxlint` clean with no new warnings). Live manual
+verification: dev servers started, Playwright-driven click-through of the real `/benchmark` page
+against the real local `llama3.2:3b` model (not mocked) — 22 dataset items x 3 repeats = accuracy
+87.0%, consistency 90.9%, nav link correct, failure/ambiguous case table rendered all 4 ambiguous items
+(one hitting the real `classification_failed` sentinel, shown as predicted "—") and all 3 misclassified
+`browser` cases (the model consistently over-predicted "buyer" for browsing-intent messages — a genuine
+finding, not a test artifact), zero console errors.

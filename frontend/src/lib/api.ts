@@ -60,3 +60,43 @@ export async function getLeadDetail(leadId: string): Promise<LeadDetail> {
   const response = await api.get<LeadDetail>(`/leads/${leadId}`)
   return response.data
 }
+
+export interface BenchmarkCase {
+  case_id: string
+  category: string
+  expected_label: string | null
+  is_ambiguous: boolean
+  predicted_label: string | null
+  confidence: number | null
+  correct: boolean | null
+  consistent: boolean
+}
+
+export interface BenchmarkRunSummary {
+  id: string
+  created_at: string
+  model_used: string
+  repeats: number
+  total_cases: number
+  accuracy: number
+  consistency: number
+}
+
+export interface BenchmarkRun extends BenchmarkRunSummary {
+  cases: BenchmarkCase[]
+}
+
+export async function runBenchmark(repeats = 3): Promise<BenchmarkRun> {
+  const response = await api.post<BenchmarkRun>('/benchmark/run', null, { params: { repeats } })
+  return response.data
+}
+
+export async function listBenchmarkRuns(): Promise<BenchmarkRunSummary[]> {
+  const response = await api.get<{ items: BenchmarkRunSummary[] }>('/benchmark/runs')
+  return response.data.items
+}
+
+export async function getBenchmarkRun(runId: string): Promise<BenchmarkRun> {
+  const response = await api.get<BenchmarkRun>(`/benchmark/runs/${runId}`)
+  return response.data
+}

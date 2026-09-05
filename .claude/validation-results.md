@@ -416,3 +416,54 @@ failure path. Application starts cleanly on both frontend and backend, every Tie
 path functions, tests pass, and no acceptance-criterion-covered feature is broken. One pre-existing,
 out-of-scope UI gap found and logged (RB-002) rather than gating this verdict. Ready for Step 8
 (Viewport-First Refactor).
+
+---
+
+## 2026-09-04 — Feature 09 (Classification Accuracy Benchmark Report)
+
+**Checks run:** `pytest app/tests/` (full backend suite) + `npm test` (frontend) + `npm run build`
+(`tsc -b && vite build`) + `npm run lint` (oxlint) + `alembic revision --autogenerate` + `alembic
+upgrade head` on the dev SQLite DB (added `benchmark_run`/`benchmark_case` cleanly) + a manual
+dev-server smoke test: started both `uvicorn`/`vite dev`, used Playwright (the same ad hoc
+`playwright` package from Feature 08's check) to navigate to `/benchmark` via the sidebar nav link,
+click "Run Benchmark", and wait for the real synchronous run to complete against the real local
+`llama3.2:3b` model (not mocked, not faked) — 22 dataset items x 3 repeats = 66 real Ollama calls.
+
+**Result:** PASS — backend: 118 passed (111 pre-existing + 7 new: 3 in `test_benchmark_harness.py`, 4
+in `test_router_benchmark.py`), 0 failed on first run after implementation, no fix cycle needed.
+Frontend: 5 passed (3 pre-existing + 2 new in `BenchmarkPage.test.tsx`), 0 failed; `npm run build`
+clean; `npm run lint` clean (same 2 pre-existing-pattern `react(set-state-in-effect)` warnings on
+other pages, already noted at Feature 08 — no new warnings from this feature's code).
+
+**Live run result (real model, real data):** Accuracy 87.0%, Consistency 90.9%, `llama3.2:3b`, 22
+cases, 3 repeats. The 3 misclassified cases were all `browser`-category messages the model labeled
+`buyer` — a genuine model-behavior finding (the local 3B model over-predicts purchase intent on
+lower-urgency browsing messages), not a test artifact. One ambiguous item (`ambiguous-004`) hit the
+real `classification_failed` sentinel on its first attempt, rendered correctly as predicted "—" rather
+than crashing or showing a stale value. Zero console errors on `/benchmark`.
+
+**Acceptance criteria coverage (architecture-plan-feature-09.md / roadmap Feature 09):**
+1. Dataset includes at least buyer/browser/spam/ambiguous categories → `dataset.py`'s
+   `BENCHMARK_DATASET` (6/6/6/4); live run confirms all 4 categories represented
+2. `POST /benchmark/run` computes and persists an accuracy percentage against ground-truth labels
+   (never self-reported model confidence) → `test_benchmark_harness.py::
+   test_run_benchmark_produces_hand_computed_accuracy_and_consistency` (hand-computed 3/4 = 0.75
+   against a scripted fake) + live run (87.0%, matches `correct_attempts / total_attempts`)
+3. `GET /benchmark/runs/{run_id}` returns every misclassified case with predicted/actual label and
+   confidence → `test_router_benchmark.py::
+   test_get_run_detail_lists_every_misclassified_case_with_predicted_and_actual_label` + live run
+   (3 `browser`→`buyer` misclassifications all shown with confidence)
+4. Consistency metric derived from repeated same-input runs, shown distinctly from accuracy →
+   `test_run_benchmark_produces_hand_computed_accuracy_and_consistency` (2/3 = 0.667 hand-computed,
+   independently of the 3/4 accuracy figure) + live run (90.9% shown in its own stat tile)
+5. An ambiguous item is shown explicitly marked, never forced into correct/incorrect →
+   `test_ambiguous_items_never_counted_in_accuracy_denominator` (`correct is None`) + live run (all 4
+   ambiguous items rendered with an "Ambiguous" badge, `expected` column showing "—")
+6. `BenchmarkPage.tsx` reachable from nav, shows latest run's accuracy/consistency, lists every
+   failure case → live Playwright run: nav-clicked to `/benchmark`, both stat tiles and the failure
+   table rendered with real data
+7. (Validation Requirements addendum) Harness calls the real `IntentClassificationStage`/
+   `register_default_tools` path, no duplicate classification logic → code review of `harness.py`
+   confirms direct reuse; a deliberately-failing case (scripted double-raise, matching the stage's own
+   internal retry) is counted as incorrect not excluded →
+   `test_deliberately_failing_case_counts_as_incorrect_not_excluded`

@@ -1,6 +1,6 @@
 # Pipeline Reference — Lead Intake Triage Agent
 
-**Last Updated:** 2026-09-04 (Step 5.5 — Implementation Planner, Feature 09, complete)
+**Last Updated:** 2026-09-04 (Step 6 — Worker Pool Orchestrator, Group_F09, complete)
 
 How *this project* is using the Upwork Portfolio Project Pipeline. Distinct from
 `portfolio-reference.md`, which is about the product — this file is about pipeline state.
@@ -12,18 +12,32 @@ How *this project* is using the Upwork Portfolio Project Pipeline. Distinct from
 **Project Mode:** STANDARD (Intent: PORTFOLIO, Lifetime: MEDIUM, Scale: MEDIUM, Optimization
 Objective: PORTFOLIO_SIGNAL — see `docs/project-strategy.md`). Steps 10-16 are MANDATORY this cycle.
 
-**Step:** Step 5.5 (Implementation Planner) COMPLETED this session for Feature 09 (Classification
-Accuracy Benchmark Report, Tier 2) — produced `architecture-plan-feature-09.md`. Planning Depth:
-Standard. The harness reuses Feature 03's real `IntentClassificationStage`/`ToolRegistry`/
-`register_default_tools()` machinery directly (invoked outside the compiled graph, the same pattern
-`test_stage_intent_classification.py` already uses with fake tools, now with the real registered
-tool) — no classification logic is reimplemented. One new Architecture Rule Change applied to
-`.claude/portfolio-reference.md`'s Key Decisions (out-of-graph single-stage invocation convention).
-Designed as a genuine cross-system feature (2 new DB tables, 3 new endpoints, this project's second
-real frontend page) reusing Feature 08's router/schema/page conventions throughout — see
-`.claude/plan-audit.md`'s new entry for the full Existing Systems Analysis, Implementation Order (10
-steps), and the accuracy/consistency metric definitions Step 7 will later validate against.
-`implementation_plan.md`'s Group_F09 `owned_files` finalized. **Next: Step 6 claims Group_F09.**
+**Step:** Step 6 (Worker Pool Orchestrator) COMPLETED this session for Group_F09 (Feature 09,
+Classification Accuracy Benchmark Report, Tier 2) — built against `architecture-plan-feature-09.md`'s
+10-step Implementation Order. Added `backend/app/benchmark/` (dataset.py + harness.py),
+`models/benchmark.py` (`BenchmarkRun`/`BenchmarkCase`, migration `b86e4d4ef367`),
+`schemas/benchmark.py`, `routers/benchmark.py` (registered in `main.py`), and this project's third
+real frontend page (`BenchmarkPage.tsx`, reachable via a new "Benchmark" nav link). 118/118 backend
+tests passing (7 new), 5/5 frontend tests passing (2 new), `npm run build`/`oxlint` clean. **Live
+manual verification against the real local `llama3.2:3b` model (not mocked):** dev servers started,
+Playwright-driven click-through of `/benchmark` — clicked "Run Benchmark", the real synchronous run
+completed 22 dataset items x 3 repeats = 66 real Ollama calls, producing accuracy 87.0%/consistency
+90.9%, with all 4 ambiguous items and all 3 misclassified `browser`→`buyer` cases shown correctly and
+zero console errors. Mid-implementation discovery worth noting: `IntentClassificationStage.run()`
+never raises for expected failure modes — it retries its own tool call once internally and returns a
+`classification_failed` sentinel — so the harness's outer exception catch is a defensive fallback, not
+the primary failure-detection path (see `.claude/execution-log.md`'s Feature 09 entry). All 6
+acceptance criteria verified. Full detail: `.claude/execution-log.md`/`.claude/validation-results.md`'s
+Feature 09 entries; `architecture-plan-feature-09.md`'s Actual Footprint section.
+
+Prior to this: Step 5.5 (Implementation Planner) COMPLETED for Feature 09 — produced
+`architecture-plan-feature-09.md`. Planning Depth: Standard. Designed the harness to reuse Feature 03's
+real `IntentClassificationStage`/`ToolRegistry`/`register_default_tools()` machinery directly (invoked
+outside the compiled graph, the same pattern `test_stage_intent_classification.py` already uses with
+fake tools, now with the real registered tool) — no classification logic reimplemented. One new
+Architecture Rule Change applied to `.claude/portfolio-reference.md`'s Key Decisions (out-of-graph
+single-stage invocation convention). Designed as a genuine cross-system feature (2 new DB tables, 3 new
+endpoints, a new frontend page) reusing Feature 08's router/schema/page conventions throughout.
 
 Prior to this: Step 7 (Implementation Verification, Gate 2) COMPLETED — **verdict PASS**. All
 8 Tier 1 features spot-checked live end-to-end (both servers started, all 3 intake channels exercised,
@@ -58,8 +72,9 @@ has not yet run against any completed feature, including this one.
 **Completed steps:** 1 (Project Advisor), 2 (Roadmap Architect), 3 (Feature Specification Engine), 4
 (Environment Bootstrap), 5.5 (Implementation Planner — Feature 01 through Feature 09; re-entered per
 feature group, see `docs/implementation-planning.md` §16), 6 (Worker Pool Orchestrator — Group_F01
-through Group_F08 all COMPLETED — all 8 Tier 1 features implemented end-to-end; Group_F09 planned,
-not yet claimed), 7 (Implementation Verification — Gate 2 — PASSED, against Tier 1 only).
+through Group_F09 all COMPLETED — all 8 Tier 1 features plus Feature 09 [Tier 2] implemented
+end-to-end), 7 (Implementation Verification — Gate 2 — PASSED, against Tier 1 only; Feature 09 not yet
+covered by a Gate 2 pass).
 
 **Gates passed:** Gate 2 (Step 7, implementation verification) — PASSED, 2026-09-04. Gate 1 (Step 13,
 portfolio score ≥9.0/10, per `docs/premium-ui-standard.md`) is still ahead.
@@ -75,13 +90,16 @@ Tier section, STANDARD mode with Tier 2/3 features present falls back to full ti
 
 ## Next Step
 
-**Step 6 (Worker Pool Orchestrator) claims Group_F09** (Feature 09, Classification Accuracy Benchmark
-Report) — its Step 5.5 plan (`architecture-plan-feature-09.md`) is complete with a 10-step
-Implementation Order and finalized `owned_files`. Also dependency-satisfiable, still needing their own
-Step 5.5 pass first: Group_F10 (Feature 10, External Notification Delivery, `depends_on: [Group_F07]`),
-Group_F11 (Feature 11, Per-Lead Audit/History Trail UI, `depends_on: [Group_F08, Group_F06]`).
-Group_F13 (Feature 13, Tier 3) is dependency-satisfiable but lower priority. Group_F14 (Feature 14)
-remains CLAIMABLE-but-deferred (Tier 3, visibility only).
+**Group_F09 is COMPLETED.** Two paths forward, neither yet decided:
+- **Step 5.5 for Group_F10** (Feature 10, External Notification Delivery, `depends_on: [Group_F07]`,
+  now COMPLETED) or **Group_F11** (Feature 11, Per-Lead Audit/History Trail UI,
+  `depends_on: [Group_F08, Group_F06]`, both now COMPLETED) — both dependency-satisfiable, neither has
+  an `architecture-plan-*.md` yet. Group_F13 (Feature 13, Tier 3) is also dependency-satisfiable but
+  lower priority; Group_F14 (Feature 14) remains CLAIMABLE-but-deferred (Tier 3, visibility only).
+- **A Gate 2 (Step 7) re-pass covering Feature 09** specifically — the last Gate 2 run (this session's
+  "Prior to this" entry above) only verified Tier 1; Feature 09 (Tier 2) has its own full validation
+  loop already recorded in `.claude/execution-log.md`/`validation-results.md` but has not been through
+  a dedicated Implementation Verification gate the way the 8 Tier 1 features were as a batch.
 
 **Also available:** `.claude/refinement-backlog.md`'s RB-002 (dead "Review Queue" nav item, OPEN,
 P3) — this session's Step 7 finding. Per its own "Routes to" note, it's a product decision (remove the

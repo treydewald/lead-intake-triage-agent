@@ -1,5 +1,6 @@
 import { BrowserRouter, Route, Routes } from 'react-router-dom'
 import { Layout } from './components/Layout'
+import { BenchmarkPage } from './pages/BenchmarkPage'
 import { HomePage } from './pages/HomePage'
 import { LeadDetailPage } from './pages/LeadDetailPage'
 import { LeadListPage } from './pages/LeadListPage'
@@ -12,6 +13,7 @@ function App() {
           <Route index element={<HomePage />} />
           <Route path="leads" element={<LeadListPage />} />
           <Route path="leads/:leadId" element={<LeadDetailPage />} />
+          <Route path="benchmark" element={<BenchmarkPage />} />
         </Route>
       </Routes>
     </BrowserRouter>

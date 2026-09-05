@@ -1,8 +1,10 @@
 # Portfolio Reference — Lead Intake Triage Agent
 
-**Last Updated:** 2026-09-04 (Key Decisions updated by Feature 09's Step 5.5 plan, see
-`architecture-plan-feature-09.md`; Architecture Map still reflects Feature 08's Step 6 implementation —
-Group_F09 not yet built)
+**Last Updated:** 2026-09-04 (Architecture Map updated with Feature 09's Step 6 implementation, see
+`architecture-plan-feature-09.md`. Note: this table was never backfilled for Features 02-08's own
+files despite each landing via its own Step 6 group — logged as `.claude/refinement-backlog.md`'s
+RB-003 rather than fixed here, since backfilling 7 features' worth of rows is out of Group_F09's
+scope.)
 
 Read this before opening source files. Only open the actual code when this doc doesn't answer the
 question.
@@ -63,6 +65,12 @@ portfolio gate (Mode: STANDARD).
 | `frontend/src/components/` | Shared UI (`BuildIndicator.tsx`, `Layout.tsx`); feature components added as their own Step 6 groups land |
 | `frontend/src/pages/` | Route-level pages (observability view, review queue — added as their own Step 6 groups land) |
 | `frontend/src/lib/` | API client and typed helpers (added as their own Step 6 groups land) |
+| `backend/app/benchmark/dataset.py` | Feature 09's `BENCHMARK_DATASET` — 22 labeled `DatasetItem`s (buyer/browser/spam/ambiguous), ships as a Python-literal fixture |
+| `backend/app/benchmark/harness.py` | Feature 09's `run_benchmark()` — builds one `ToolRegistry`/`register_default_tools()` per run, invokes `IntentClassificationStage().run()` directly (out-of-graph single-stage invocation, see Key Decisions), computes attempt-level accuracy and item-level consistency |
+| `backend/app/models/benchmark.py` | Feature 09's `BenchmarkRun`/`BenchmarkCase` — `BenchmarkCase.attempts_json` is the source of truth per repeat; `predicted_label`/`confidence`/`correct` reflect the first attempt only, the representative prediction the failure table shows |
+| `backend/app/schemas/benchmark.py` | Feature 09's `BenchmarkRunSummaryOut` (list, no case detail)/`BenchmarkRunOut` (detail, full `cases`)/`BenchmarkCaseOut` |
+| `backend/app/routers/benchmark.py` | Feature 09: `POST /benchmark/run` (synchronous), `GET /benchmark/runs`, `GET /benchmark/runs/{run_id}` |
+| `frontend/src/pages/BenchmarkPage.tsx` | Feature 09: "Run Benchmark" trigger, accuracy/consistency/model stat tiles, ambiguous-or-misclassified case table |
 
 *(Fill in further as each remaining feature's own Step 6 group lands — don't pre-guess a structure
 that doesn't exist yet.)*
