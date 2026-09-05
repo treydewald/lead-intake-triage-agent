@@ -43,6 +43,6 @@ describe('LeadListPage', () => {
       </MemoryRouter>,
     )
 
-    await waitFor(() => expect(screen.getByText('No leads found.')).toBeInTheDocument())
+    await waitFor(() => expect(screen.getByText('No leads found')).toBeInTheDocument())
   })
 })

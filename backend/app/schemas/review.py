@@ -29,3 +29,4 @@ class ReviewQueueItemOut(BaseModel):
     draft_intent_label: str | None = None
     confidence_score: float | None = None
     created_at: datetime
+    message_body: str | None = None

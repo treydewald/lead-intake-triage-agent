@@ -16,6 +16,7 @@ const ITEM = {
   draft_intent_label: 'buyer',
   confidence_score: 0.55,
   created_at: '2026-09-04T12:00:00Z',
+  message_body: 'Interested in a quote for 20 units.',
 }
 
 function renderDetail() {
@@ -109,6 +110,17 @@ describe('ReviewDetailPage', () => {
     await waitFor(() =>
       expect(screen.getByText(/already been actioned by someone else/)).toBeInTheDocument(),
     )
+  })
+
+  it('shows the lead message body and links to the full lead detail view', async () => {
+    vi.spyOn(api, 'getReview').mockResolvedValue(ITEM)
+
+    renderDetail()
+
+    await waitFor(() =>
+      expect(screen.getByText('Interested in a quote for 20 units.')).toBeInTheDocument(),
+    )
+    expect(screen.getByRole('link', { name: 'lead-abc' })).toHaveAttribute('href', '/leads/lead-abc12345')
   })
 
   it('shows a not-found state for a missing run id', async () => {

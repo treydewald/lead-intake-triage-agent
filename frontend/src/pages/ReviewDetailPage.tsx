@@ -1,6 +1,9 @@
 import { useEffect, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
+import { ArrowLeft, ArrowUpRight, CheckCircle2, MessageSquare } from 'lucide-react'
 import { actionReview, getReview, type ReviewAction, type ReviewActionResult, type ReviewQueueItem } from '../lib/api'
+import { Card } from '../components/ui/Card'
+import { ErrorState, LoadingState } from '../components/ui/States'
 
 export function ReviewDetailPage() {
   const { runId } = useParams<{ runId: string }>()
@@ -75,14 +78,14 @@ export function ReviewDetailPage() {
   }
 
   if (loading) {
-    return <p className="text-slate-500">Loading…</p>
+    return <LoadingState label="Loading review item…" />
   }
 
   if (notFound) {
     return (
       <div className="flex flex-col gap-3">
         <p className="text-slate-600">No review item found for run "{runId}".</p>
-        <Link to="/reviews" className="w-fit text-teal-700 hover:underline">
+        <Link to="/reviews" className="w-fit text-sm font-medium text-teal-700 hover:underline">
           Back to review queue
         </Link>
       </div>
@@ -90,93 +93,127 @@ export function ReviewDetailPage() {
   }
 
   if (error || !item) {
-    return <p className="text-red-600">{error ?? 'Something went wrong.'}</p>
+    return <ErrorState message={error ?? 'Something went wrong.'} />
   }
 
   return (
-    <div className="flex flex-col gap-6">
+    <div className="flex flex-col gap-5">
       <div>
-        <Link to="/reviews" className="text-sm text-teal-700 hover:underline">
-          ← Back to review queue
+        <Link
+          to="/reviews"
+          className="inline-flex items-center gap-1 text-sm font-medium text-teal-700 hover:underline"
+        >
+          <ArrowLeft className="h-3.5 w-3.5" aria-hidden="true" />
+          Back to review queue
         </Link>
-        <h1 className="mt-1 text-xl font-semibold">Review lead {item.lead_id.slice(0, 8)}</h1>
+        <div className="mt-1 flex flex-wrap items-center gap-2">
+          <h1 className="text-2xl font-semibold tracking-tight text-slate-900">Review lead</h1>
+          <Link
+            to={`/leads/${item.lead_id}`}
+            className="inline-flex items-center gap-1 text-sm font-medium text-teal-700 hover:underline"
+          >
+            {item.lead_id.slice(0, 8)}
+            <ArrowUpRight className="h-3.5 w-3.5" aria-hidden="true" />
+          </Link>
+        </div>
       </div>
 
-      <dl className="grid grid-cols-2 gap-4 rounded-lg border border-slate-200 bg-white p-4 text-sm sm:grid-cols-3">
-        <div>
-          <dt className="text-slate-500">Draft classification</dt>
-          <dd>{item.draft_intent_label ?? '—'}</dd>
-        </div>
-        <div>
-          <dt className="text-slate-500">Confidence</dt>
-          <dd>{item.confidence_score != null ? item.confidence_score.toFixed(2) : '—'}</dd>
-        </div>
-        <div>
-          <dt className="text-slate-500">Queued</dt>
-          <dd>{new Date(item.created_at).toLocaleString()}</dd>
-        </div>
-      </dl>
-
       {alreadyActioned && (
-        <div className="rounded-lg border border-amber-300 bg-amber-50 p-4 text-sm text-amber-800">
+        <div className="rounded-xl border border-amber-300 bg-amber-50 p-4 text-sm text-amber-800">
           This item has already been actioned by someone else — no further action can be taken here.
         </div>
       )}
 
       {result && !alreadyActioned && (
-        <div className="rounded-lg border border-emerald-300 bg-emerald-50 p-4 text-sm text-emerald-800">
+        <div className="flex items-center gap-2 rounded-xl border border-emerald-300 bg-emerald-50 p-4 text-sm text-emerald-800">
+          <CheckCircle2 className="h-4 w-4 shrink-0" aria-hidden="true" />
           Action submitted. Run status is now <span className="font-medium">{result.status}</span>.
         </div>
       )}
 
-      {!result && !alreadyActioned && (
-        <div className="flex flex-col gap-3 rounded-lg border border-slate-200 bg-white p-4">
-          <div className="flex flex-wrap gap-3">
-            {(['approve', 'reject', 'edit'] as ReviewAction[]).map((action) => (
-              <label key={action} className="flex items-center gap-2 text-sm">
-                <input
-                  type="radio"
-                  name="review-action"
-                  value={action}
-                  checked={selectedAction === action}
-                  onChange={() => setSelectedAction(action)}
-                />
-                {action[0].toUpperCase() + action.slice(1)}
-              </label>
-            ))}
-          </div>
+      <div className="grid grid-cols-1 gap-5 lg:grid-cols-3">
+        <div className="flex flex-col gap-4 lg:col-span-2">
+          <Card className="p-5">
+            <div className="mb-3 flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-slate-500">
+              <MessageSquare className="h-3.5 w-3.5" aria-hidden="true" />
+              Lead message
+            </div>
+            <p className="whitespace-pre-wrap text-sm leading-relaxed text-slate-800">
+              {item.message_body?.trim() ? item.message_body : 'This lead was submitted with no message content.'}
+            </p>
+          </Card>
 
-          {selectedAction === 'edit' && (
+          <Card className="p-5">
+            <dl className="grid grid-cols-2 gap-4 text-sm sm:grid-cols-3">
+              <div>
+                <dt className="text-xs font-medium uppercase tracking-wide text-slate-500">Draft classification</dt>
+                <dd className="mt-0.5 font-medium text-slate-900">{item.draft_intent_label ?? '—'}</dd>
+              </div>
+              <div>
+                <dt className="text-xs font-medium uppercase tracking-wide text-slate-500">Confidence</dt>
+                <dd className="mt-0.5 font-medium text-slate-900">
+                  {item.confidence_score != null ? item.confidence_score.toFixed(2) : '—'}
+                </dd>
+              </div>
+              <div>
+                <dt className="text-xs font-medium uppercase tracking-wide text-slate-500">Queued</dt>
+                <dd className="mt-0.5 font-medium text-slate-900">{new Date(item.created_at).toLocaleString()}</dd>
+              </div>
+            </dl>
+          </Card>
+        </div>
+
+        {!result && !alreadyActioned && (
+          <Card className="flex h-fit flex-col gap-3.5 p-5">
+            <h2 className="text-xs font-semibold uppercase tracking-wider text-slate-500">Reviewer decision</h2>
+            <div className="flex flex-wrap gap-3">
+              {(['approve', 'reject', 'edit'] as ReviewAction[]).map((action) => (
+                <label key={action} className="flex items-center gap-2 text-sm text-slate-700">
+                  <input
+                    type="radio"
+                    name="review-action"
+                    value={action}
+                    checked={selectedAction === action}
+                    onChange={() => setSelectedAction(action)}
+                    className="h-4 w-4 accent-teal-700"
+                  />
+                  {action[0].toUpperCase() + action.slice(1)}
+                </label>
+              ))}
+            </div>
+
+            {selectedAction === 'edit' && (
+              <input
+                type="text"
+                placeholder="Corrected classification"
+                className="rounded-lg border border-slate-300 px-3 py-1.5 text-sm shadow-sm focus:border-teal-600 focus:outline-none focus:ring-1 focus:ring-teal-600"
+                value={correctedLabel}
+                onChange={(e) => setCorrectedLabel(e.target.value)}
+              />
+            )}
+
             <input
               type="text"
-              placeholder="Corrected classification"
-              className="rounded-md border border-slate-300 px-3 py-1.5 text-sm"
-              value={correctedLabel}
-              onChange={(e) => setCorrectedLabel(e.target.value)}
+              placeholder="Your name (optional)"
+              className="rounded-lg border border-slate-300 px-3 py-1.5 text-sm shadow-sm focus:border-teal-600 focus:outline-none focus:ring-1 focus:ring-teal-600"
+              value={reviewerName}
+              onChange={(e) => setReviewerName(e.target.value)}
             />
-          )}
 
-          <input
-            type="text"
-            placeholder="Your name (optional)"
-            className="rounded-md border border-slate-300 px-3 py-1.5 text-sm"
-            value={reviewerName}
-            onChange={(e) => setReviewerName(e.target.value)}
-          />
+            {validationError && <p className="text-sm text-red-600">{validationError}</p>}
+            {submitError && <p className="text-sm text-red-600">{submitError}</p>}
 
-          {validationError && <p className="text-sm text-red-600">{validationError}</p>}
-          {submitError && <p className="text-sm text-red-600">{submitError}</p>}
-
-          <button
-            type="button"
-            className="w-fit rounded-md bg-teal-700 px-4 py-1.5 text-sm font-medium text-white disabled:opacity-50"
-            disabled={submitting}
-            onClick={handleSubmit}
-          >
-            {submitting ? 'Submitting…' : 'Submit'}
-          </button>
-        </div>
-      )}
+            <button
+              type="button"
+              className="w-fit rounded-lg bg-teal-700 px-4 py-1.5 text-sm font-medium text-white shadow-sm transition-colors hover:bg-teal-800 disabled:opacity-50"
+              disabled={submitting}
+              onClick={handleSubmit}
+            >
+              {submitting ? 'Submitting…' : 'Submit'}
+            </button>
+          </Card>
+        )}
+      </div>
     </div>
   )
 }

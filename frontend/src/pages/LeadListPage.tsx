@@ -1,6 +1,11 @@
 import { useEffect, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
+import { Activity, CheckCircle2, ClipboardCheck, Inbox } from 'lucide-react'
 import { listLeads, type LeadListItem, type ListLeadsParams } from '../lib/api'
+import { PageHeader } from '../components/ui/PageHeader'
+import { StatCard } from '../components/ui/StatCard'
+import { Card } from '../components/ui/Card'
+import { EmptyState, ErrorState, LoadingState } from '../components/ui/States'
 
 const STATUS_OPTIONS = [
   { value: '', label: 'All statuses' },
@@ -34,6 +39,19 @@ function StatusBadge({ status }: { status: string }) {
   )
 }
 
+function SelectField({
+  label,
+  ...props
+}: { label: string } & React.SelectHTMLAttributes<HTMLSelectElement>) {
+  return (
+    <select
+      aria-label={label}
+      className="w-full rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-sm shadow-sm focus:border-teal-600 focus:outline-none focus:ring-1 focus:ring-teal-600 sm:w-auto"
+      {...props}
+    />
+  )
+}
+
 const PAGE_SIZE = 10
 
 export function LeadListPage() {
@@ -42,6 +60,10 @@ export function LeadListPage() {
   const [total, setTotal] = useState(0)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [counts, setCounts] = useState<{ awaitingReview: number | null; autoProcessed: number | null }>({
+    awaitingReview: null,
+    autoProcessed: null,
+  })
 
   const status = searchParams.get('status') ?? ''
   const sourceChannel = searchParams.get('channel') ?? ''
@@ -86,16 +108,48 @@ export function LeadListPage() {
     }
   }, [status, sourceChannel, sort, page])
 
+  useEffect(() => {
+    let cancelled = false
+    Promise.allSettled([
+      listLeads({ status: 'awaiting_review', page_size: 1 }),
+      listLeads({ status: 'auto_processed', page_size: 1 }),
+    ]).then(([awaiting, auto]) => {
+      if (cancelled) return
+      setCounts({
+        awaitingReview: awaiting.status === 'fulfilled' ? awaiting.value.total : null,
+        autoProcessed: auto.status === 'fulfilled' ? auto.value.total : null,
+      })
+    })
+    return () => {
+      cancelled = true
+    }
+  }, [])
+
   const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE))
 
   return (
     <div className="flex flex-col gap-4">
-      <h1 className="text-xl font-semibold">Leads</h1>
+      <PageHeader title="Leads" description="Every lead that has entered the intake pipeline." />
+
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+        <StatCard label="Total leads" value={String(total)} icon={Activity} />
+        <StatCard
+          label="Awaiting review"
+          value={counts.awaitingReview != null ? String(counts.awaitingReview) : '—'}
+          icon={ClipboardCheck}
+          tone={counts.awaitingReview ? 'amber' : 'neutral'}
+        />
+        <StatCard
+          label="Auto-processed"
+          value={counts.autoProcessed != null ? String(counts.autoProcessed) : '—'}
+          icon={CheckCircle2}
+          tone="emerald"
+        />
+      </div>
 
       <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap">
-        <select
-          aria-label="Filter by status"
-          className="w-full rounded-md border border-slate-300 bg-white px-3 py-1.5 text-sm sm:w-auto"
+        <SelectField
+          label="Filter by status"
           value={status}
           onChange={(e) => updateParams({ status: e.target.value || undefined, page: undefined })}
         >
@@ -104,11 +158,10 @@ export function LeadListPage() {
               {o.label}
             </option>
           ))}
-        </select>
+        </SelectField>
 
-        <select
-          aria-label="Filter by channel"
-          className="w-full rounded-md border border-slate-300 bg-white px-3 py-1.5 text-sm sm:w-auto"
+        <SelectField
+          label="Filter by channel"
           value={sourceChannel}
           onChange={(e) => updateParams({ channel: e.target.value || undefined, page: undefined })}
         >
@@ -117,61 +170,62 @@ export function LeadListPage() {
               {o.label}
             </option>
           ))}
-        </select>
+        </SelectField>
 
-        <select
-          aria-label="Sort by"
-          className="w-full rounded-md border border-slate-300 bg-white px-3 py-1.5 text-sm sm:w-auto"
-          value={sort}
-          onChange={(e) => updateParams({ sort: e.target.value })}
-        >
+        <SelectField label="Sort by" value={sort} onChange={(e) => updateParams({ sort: e.target.value })}>
           <option value="created_desc">Newest first</option>
           <option value="confidence_desc">Confidence: high to low</option>
           <option value="confidence_asc">Confidence: low to high</option>
-        </select>
+        </SelectField>
       </div>
 
-      {error && <p className="text-sm text-red-600">{error}</p>}
+      {error && <ErrorState message={error} />}
 
-      <div className="overflow-x-auto rounded-lg border border-slate-200 bg-white">
-        <table className="w-full min-w-[640px] text-left text-sm">
-          <thead className="border-b border-slate-200 bg-slate-50 text-xs uppercase tracking-wide text-slate-500">
-            <tr>
-              <th className="px-4 py-2.5 font-medium">Lead</th>
-              <th className="px-4 py-2.5 font-medium">Status</th>
-              <th className="px-4 py-2.5 font-medium">Source</th>
-              <th className="px-4 py-2.5 font-medium">Confidence</th>
-              <th className="px-4 py-2.5 font-medium">Created</th>
-            </tr>
-          </thead>
-          <tbody>
-            {!loading && items.length === 0 && (
+      <Card className="overflow-x-auto">
+        {loading ? (
+          <LoadingState label="Loading leads…" />
+        ) : items.length === 0 ? (
+          <EmptyState
+            icon={Inbox}
+            title="No leads found"
+            description="Try adjusting the status or channel filters, or check back once new leads arrive."
+          />
+        ) : (
+          <table className="w-full min-w-[640px] text-left text-sm">
+            <thead className="border-b border-slate-200 bg-slate-50 text-xs uppercase tracking-wide text-slate-500">
               <tr>
-                <td colSpan={5} className="px-4 py-6 text-center text-slate-500">
-                  No leads found.
-                </td>
+                <th className="px-4 py-2.5 font-medium">Lead</th>
+                <th className="px-4 py-2.5 font-medium">Status</th>
+                <th className="px-4 py-2.5 font-medium">Source</th>
+                <th className="px-4 py-2.5 font-medium">Confidence</th>
+                <th className="px-4 py-2.5 font-medium">Created</th>
               </tr>
-            )}
-            {items.map((item) => (
-              <tr key={item.lead_id} className="border-b border-slate-100 last:border-0 hover:bg-slate-50">
-                <td className="px-4 py-2.5">
-                  <Link to={`/leads/${item.lead_id}`} className="font-medium text-teal-700 hover:underline">
-                    {item.lead_id.slice(0, 8)}
-                  </Link>
-                </td>
-                <td className="px-4 py-2.5">
-                  <StatusBadge status={item.status} />
-                </td>
-                <td className="px-4 py-2.5 text-slate-600">{item.source_channel ?? '—'}</td>
-                <td className="px-4 py-2.5 text-slate-600">
-                  {item.confidence_score != null ? item.confidence_score.toFixed(2) : '—'}
-                </td>
-                <td className="px-4 py-2.5 text-slate-600">{new Date(item.created_at).toLocaleString()}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+            </thead>
+            <tbody>
+              {items.map((item) => (
+                <tr key={item.lead_id} className="border-b border-slate-100 last:border-0 hover:bg-slate-50">
+                  <td className="px-4 py-2.5">
+                    <Link
+                      to={`/leads/${item.lead_id}`}
+                      className="font-medium text-teal-700 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-600 focus-visible:ring-offset-1"
+                    >
+                      {item.lead_id.slice(0, 8)}
+                    </Link>
+                  </td>
+                  <td className="px-4 py-2.5">
+                    <StatusBadge status={item.status} />
+                  </td>
+                  <td className="px-4 py-2.5 text-slate-600">{item.source_channel ?? '—'}</td>
+                  <td className="px-4 py-2.5 text-slate-600">
+                    {item.confidence_score != null ? item.confidence_score.toFixed(2) : '—'}
+                  </td>
+                  <td className="px-4 py-2.5 text-slate-600">{new Date(item.created_at).toLocaleString()}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
+      </Card>
 
       <div className="flex items-center justify-between text-sm text-slate-600">
         <span>
@@ -180,7 +234,7 @@ export function LeadListPage() {
         <div className="flex gap-2">
           <button
             type="button"
-            className="rounded-md border border-slate-300 px-3 py-1 disabled:opacity-40"
+            className="rounded-lg border border-slate-300 bg-white px-3 py-1 shadow-sm transition-colors hover:bg-slate-50 disabled:opacity-40"
             disabled={page <= 1}
             onClick={() => {
               const next = Math.max(1, page - 1)
@@ -191,7 +245,7 @@ export function LeadListPage() {
           </button>
           <button
             type="button"
-            className="rounded-md border border-slate-300 px-3 py-1 disabled:opacity-40"
+            className="rounded-lg border border-slate-300 bg-white px-3 py-1 shadow-sm transition-colors hover:bg-slate-50 disabled:opacity-40"
             disabled={page >= totalPages}
             onClick={() => {
               const next = Math.min(totalPages, page + 1)

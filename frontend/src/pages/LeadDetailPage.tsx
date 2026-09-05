@@ -1,7 +1,10 @@
 import { useEffect, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
+import { AlertTriangle, ArrowLeft, Clock3, History } from 'lucide-react'
 import { getLeadDetail, type LeadDetail } from '../lib/api'
 import { STAGE_ORDER } from '../lib/stageOrder'
+import { Card } from '../components/ui/Card'
+import { ErrorState, LoadingState } from '../components/ui/States'
 
 const STAGE_STATUS_CLASSES: Record<string, string> = {
   COMPLETED: 'border-emerald-300 bg-emerald-50',
@@ -13,6 +16,14 @@ const STAGE_STATUS_LABELS: Record<string, string> = {
   COMPLETED: 'Completed',
   FAILED: 'Failed',
   NOT_YET_RUN: 'Not yet run',
+}
+
+const STATUS_BADGE_CLASSES: Record<string, string> = {
+  auto_processed: 'bg-emerald-100 text-emerald-800',
+  awaiting_review: 'bg-amber-100 text-amber-800',
+  rejected: 'bg-slate-200 text-slate-700',
+  failed: 'bg-red-100 text-red-800',
+  in_progress: 'bg-sky-100 text-sky-800',
 }
 
 export function LeadDetailPage() {
@@ -49,14 +60,14 @@ export function LeadDetailPage() {
   }, [leadId])
 
   if (loading) {
-    return <p className="text-slate-500">Loading…</p>
+    return <LoadingState label="Loading lead detail…" />
   }
 
   if (notFound) {
     return (
       <div className="flex flex-col gap-3">
         <p className="text-slate-600">No lead found with id "{leadId}".</p>
-        <Link to="/leads" className="w-fit text-teal-700 hover:underline">
+        <Link to="/leads" className="w-fit text-sm font-medium text-teal-700 hover:underline">
           Back to leads
         </Link>
       </div>
@@ -64,88 +75,113 @@ export function LeadDetailPage() {
   }
 
   if (error || !lead) {
-    return <p className="text-red-600">{error ?? 'Something went wrong.'}</p>
+    return <ErrorState message={error ?? 'Something went wrong.'} />
   }
 
   const stagesByKey = new Map(lead.stages.map((s) => [s.stage_key, s]))
+  const badgeClass = STATUS_BADGE_CLASSES[lead.status] ?? 'bg-slate-100 text-slate-700'
 
   return (
-    <div className="flex flex-col gap-3">
-      <div className="flex flex-col gap-1.5 sm:flex-row sm:items-center sm:justify-between">
+    <div className="flex flex-col gap-5">
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
         <div>
-          <Link to="/leads" className="text-sm text-teal-700 hover:underline">
-            ← Back to leads
+          <Link
+            to="/leads"
+            className="inline-flex items-center gap-1 text-sm font-medium text-teal-700 hover:underline"
+          >
+            <ArrowLeft className="h-3.5 w-3.5" aria-hidden="true" />
+            Back to leads
           </Link>
-          <h1 className="mt-1 text-xl font-semibold">Lead {lead.lead_id.slice(0, 8)}</h1>
-          <Link to={`/leads/${lead.lead_id}/history`} className="text-sm text-teal-700 hover:underline">
-            View Full History →
-          </Link>
+          <h1 className="mt-1 text-2xl font-semibold tracking-tight text-slate-900">
+            Lead {lead.lead_id.slice(0, 8)}
+          </h1>
         </div>
-        <span className="inline-flex w-fit rounded-full bg-slate-100 px-3 py-1 text-sm font-medium text-slate-700">
+        <span className={`inline-flex w-fit rounded-full px-3 py-1 text-sm font-medium ${badgeClass}`}>
           {lead.status.replace('_', ' ')}
         </span>
       </div>
 
-      <dl className="grid grid-cols-2 gap-2.5 rounded-lg border border-slate-200 bg-white p-2.5 text-sm sm:grid-cols-4">
-        <div>
-          <dt className="text-slate-500">Source</dt>
-          <dd>{lead.source_channel ?? '—'}</dd>
-        </div>
-        <div>
-          <dt className="text-slate-500">Confidence</dt>
-          <dd>{lead.confidence_score != null ? lead.confidence_score.toFixed(2) : '—'}</dd>
-        </div>
-        <div>
-          <dt className="text-slate-500">Created</dt>
-          <dd>{new Date(lead.created_at).toLocaleString()}</dd>
-        </div>
-        <div>
-          <dt className="text-slate-500">Updated</dt>
-          <dd>{new Date(lead.updated_at).toLocaleString()}</dd>
-        </div>
-      </dl>
-
       {lead.status === 'failed' && lead.failed_stage && (
-        <div className="rounded-lg border border-red-300 bg-red-50 p-2.5 text-sm text-red-800">
-          <p className="font-medium">
-            Pipeline failed at {STAGE_ORDER.find((s) => s.key === lead.failed_stage)?.label ?? lead.failed_stage}
-          </p>
-          {lead.error && <p className="mt-1 text-red-700">{lead.error}</p>}
+        <div className="flex items-start gap-2 rounded-xl border border-red-300 bg-red-50 p-3 text-sm text-red-800">
+          <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" />
+          <div>
+            <p className="font-medium">
+              Pipeline failed at {STAGE_ORDER.find((s) => s.key === lead.failed_stage)?.label ?? lead.failed_stage}
+            </p>
+            {lead.error && <p className="mt-1 text-red-700">{lead.error}</p>}
+          </div>
         </div>
       )}
 
       {lead.status === 'in_progress' && (
-        <div className="rounded-lg border border-sky-300 bg-sky-50 p-3 text-sm text-sky-800">
+        <div className="rounded-xl border border-sky-300 bg-sky-50 p-3 text-sm text-sky-800">
           This lead is still mid-pipeline — later stages have not run yet.
         </div>
       )}
 
-      <div className="flex flex-col gap-1">
-        {STAGE_ORDER.map(({ key, label }) => {
-          const stage = stagesByKey.get(key)
-          const status = stage?.status ?? 'NOT_YET_RUN'
-          return (
-            <div key={key} className={`rounded-lg border p-2.5 ${STAGE_STATUS_CLASSES[status]}`}>
-              <div className="flex items-center justify-between">
-                <h2 className="font-medium">{label}</h2>
-                <span className="text-xs font-medium uppercase tracking-wide text-slate-600">
-                  {STAGE_STATUS_LABELS[status]}
-                </span>
+      <div className="grid grid-cols-1 gap-5 lg:grid-cols-3">
+        <div className="flex flex-col gap-2 lg:col-span-2">
+          <h2 className="text-xs font-semibold uppercase tracking-wider text-slate-500">Pipeline stages</h2>
+          {STAGE_ORDER.map(({ key, label }) => {
+            const stage = stagesByKey.get(key)
+            const status = stage?.status ?? 'NOT_YET_RUN'
+            return (
+              <div key={key} className={`rounded-xl border p-3 shadow-sm ${STAGE_STATUS_CLASSES[status]}`}>
+                <div className="flex items-center justify-between">
+                  <h3 className="font-medium text-slate-900">{label}</h3>
+                  <span className="text-xs font-medium uppercase tracking-wide text-slate-600">
+                    {STAGE_STATUS_LABELS[status]}
+                  </span>
+                </div>
+                {stage?.error && <p className="mt-1.5 text-sm text-red-700">{stage.error}</p>}
+                {stage?.decision && (
+                  <details className="mt-1.5">
+                    <summary className="cursor-pointer text-xs font-medium text-slate-500 hover:text-slate-700">
+                      View stage output
+                    </summary>
+                    <pre className="mt-1.5 overflow-x-auto rounded-lg bg-white/70 p-2 text-xs text-slate-700">
+                      {JSON.stringify(stage.decision, null, 2)}
+                    </pre>
+                  </details>
+                )}
               </div>
-              {stage?.error && <p className="mt-1.5 text-sm text-red-700">{stage.error}</p>}
-              {stage?.decision && (
-                <details className="mt-1.5">
-                  <summary className="cursor-pointer text-xs font-medium text-slate-500 hover:text-slate-700">
-                    View stage output
-                  </summary>
-                  <pre className="mt-1.5 overflow-x-auto rounded bg-white/70 p-2 text-xs text-slate-700">
-                    {JSON.stringify(stage.decision, null, 2)}
-                  </pre>
-                </details>
-              )}
+            )
+          })}
+        </div>
+
+        <Card className="flex h-fit flex-col gap-4 p-5">
+          <h2 className="text-xs font-semibold uppercase tracking-wider text-slate-500">Lead summary</h2>
+          <dl className="grid grid-cols-2 gap-4 text-sm">
+            <div>
+              <dt className="text-xs font-medium uppercase tracking-wide text-slate-500">Source</dt>
+              <dd className="mt-0.5 font-medium text-slate-900">{lead.source_channel ?? '—'}</dd>
             </div>
-          )
-        })}
+            <div>
+              <dt className="text-xs font-medium uppercase tracking-wide text-slate-500">Confidence</dt>
+              <dd className="mt-0.5 font-medium text-slate-900">
+                {lead.confidence_score != null ? lead.confidence_score.toFixed(2) : '—'}
+              </dd>
+            </div>
+            <div className="col-span-2">
+              <dt className="flex items-center gap-1 text-xs font-medium uppercase tracking-wide text-slate-500">
+                <Clock3 className="h-3 w-3" aria-hidden="true" />
+                Created
+              </dt>
+              <dd className="mt-0.5 font-medium text-slate-900">{new Date(lead.created_at).toLocaleString()}</dd>
+            </div>
+            <div className="col-span-2">
+              <dt className="text-xs font-medium uppercase tracking-wide text-slate-500">Updated</dt>
+              <dd className="mt-0.5 font-medium text-slate-900">{new Date(lead.updated_at).toLocaleString()}</dd>
+            </div>
+          </dl>
+          <Link
+            to={`/leads/${lead.lead_id}/history`}
+            className="mt-1 inline-flex w-fit items-center gap-1.5 rounded-lg border border-slate-300 px-3 py-1.5 text-sm font-medium text-slate-700 shadow-sm transition-colors hover:border-teal-300 hover:text-teal-700"
+          >
+            <History className="h-3.5 w-3.5" aria-hidden="true" />
+            View full history
+          </Link>
+        </Card>
       </div>
     </div>
   )

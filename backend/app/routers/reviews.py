@@ -29,6 +29,20 @@ def get_session_factory() -> SessionFactory:
     return SessionLocal
 
 
+def _to_review_out(item: ReviewQueueItem) -> ReviewQueueItemOut:
+    """Reviewer-facing shape plus the lead's original message body, pulled from the
+    paused run's `state_snapshot` rather than a new column - the value already exists
+    there (`LeadPipelineState.intake.message_body`) since Feature 02, and this is a
+    read-only projection, not a new source of truth for it."""
+    out = ReviewQueueItemOut.model_validate(item)
+    try:
+        state = LeadPipelineState.model_validate_json(item.state_snapshot)
+        out = out.model_copy(update={"message_body": state.intake.message_body})
+    except Exception:
+        pass
+    return out
+
+
 def get_resume_graph_factory() -> GraphFactory:
     """FastAPI dependency, overridden in tests to inject a resume graph built with
     fake tool bindings - keeps the approve/edit path testable without live
@@ -44,7 +58,7 @@ def list_pending_reviews(session_factory: SessionFactory = Depends(get_session_f
     db = session_factory()
     try:
         items = db.query(ReviewQueueItem).filter(ReviewQueueItem.status == "PENDING").all()
-        return [ReviewQueueItemOut.model_validate(item) for item in items]
+        return [_to_review_out(item) for item in items]
     finally:
         db.close()
 
@@ -56,7 +70,7 @@ def get_review(run_id: str, session_factory: SessionFactory = Depends(get_sessio
         item = db.query(ReviewQueueItem).filter(ReviewQueueItem.run_id == run_id).first()
         if item is None:
             raise HTTPException(status_code=404, detail="Review queue item not found")
-        return ReviewQueueItemOut.model_validate(item)
+        return _to_review_out(item)
     finally:
         db.close()
 

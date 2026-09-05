@@ -131,6 +131,7 @@ export interface ReviewQueueItem {
   draft_intent_label: string | null
   confidence_score: number | null
   created_at: string
+  message_body: string | null
 }
 
 export type ReviewAction = 'approve' | 'reject' | 'edit'

@@ -38,9 +38,15 @@ function nav(page) {
 // even starts, causing a screenshot of the *previous* page's stale content even though the
 // URL has already changed. Always wait for the destination page's own <h1> text (a real
 // content signal) before treating a navigation as complete.
+// Some pages (e.g. Lead List) fire a second, independent effect for summary stat
+// cards alongside the main table fetch - networkidle can resolve in the gap between
+// the two, before the second effect's own request has even started. A short settle
+// delay after networkidle is cheaper and more robust than tracking every page's own
+// number of concurrent effects here.
 async function waitForPage(page, headingText) {
   await page.locator('main').getByRole('heading', { level: 1 }).filter({ hasText: headingText }).waitFor({ timeout: 10000 })
   await page.waitForLoadState('networkidle')
+  await page.waitForTimeout(400)
 }
 
 async function shot(page, name) {
@@ -57,7 +63,7 @@ async function run() {
   const page = await desktopCtx.newPage()
 
   await page.goto(BASE_URL)
-  await waitForPage(page, 'Lead Intake Triage')
+  await waitForPage(page, 'Automated classification, routing, and review')
   await shot(page, '01-home')
 
   await nav(page).getByRole('link', { name: 'Observability', exact: true }).click()
@@ -91,7 +97,7 @@ async function run() {
   const mobilePage = await mobileCtx.newPage()
 
   await mobilePage.goto(BASE_URL)
-  await waitForPage(mobilePage, 'Lead Intake Triage')
+  await waitForPage(mobilePage, 'Automated classification, routing, and review')
   await shot(mobilePage, '08-mobile-home')
 
   await nav(mobilePage).getByRole('link', { name: 'Observability', exact: true }).click()

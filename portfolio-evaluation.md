@@ -92,15 +92,47 @@ P1 (Critical - High Impact):
 - P1-01: Show the lead's message body on Review Detail and add a direct link to that lead's full
   Detail/History view | Est. Effort: 1-2 hours (add `message_body` to `ReviewQueueItemOut`, render it,
   add a `Link` to `/leads/{lead_id}` — `lead_id` is already on the response, no new endpoint needed)
+  | **Status: Completed** (2026-09-05, Step 12 batch). `backend/app/schemas/review.py`'s
+  `ReviewQueueItemOut` gained `message_body: str | None`; `backend/app/routers/reviews.py`'s new
+  `_to_review_out()` helper parses it from `item.state_snapshot` (`LeadPipelineState.intake
+  .message_body`) rather than a new DB column, used by both `GET /reviews` and `GET /reviews/{run_id}`.
+  `ReviewDetailPage.tsx` now renders the message body in a dedicated card and links the lead id to
+  `/leads/{lead_id}`. Tests: `test_router_reviews.py` asserts `message_body` on both endpoints;
+  `ReviewDetailPage.test.tsx` gained a test asserting the message renders and the lead link resolves.
+  Verified live against the real backend/dev DB (lead `7b0d3af5`, message "Is this still available?").
 - P1-02: Establish a real visual identity — a considered color palette beyond the single teal accent,
   a deliberate typographic scale (distinct weights/sizes for page title / section header / body /
   metadata), and consistent depth (shadow or elevation) applied across all 7 pages | Est. Effort: 3
-  hours
+  hours | **Status: Completed** (2026-09-05, Step 12 batch). Added a shared UI kit
+  (`frontend/src/components/ui/`: `PageHeader`, `Card`/`SectionLabel`, `StatCard`, `States` —
+  `EmptyState`/`LoadingState`/`ErrorState`) applying a consistent type scale (2xl/tracking-tight page
+  titles, xs/uppercase/tracking-wider section labels and metadata) and `shadow-sm` card depth across
+  all 7 pages plus `Layout.tsx`. Added `lucide-react` for a consistent icon set in the sidebar nav
+  (Activity/ClipboardCheck/Gauge) and per-page iconography (stat cards, states, headers) — previously
+  no icons anywhere. Kept the existing teal accent as the sole brand color (restraint per
+  `docs/premium-ui-standard.md` §6) rather than adding a second accent.
 - P1-03: Design real empty/loading/error states (icon + message + next action where relevant) to
-  replace the current plain-text versions on every page | Est. Effort: 2-3 hours
+  replace the current plain-text versions on every page | Est. Effort: 2-3 hours | **Status:
+  Completed** (2026-09-05, Step 12 batch, same session as P1-02 — built as part of the same shared
+  `States.tsx` component). `EmptyState` (icon + title + description + optional action),
+  `LoadingState` (spinner + label), and `ErrorState` (icon + message) now used on Lead List, Review
+  Queue, Lead Detail, Lead History, Review Detail, Benchmark, and NotFoundPage (which now offers a
+  "Back to home" action) in place of the previous bare `<p>Loading…</p>` / plain red text.
 - P1-04: Redesign page composition so content fills the viewport intentionally (e.g., summary/stat
   cards above each table, a two-column layout on Lead Detail) instead of one card/table anchored
-  top-left with the rest of a 1920×1080 screen empty | Est. Effort: 2-3 hours
+  top-left with the rest of a 1920×1080 screen empty | Est. Effort: 2-3 hours | **Status: Completed**
+  (2026-09-05, Step 12 batch). Home gained a real-data stat row (total leads, awaiting review, latest
+  benchmark accuracy — via existing `listLeads`/`listReviews`/`listBenchmarkRuns` endpoints, no backend
+  changes). Lead List and Review Queue each gained a 3-stat summary row above their tables (Lead List's
+  awaiting-review/auto-processed counts fetched via two lightweight `page_size:1` calls to the existing
+  endpoint). Lead Detail became a two-column layout (stage timeline + a lead-summary sidebar card with
+  a "View full history" action). Review Detail became a two-column layout (message + classification on
+  the left, reviewer-decision panel on the right) as part of the same rework as P1-01. Benchmark's
+  existing 3-tile stat row was kept and restyled to the new `StatCard` component. Re-verified the
+  no-scroll invariant (`docs/ui-design-standards.md` §1) at all three desktop widths after this change
+  — Lead List's new stat row initially pushed it 11px over at 1366×768; fixed by tightening its root
+  gap from `gap-5` to `gap-4`. All 6 checked pages now fit 1920×1080/1440×900/1366×768 with zero
+  overflow (verified via a Playwright script measuring `main.scrollHeight` vs `clientHeight`).
 
 P2 (High Priority):
 - P2-01: Add a trend/comparison view to the Benchmark page (accuracy/consistency across runs over

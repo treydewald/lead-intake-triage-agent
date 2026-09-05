@@ -1,8 +1,15 @@
 # Portfolio Reference — Lead Intake Triage Agent
 
-**Last Updated:** 2026-09-05 (Step 8 — Viewport-First Refactor COMPLETED. No-scroll constraint achieved
-across all 7 pages × 4 target viewports, one documented exception on `LeadHistoryPage.tsx` for
-multi-entry histories — see Key Decisions. Prior update: Step 6 — Feature 11, Per-Lead Audit/History
+**Last Updated:** 2026-09-05 (Step 12 — Batch Backlog Processor COMPLETED, portfolio backlog P1-01
+through P1-04. Added `ReviewQueueItemOut.message_body` (P1-01, backend) plus a shared
+`frontend/src/components/ui/` kit — `PageHeader`/`Card`/`StatCard`/`States` — and `lucide-react`
+iconography applied across all 7 pages (P1-02/P1-03), and real-data stat rows plus two-column layouts
+on Home/Lead List/Review Queue/Lead Detail/Review Detail (P1-04). No-scroll constraint re-verified and
+holds at all three desktop widths (Lead List's root gap tightened `gap-5`→`gap-4` to stay within it —
+see Key Decisions). Architecture Map rows updated for `schemas/review.py`, `routers/reviews.py`,
+`frontend/src/components/`. Prior update: Step 8 — Viewport-First Refactor COMPLETED. No-scroll
+constraint achieved across all 7 pages × 4 target viewports, one documented exception on
+`LeadHistoryPage.tsx` for multi-entry histories — see Key Decisions. Prior update: Step 6 — Feature 11, Per-Lead Audit/History
 Trail UI, Group_F11 COMPLETED. New `GET /leads/{lead_id}/history` merges every `PipelineRun` row for a `lead_id` with any
 `ACTIONED` `ReviewQueueItem`; new nullable `reviewer_name` column on `ReviewQueueItem`; new
 `LeadHistoryPage.tsx`, bidirectionally linked with `LeadDetailPage.tsx`; optional "Your name" input on
@@ -77,13 +84,13 @@ portfolio gate (Mode: STANDARD).
 | `backend/app/models/review_queue.py` | Feature 06's `ReviewQueueItem` — a reviewer's actionable task for one paused run, carrying its own full-state resume snapshot (`state_snapshot`), distinct from the `PipelineRun`/`StageTrace` execution log; Feature 11 added a nullable `reviewer_name` column (self-reported, no auth model — see Key Decisions) |
 | `backend/app/models/notification.py` | Feature 07's `Notification` — a persisted in-app notification per outcome event; `run_id` FK is not unique (a run can produce more than one over its lifetime); no addressee field (no `User`/auth model exists); Feature 10 added two nullable columns, `external_delivery_status`/`external_delivery_error` (`None` = never attempted — every outcome type other than `awaiting_review`) |
 | `backend/app/schemas/pipeline.py` | Pydantic request/response schemas for triggering/querying a pipeline run; Feature 11 added `TimelineEntryOut`/`LeadHistoryOut` — one flat entry shape carrying both stage and review-action fields as optional |
-| `backend/app/schemas/review.py` | Feature 06's `ReviewActionRequest`/`ReviewQueueItemOut` — reviewer-facing request/response shapes; Feature 11 added `ReviewActionRequest.reviewer_name` (optional) |
+| `backend/app/schemas/review.py` | Feature 06's `ReviewActionRequest`/`ReviewQueueItemOut` — reviewer-facing request/response shapes; Feature 11 added `ReviewActionRequest.reviewer_name` (optional); Step 12 (portfolio backlog P1-01) added `ReviewQueueItemOut.message_body` (optional) |
 | `backend/app/schemas/notification.py` | Feature 07's `NotificationOut` — response shape for `GET /notifications`; Feature 10 added `external_delivery_status`/`external_delivery_error` (optional, `null` for pre-Feature-10 rows) |
-| `backend/app/routers/reviews.py` | Feature 06: `GET /reviews`, `GET /reviews/{run_id}`, `POST /reviews/{run_id}/action` — concurrency-safe claim via an atomic `UPDATE ... WHERE status='PENDING'`; approve/edit re-enter the orchestrator via `resume_pipeline()`, reject sets `RunStatus.REJECTED` directly and also calls `persist_outcome_notification()`; Feature 11's `reviewer_name` is persisted in the same atomic `UPDATE`, no second write |
+| `backend/app/routers/reviews.py` | Feature 06: `GET /reviews`, `GET /reviews/{run_id}`, `POST /reviews/{run_id}/action` — concurrency-safe claim via an atomic `UPDATE ... WHERE status='PENDING'`; approve/edit re-enter the orchestrator via `resume_pipeline()`, reject sets `RunStatus.REJECTED` directly and also calls `persist_outcome_notification()`; Feature 11's `reviewer_name` is persisted in the same atomic `UPDATE`, no second write; Step 12 added `_to_review_out()`, parsing `message_body` out of `state_snapshot` for both GET endpoints (read-only projection, not a new source of truth — see Key Decisions) |
 | `backend/app/routers/notifications.py` | Feature 07: `GET /notifications` (list, newest first) |
 | `backend/app/routers/leads.py` | Feature 08: `GET /leads` (list, paginated, denormalized `source_channel`/`confidence_score` for filter/sort), `GET /leads/{lead_id}` (detail — full stage-trace timeline via `STAGE_ORDER`/`_STAGE_LABELS`, mirrored on the frontend by `lib/stageOrder.ts`); Feature 11 added `GET /leads/{lead_id}/history` — merges every `PipelineRun` row for a `lead_id` (never `.first()` — see Key Decisions) with any `ACTIONED` `ReviewQueueItem`, sorted by `created_at` |
 | `backend/alembic/` | DB migrations, wired to `app.database.session.Base` and `settings.database_url`; `245c694fed3d_*` creates `pipeline_run`/`stage_trace`; `68de6a50cacb_*` creates `review_queue_item`; `5f3cbe979b96_*` creates `notification`; `9217c457cc82_*` (Feature 08) adds `pipeline_run.source_channel`/`.confidence_score`; `b86e4d4ef367_*` (Feature 09) creates `benchmark_run`/`benchmark_case`; `a95fad549dbf_*` (Feature 10) adds `notification.external_delivery_status`/`.external_delivery_error`; `327d880cd1b9_*` (Feature 11) adds `review_queue_item.reviewer_name` |
-| `frontend/src/components/` | Shared UI: `BuildIndicator.tsx`, `Layout.tsx` (persistent sidebar nav — Leads/Reviews/Benchmark) |
+| `frontend/src/components/` | Shared UI: `BuildIndicator.tsx`, `Layout.tsx` (persistent sidebar nav — Leads/Reviews/Benchmark, `lucide-react` icons added Step 12); `ui/` subdirectory (added Step 12, portfolio backlog P1-02/P1-03) — `PageHeader.tsx`, `Card.tsx` (`Card`/`SectionLabel`), `StatCard.tsx`, `States.tsx` (`EmptyState`/`LoadingState`/`ErrorState`), used by every page for a consistent type scale, card depth, and designed empty/loading/error states |
 | `frontend/src/pages/` | Route-level pages — each has its own row below: `HomePage.tsx`, `LeadListPage.tsx`/`LeadDetailPage.tsx` (Feature 08), `BenchmarkPage.tsx` (Feature 09), `ReviewQueuePage.tsx`/`ReviewDetailPage.tsx` (Feature 15) |
 | `frontend/src/pages/HomePage.tsx` | Index route (`/`) — landing page linking to Observability (`/leads`), Review Queue (`/reviews`), and Benchmark (`/benchmark`); replaced Step 4's bootstrap placeholder per `.claude/refinement-backlog.md`'s RB-004 (COMPLETED) |
 | `frontend/src/pages/LeadListPage.tsx` | Feature 08: paginated lead list against `GET /leads`, filterable by status/channel |
@@ -381,3 +388,19 @@ that doesn't exist yet.)*
   overflow (up to 596px on a failed/multi-stage lead); `LeadListPage.tsx`'s page size dropped from 20 to
   10 rows to fit a full page without scroll. Steps 9 and 12 must preserve this — see
   `docs/ui-design-standards.md` §1.
+- **Review Detail's `message_body` is a read-only projection off `state_snapshot`, not a new column
+  (Step 12, portfolio backlog P1-01).** The value already existed since Feature 02
+  (`LeadPipelineState.intake.message_body`), persisted as part of `ReviewQueueItem.state_snapshot`'s
+  JSON blob for the resume path Feature 06 already needed. Adding a denormalized DB column for a value
+  Step 6 already stores would be duplicated state with a sync-drift risk for zero benefit; parsing it
+  in `_to_review_out()` (`backend/app/routers/reviews.py`) at read time costs one JSON parse per
+  reviewer-facing request, on an endpoint with no realistic volume concern (a human-review queue, not a
+  hot path). If a future feature needs to query/filter leads by message content, that's the trigger to
+  reconsider — not before.
+- **No-scroll constraint held under Step 12's composition changes (portfolio backlog P1-04) by
+  tightening spacing, not by removing content.** Lead List's new 3-stat summary row pushed it 11px over
+  budget at 1366×768; the fix was `gap-5`→`gap-4` on that page's root flex container, not shrinking the
+  stat cards or dropping a table row — re-verified via a Playwright script measuring `main.scrollHeight`
+  vs `clientHeight` (not just eyeballing screenshots) across all three desktop widths post-fix, all at
+  zero overflow. Future composition additions to Lead List specifically have ~4px less headroom at
+  1366×768 than other pages before needing the same treatment again.

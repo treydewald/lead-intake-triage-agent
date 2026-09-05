@@ -1,7 +1,8 @@
 # Pipeline Reference — Lead Intake Triage Agent
 
-**Last Updated:** 2026-09-05 (Step 11, Portfolio Evaluator, COMPLETED — OVERALL SCORE 5/10, below the
-9.0 gate — see Current Step. Prior: Step 10 Screenshot Capture COMPLETED — see below)
+**Last Updated:** 2026-09-05 (Step 12, Batch Backlog Processor, COMPLETED — P1-01 through P1-04 all
+Completed, routes back to Step 11 for re-evaluation. Prior: Step 11 Portfolio Evaluator COMPLETED,
+OVERALL SCORE 5/10 — see Current Step)
 
 How *this project* is using the Upwork Portfolio Project Pipeline. Distinct from
 `portfolio-reference.md`, which is about the product — this file is about pipeline state.
@@ -10,7 +11,67 @@ How *this project* is using the Upwork Portfolio Project Pipeline. Distinct from
 
 ## Current Step
 
-**This session (2026-09-05, eleventh session same day):** Ran Step 11 (Portfolio Evaluator) against
+**This session (2026-09-05, twelfth session same day):** Ran Step 12 (Batch Backlog Processor) against
+`portfolio-evaluation.md`'s 4 P1 items (all 4 processed in one batch, within the step's 3-5 item
+range). Found the dev backend (port 8000, PID 8516, started in an earlier session) was serving stale
+code — `--reload` had not picked up the schema/router edits after several seconds, confirmed via a
+direct `curl`; killed it and started a fresh `uvicorn --reload` instance rather than trusting the stale
+one, since Step 12's own Playwright verification step would otherwise have silently validated against
+old behavior.
+
+- **P1-01 (Review Detail message content + lead link, backend+frontend):** Added `message_body` to
+  `ReviewQueueItemOut` (`backend/app/schemas/review.py`), populated from `state_snapshot`'s
+  `LeadPipelineState.intake.message_body` via a new `_to_review_out()` helper in
+  `backend/app/routers/reviews.py` (no new DB column — the value already existed in the paused run's
+  resume payload). `ReviewDetailPage.tsx` now shows the message and links the lead id to
+  `/leads/{lead_id}`. Backend test coverage extended (`test_router_reviews.py`); frontend gained a new
+  test asserting both the message text and the link's `href`. Verified live against the real dev
+  backend/DB (lead `7b0d3af5`, message "Is this still available?").
+- **P1-02 (visual identity) + P1-03 (designed states):** Built a small shared UI kit —
+  `frontend/src/components/ui/{PageHeader,Card,StatCard,States}.tsx` — giving every page the same type
+  scale, card depth (`shadow-sm`), and `EmptyState`/`LoadingState`/`ErrorState` components (icon +
+  message, action where relevant) in place of the previous bare `<p>` text. Added `lucide-react`
+  (new dependency) for a consistent icon set used in the sidebar nav and throughout. Applied across all
+  7 pages plus `Layout.tsx`.
+- **P1-04 (composition):** Added real-data stat rows (Home: total leads/awaiting review/latest
+  benchmark accuracy; Lead List: total/awaiting-review/auto-processed; Review Queue: pending/avg
+  confidence/oldest-queued) using existing endpoints only — no new backend routes. Lead Detail and
+  Review Detail became two-column layouts (stage timeline + lead-summary sidebar; message/classification
+  + reviewer-decision panel). Re-verified the no-scroll invariant (`docs/ui-design-standards.md` §1) at
+  1920×1080/1440×900/1366×768 via a Playwright script measuring `main.scrollHeight` vs `clientHeight` —
+  Lead List's new stat row initially pushed it 11px over at 1366×768; fixed by tightening its root gap
+  (`gap-5` → `gap-4`). All pages now fit with zero overflow at all three widths.
+
+**Side effects fixed to keep tests/tooling accurate, not scope creep:** `App.test.tsx` (RB-005's own
+test) asserted the old HomePage placeholder-era content shape; updated to assert the new stat-row +
+heading content and to mock the three API calls HomePage now makes on mount.
+`LeadListPage.test.tsx`/`ReviewQueuePage.test.tsx` updated for the new `EmptyState` copy (no trailing
+period) and a `message_body` field added to their `ReviewQueueItem` fixtures (now required by the
+updated `api.ts` type). `.claude/skills/capture-screenshots.mjs` updated: the home-page heading-text
+wait target changed (old copy no longer exists) and a 400ms settle delay added after `networkidle`,
+since Lead List's new second `useEffect` (the stat-count calls) could still be in flight when
+`networkidle` fired on the main fetch — observed as a real capture flake (stat cards showing `—` and/or
+the table showing "Loading leads…") over two capture runs before the fix, none after. `playwright-core`
+was reinstalled as a proper `devDependency` (`npm install --save-dev`) — it had been present in
+`node_modules` but not recorded in `package.json`, and an earlier `npm install lucide-react` this
+session pruned it as extraneous, breaking the capture script until reinstalled correctly.
+
+Verification: full backend suite 138/138 passed (2 new assertions in `test_router_reviews.py`, no new
+test functions), full frontend suite 16/16 passed (15 pre-existing + 1 new), `tsc -b` clean, `vite
+build` clean. All 9 portfolio screenshots re-captured against the fixed code and reviewed directly
+(not just captured) — `.claude/pipeline-reference.md`'s author confirms visual identity, depth, states,
+and composition are now genuinely present across Home/Lead List/Lead Detail/Review Queue/Review
+Detail/Benchmark/Mobile views, not merely code changes that were never rendered.
+
+`portfolio-evaluation.md` updated in place: all 4 P1 items marked Completed with implementation notes.
+P2/P3 items remain Not Started (out of this batch's scope — Step 12 processes 3-5 items per
+`prompts/12_batch-backlog-processor.md`, and this batch's own "What This Stage DOES NOT" boundary is
+"re-evaluate score, make architecture changes, add new features outside backlog" — a fresh Step 11 pass
+is the correct next step, not continuing straight into P2 without updated screenshots/scores).
+
+---
+
+**Prior session (2026-09-05, eleventh session same day):** Ran Step 11 (Portfolio Evaluator) against
 the 9 screenshots Step 10 captured, plus a direct read of the frontend source (per
 `docs/premium-ui-standard.md`'s hard-gate rule, a claimed missing state/link is verified against the
 actual component, not guessed from the screenshot alone). **OVERALL SCORE: 5/10** — all four dimensions
@@ -359,12 +420,15 @@ PASSED twice: 2026-09-04 against Tier 1, 2026-09-05 against Features 09/10/11), 
 Round 1 (CD-1 through CD-4 — Feature 15, Review Queue Frontend UI, COMPLETED and verified), 8
 (Viewport-First Refactor, COMPLETED 2026-09-05), 9 (Unified QA & Repair, COMPLETED 2026-09-05), 10
 (Screenshot Capture, COMPLETED 2026-09-05), 11 (Portfolio Evaluator, COMPLETED 2026-09-05 — OVERALL
-SCORE 5/10, below gate — see Current Step).
+SCORE 5/10, below gate — see Current Step), 12 (Batch Backlog Processor, COMPLETED 2026-09-05 — P1-01
+through P1-04 all Completed, routes back to Step 11).
 
 **Gates passed:** Gate 2 (Step 7, implementation verification) — PASSED, 2026-09-04 (Tier 1) and
 2026-09-05 (Features 09/10/11 batch). Gate 1 (Step 13, portfolio score ≥9.0/10, per
-`docs/premium-ui-standard.md`) is still ahead — Step 11's first pass scored 5/10; routes to Step 12
-(Batch Backlog Processor) before a re-evaluation attempt.
+`docs/premium-ui-standard.md`) is still ahead — Step 11's first pass scored 5/10; Step 12 has now
+processed all 4 P1 items, so the next action is looping back to Step 11 for a fresh re-evaluation
+against the updated screenshots, not a second Step 12 batch (P2/P3 items remain Not Started, pending
+what the re-evaluation actually finds still open).
 
 **`.claude/` scaffold status:** Current — full-tier scaffold copied from pipeline templates on
 2026-09-04. See `PIPELINE-SYNC.md`.
@@ -377,7 +441,19 @@ Tier section, STANDARD mode with Tier 2/3 features present falls back to full ti
 
 ## Next Step
 
-**This session (2026-09-05, eleventh session same day):** Step 11 (Portfolio Evaluator) COMPLETED —
+**This session (2026-09-05, twelfth session same day):** Step 12 (Batch Backlog Processor) COMPLETED —
+see Current Step above for full detail. **Next Step is Step 11 (Portfolio Evaluator), unconditional
+per `prompts/12_batch-backlog-processor.md`'s own Next Steps section** — re-capture is already done
+(this session re-ran `.claude/skills/capture-screenshots.mjs` after the P1 fixes), so that session can
+proceed directly to scoring against the current `./portfolio-screenshots/` rather than re-capturing
+again. Note for that session: `portfolio-evaluation.md`'s P2/P3 items (data viz on Benchmark, native
+control restyling, depth/hover polish, transitions, onboarding cue, dark mode, saved-view indicator)
+are still Not Started — if the re-evaluation still lands below 9.0, those are the next Step 12 batch's
+natural candidates, per `docs/premium-ui-standard.md` §7's ROI ordering (P2-02's native-control
+restyling was already substantially addressed as a side effect of this session's Review Detail rework
+— re-check it against the fresh screenshots before assuming it still needs full-scope work).
+
+**Prior session (2026-09-05, eleventh session same day):** Step 11 (Portfolio Evaluator) COMPLETED —
 see Current Step above for full detail. **OVERALL SCORE 5/10, below the 9.0 gate. Next Step is Step 12
 (Batch Backlog Processor)**, per `prompts/11_portfolio-evaluator.md`'s own Next Steps section — process
 `portfolio-evaluation.md`'s 4 P1 / 4 P2 / 3 P3 backlog items (start with P1-01, the Review Detail

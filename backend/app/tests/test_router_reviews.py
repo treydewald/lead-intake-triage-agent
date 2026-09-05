@@ -140,6 +140,7 @@ def test_list_pending_reviews_returns_queued_item(client, db_session_factory):
     body = response.json()
     item = next(entry for entry in body if entry["run_id"] == paused.run.run_id)
     assert item["draft_intent_label"] == "browser"
+    assert item["message_body"] == "just looking"
     assert "state_snapshot" not in item
 
 
@@ -149,7 +150,9 @@ def test_get_review_detail(client, db_session_factory):
     response = client.get(f"/reviews/{paused.run.run_id}")
 
     assert response.status_code == 200
-    assert response.json()["lead_id"] == paused.run.lead_id
+    body = response.json()
+    assert body["lead_id"] == paused.run.lead_id
+    assert body["message_body"] == "just looking"
 
 
 def test_get_review_detail_404_when_absent(client, db_session_factory):
