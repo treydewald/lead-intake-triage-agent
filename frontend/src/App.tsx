@@ -5,6 +5,7 @@ import { HomePage } from './pages/HomePage'
 import { LeadDetailPage } from './pages/LeadDetailPage'
 import { LeadHistoryPage } from './pages/LeadHistoryPage'
 import { LeadListPage } from './pages/LeadListPage'
+import { NotFoundPage } from './pages/NotFoundPage'
 import { ReviewDetailPage } from './pages/ReviewDetailPage'
 import { ReviewQueuePage } from './pages/ReviewQueuePage'
 
@@ -20,6 +21,7 @@ function App() {
           <Route path="reviews" element={<ReviewQueuePage />} />
           <Route path="reviews/:runId" element={<ReviewDetailPage />} />
           <Route path="benchmark" element={<BenchmarkPage />} />
+          <Route path="*" element={<NotFoundPage />} />
         </Route>
       </Routes>
     </BrowserRouter>
