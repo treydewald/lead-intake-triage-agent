@@ -133,12 +133,29 @@ GROUPS:
     # architecture-plan-feature-06.md (Step 5.5) sets Implementation Order — see that file
 
   Group_F07:
-    status: UNCLAIMED
-    owner: null
+    status: IN_PROGRESS
+    owner: Worker-1
     features: [Feature 07]
-    owned_files: [TBD — pending Step 5.5 architecture plan for Feature 07]
+    owned_files: [backend/app/orchestrator/stages/outcome_notification.py (new),
+      backend/app/models/notification.py (new),
+      backend/app/schemas/notification.py (new),
+      backend/app/routers/notifications.py (new),
+      backend/alembic/versions/<new>_add_notification_table.py (new),
+      backend/app/tests/test_stage_outcome_notification.py (new),
+      backend/app/tests/test_router_notifications.py (new),
+      backend/app/orchestrator/state.py (modify — NotificationInput merge schema),
+      backend/app/orchestrator/graph.py (modify — default_stages() swap, _make_node() FAILED-branch
+        notify call, _make_human_review_node() AWAITING_REVIEW notify call, persist_outcome_notification()
+        helper, run_pipeline()/resume_pipeline() RunStatus.COMPLETED fix),
+      backend/app/routers/reviews.py (modify — reject branch calls persist_outcome_notification()),
+      backend/main.py (modify — registers notifications.router),
+      backend/app/models/__init__.py (modify — export Notification),
+      backend/app/tests/test_orchestrator_graph.py (modify),
+      backend/app/tests/test_router_reviews.py (modify),
+      backend/app/tests/test_orchestrator_state.py (modify)]
     dependency_groups: [Group_F01, Group_F06]
     isolation_level: HIGH
+    # architecture-plan-feature-07.md (Step 5.5) sets Implementation Order — see that file
 
   Group_F08:
     status: UNCLAIMED

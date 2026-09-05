@@ -336,3 +336,63 @@ and the concurrency-safe claim, since neither has an existing precedent in this 
 
 **Next:** Step 6 (Worker Pool Orchestrator) claims Group_F06 using this plan's Implementation Order and
 reuse instructions, and finalizes `implementation_plan.md`'s `owned_files` for that group.
+
+---
+
+## 2026-09-04 — Step 5.5: Implementation Planner — Feature 07 (Outcome Notification — In-App)
+
+Produced `architecture-plan-feature-07.md`. Planning Depth: Deep — touches shared orchestrator
+plumbing at multiple call sites (`_make_node`'s exception handler, `_make_human_review_node`,
+`reviews.py`'s reject branch, `run_pipeline`/`resume_pipeline`), not just one new isolated module.
+
+**Existing Systems Analysis:** No duplication risk found — no existing notification/messaging system
+exists anywhere in the codebase. **Key finding:** the existing `notify_stage` graph node
+(`crm_write_stage -> notify_stage`, on both the primary and resume graphs) only naturally fires for
+one of the spec's four required outcomes (auto-processed) — the "failed" conditional-edge target is
+`END` directly on every stage, and `human_review_stage -> END` never visits `notify_stage` either, so
+three of four outcomes need a direct call to a new shared helper rather than a graph-node change.
+**Second key finding:** `RunStatus.COMPLETED` has zero assignment sites anywhere in the codebase —
+a successful run's `PipelineRun.status` has always stayed `"RUNNING"` forever after completion. This
+predates Feature 07 but Feature 07's own auto-processed/in-progress distinction is what exposed it, so
+this plan fixes it directly rather than deferring it as an unrelated bug.
+
+**Architecture Rule Changes approved (3, all conflict-checked against existing Key Decisions, none
+found):**
+1. A pipeline run's terminal status is set exactly once, at the point where that outcome becomes known
+   — generalizes (does not contradict) Feature 06's FAILED/REJECTED Key Decision by also stating where
+   COMPLETED and AWAITING_REVIEW are each authoritatively set.
+2. An outcome-notification call site is one of exactly two shapes: the existing generic `notify_stage`
+   graph node (crm_write success only) or a direct call to a new `persist_outcome_notification()`
+   helper (stage failure, human-review queueing, reviewer rejection) — mutually exclusive per outcome,
+   never both for the same transition. Named explicitly because Feature 10 (Tier 2, External
+   Notification Delivery) already says in its own spec that it "subscribes to the same outcome events
+   Feature 07 consumes" — this is the extension point it will use.
+3. Notification `detail_link` values follow a fixed convention (`/leads/{lead_id}` vs.
+   `/reviews/{run_id}`) that Feature 08's frontend routes must match, rather than the notification layer
+   adapting to whatever routes the frontend happens to choose.
+
+All three applied to `.claude/portfolio-reference.md`'s Key Decisions this session.
+
+**Implementation Order set (7 steps):** `app/models/notification.py` + Alembic migration →
+`stages/outcome_notification.py` (`OutcomeNotificationStage`, infers `outcome_type` purely from
+`state.run.status`) → `persist_outcome_notification()` helper in `graph.py` → wire the three direct
+call sites (`_make_node`'s except block, `_make_human_review_node`, `reviews.py`'s reject branch,
+each wrapped so a notification-layer error can never mask the original outcome) → fix the
+`RunStatus.COMPLETED` gap in `run_pipeline`/`resume_pipeline` → `default_stages()` swap (activates the
+already-existing `notify_stage` edge with zero graph changes) → `schemas/notification.py` +
+`routers/notifications.py` (`GET /notifications`, no read/unread state — not in the spec).
+
+**Notable design resolution:** deliberately chose *not* to reroute any graph edges (e.g. routing
+"failed" through `notify_stage` instead of straight to `END`) — that would have required a second,
+FAILED-aware node-maker function to avoid double-handling, plus edge changes at 5 call sites, while
+still not eliminating the need for a direct call on the reject path (which never touches the graph at
+all). Three narrowly-scoped direct calls to one shared helper is a smaller, lower-risk footprint than
+rewiring the graph's tested topology.
+
+**Approved by:** auto (Auto Mode + master prompt's "EXECUTE NOW" applied — same standing note as prior
+entries: worth a human look before Step 6 starts writing code, particularly the `RunStatus.COMPLETED`
+fix, since it changes the persisted status of every existing successful run and may need existing
+test updates).
+
+**Next:** Step 6 (Worker Pool Orchestrator) claims Group_F07 using this plan's Implementation Order and
+reuse instructions, and finalizes `implementation_plan.md`'s `owned_files` for that group.

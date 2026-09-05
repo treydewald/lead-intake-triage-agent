@@ -228,3 +228,29 @@ that doesn't exist yet.)*
   raises vs. returns data during stage execution) — a human decision made after a stage has already
   completed is never itself a stage failure. Set by Feature 06's implementation plan
   (`architecture-plan-feature-06.md`).
+- **A pipeline run's terminal status is set exactly once, at the point where that outcome becomes
+  known** — `RunStatus.FAILED` inside `_make_node`'s exception handler, `RunStatus.AWAITING_REVIEW`
+  inside `_make_human_review_node`, `RunStatus.REJECTED` inside `routers/reviews.py`'s reject branch,
+  and `RunStatus.COMPLETED` by `run_pipeline`/`resume_pipeline` whenever the graph returns with
+  `run.status` still `RUNNING` (the only way `RUNNING` can reach that point is that no other terminal
+  path fired). No other code should independently decide a run is "done". This generalizes rather than
+  contradicts the FAILED/REJECTED Key Decision above — that rule established the FAILED/REJECTED
+  distinction; this one completes the enum by stating where COMPLETED and AWAITING_REVIEW are each
+  authoritatively set, since COMPLETED wasn't a problem until Feature 07's outcome-typing needed it
+  (nothing in the codebase had ever assigned `RunStatus.COMPLETED` before Feature 07). Set by Feature
+  07's implementation plan (`architecture-plan-feature-07.md`).
+- **An outcome-notification call site is one of exactly two shapes: (a) the existing generic per-stage
+  graph node (`_make_node`), used only for the one transition that already flows through `notify_stage`
+  in normal execution (crm_write success); (b) a direct call to `persist_outcome_notification()` at
+  each of the other terminal-transition points (stage failure, human-review queueing, reviewer
+  rejection) that don't otherwise reach that node.** A future outcome-consuming feature — Feature 10
+  (External Notification Delivery) explicitly says it "subscribes to the same outcome events Feature 07
+  consumes" — extends `persist_outcome_notification()` and its three direct call sites, not a new
+  parallel notification mechanism. Set by Feature 07's implementation plan
+  (`architecture-plan-feature-07.md`).
+- **Notification `detail_link` values follow a fixed convention: `/leads/{lead_id}` for outcomes tied
+  to a lead's CRM/detail record (`auto_processed`, `failed`), `/reviews/{run_id}` for outcomes tied to
+  the review queue (`awaiting_review`, `rejected`).** Any future frontend route for these views
+  (Feature 08's lead detail page; the existing review queue) must match these exact paths rather than
+  the notification layer adapting to whatever route the frontend happens to choose. Set by Feature 07's
+  implementation plan (`architecture-plan-feature-07.md`).
