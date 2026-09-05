@@ -1,7 +1,7 @@
 # Pipeline Reference — Lead Intake Triage Agent
 
-**Last Updated:** 2026-09-05 (Step 14, README Generator — COMPLETED. Next: Step 15, Description
-Refiner.)
+**Last Updated:** 2026-09-05 (Step 15, Description Refiner — COMPLETED. Next: Step 16, LinkedIn
+Generator.)
 
 How *this project* is using the Upwork Portfolio Project Pipeline. Distinct from
 `portfolio-reference.md`, which is about the product — this file is about pipeline state.
@@ -10,7 +10,29 @@ How *this project* is using the Upwork Portfolio Project Pipeline. Distinct from
 
 ## Current Step
 
-**This session (2026-09-05, twenty-second session same day):** Ran Step 14 (README Generator).
+**This session (2026-09-05, twenty-third session same day):** Ran Step 15 (Description Refiner).
+
+No prior formatted Upwork title/description/skills listing existed for this project —
+`project-definition.md` (Step 1) is a strategy report, not an Upwork-format listing — so this was a
+first draft built directly from Step 14's freshly codebase-verified `README.md`, with the strongest
+claims independently re-checked rather than trusted from the README alone: backend test count
+(`pytest --collect-only -q` → 138, matches), frontend test count (`npx vitest list` → 18, matches),
+and 0 axe-core accessibility violations (cross-checked against `qa-report.md`'s QA-4/QA-5/QA-6 fix
+records, not just its summary line). Title leads with the human-in-the-loop confidence gate (the
+project's actual differentiator per `project-definition.md`'s Value Proposition), not generic "CRM
+integration" framing. Description drafted at 749 chars, trimmed to 598/600 by cutting redundant
+phrasing only — no verified claim was removed to make the limit. Output saved to
+`portfolio-description.md` (project root) per Step 15's Output Format.
+
+**Routing per `prompts/15_description-refiner.md`'s Next Steps: unconditional → Step 16 (LinkedIn
+Generator).**
+
+Pipeline-level friction check: none found this session — Step 15's instructions were clear and
+sufficient as written.
+
+---
+
+**Prior session (2026-09-05, twenty-second session same day):** Ran Step 14 (README Generator).
 
 Regenerated `README.md` wholesale from direct codebase inspection (not from `implementation_plan.md`
 or memory of the plan) — read every backend router's actual route decorators and prefixes, `main.py`'s
