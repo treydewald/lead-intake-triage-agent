@@ -23,8 +23,6 @@ export function ReviewQueuePage() {
 
   useEffect(() => {
     let cancelled = false
-    setLoading(true)
-    setError(null)
     listReviews()
       .then((data) => {
         if (!cancelled) setItems(data)

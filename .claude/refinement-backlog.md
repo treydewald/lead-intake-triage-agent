@@ -304,7 +304,7 @@ renumber.]
   frontend) and frontend coverage 82%→89%, per Dimension 8's cross-document discipline.
 
 ### RB-009 — Pre-existing `react(set-state-in-effect)` lint warning in 5 pages (Low)
-- **Status:** OPEN
+- **Status:** COMPLETED
 - **Dimension:** 3 (Architecture & Code Quality)
 - **Priority:** P3
 - **Discovered:** Step 9 (Unified QA & Repair), 2026-09-04 (`qa-report.md`'s Remaining Issues #2) — not
@@ -320,5 +320,33 @@ renumber.]
   no new ones — no drift since Step 9's original finding).
 - **Routes to:** Scoped re-entry to Step 6 (refactor the fetch pattern across the 5 named files) →
   Step 7 (verify) — per the Routing Table's Dimension 3 row.
-- **Implementation notes:** (blank — not yet started; low priority, no functional impact, deliberately
-  not batched into this round's P1/P2 work.)
+- **Implementation notes (2026-09-05, twenty-seventh session same day):** Verified first (v18.0 check)
+  — `npm run lint` still flagged the exact same 5 warnings on the exact same lines, no drift. Two
+  distinct fixes, since the 5 files split into two real cases once inspected:
+  - **`ReviewQueuePage.tsx`** — its flagged `setLoading(true)`/`setError(null)` sit in a mount-only
+    effect (`[]` deps) and duplicate the `useState` initial values exactly (`useState(true)`,
+    `useState(null)`) — deleted both lines outright, zero behavior change.
+  - **`LeadDetailPage.tsx`, `LeadHistoryPage.tsx`, `ReviewDetailPage.tsx`, `LeadListPage.tsx`** — these
+    reset loading/error/notFound when a route param actually changes (`leadId`/`runId`, or for
+    `LeadListPage` all four filter/sort/page params combined into one `queryKey` string) while the
+    component stays mounted (e.g. clicking a link from one lead to another) — a real, load-bearing
+    reset, not redundant. Moved it out of the effect into the React-documented "adjust state when a
+    prop changes" render-time pattern (`if (id !== prevId) { setPrevId(id); setLoading(true); ... }`),
+    which is exactly what the lint rule's own help text recommends ("derive the value during render")
+    and preserves identical behavior since React re-renders before painting.
+  - Coverage regression check: the new render-time branches were initially uncovered (statement coverage
+    dipped 88.53%→86.35%) since no existing test navigated between two different ids on the same mounted
+    page. Added one navigation test each to `LeadDetailPage.test.tsx`, `LeadHistoryPage.test.tsx`, and
+    `ReviewDetailPage.test.tsx` (using `createMemoryRouter`/`RouterProvider` + `router.navigate(...)` to
+    change the route param without unmounting) — `LeadListPage.tsx`'s equivalent branch was already
+    exercised by its existing pagination tests, needed no new test.
+  - Verified (Step 7-style): `npm run lint` clean (0 warnings, was 5). `tsc -b` clean. `vite build`
+    338.09 kB (was 337.92 kB — negligible, from the added `useState` hooks). Frontend suite 44/44 passing
+    (was 41/41, +3 tests), statement coverage 88.53%→89.03% (net improvement, not just recovery). Backend
+    suite re-run unaffected, 138/138 (no backend files touched).
+  - **Documentation kept consistent (Dimension 8):** Test count 179→182 (138 backend + 44 frontend).
+    Updated `README.md`, `portfolio-description.md`, and `linkedin-entry.md` together in the same pass.
+    `portfolio-description.md`'s description re-measured at 598/600 chars (unchanged — same digit count
+    swapping "179" for "182"). Frontend coverage stated as 89% in all three docs both before and after
+    (88.53%→89.03% both round to 89 at the whole-number precision those docs use).
+  - The refinement backlog now has **zero `OPEN` entries** — this was the last one.

@@ -22,13 +22,18 @@ export function LeadHistoryPage() {
   const [notFound, setNotFound] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
+  const [prevLeadId, setPrevLeadId] = useState(leadId)
+
+  if (leadId !== prevLeadId) {
+    setPrevLeadId(leadId)
+    setLoading(true)
+    setError(null)
+    setNotFound(false)
+  }
 
   useEffect(() => {
     if (!leadId) return
     let cancelled = false
-    setLoading(true)
-    setError(null)
-    setNotFound(false)
     getLeadHistory(leadId)
       .then((data) => {
         if (!cancelled) setHistory(data)

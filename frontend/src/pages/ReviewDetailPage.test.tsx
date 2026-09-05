@@ -1,6 +1,6 @@
-import { render, screen, waitFor } from '@testing-library/react'
+import { act, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { MemoryRouter, Route, Routes } from 'react-router-dom'
+import { createMemoryRouter, MemoryRouter, Route, RouterProvider, Routes } from 'react-router-dom'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { ReviewDetailPage } from './ReviewDetailPage'
 import * as api from '../lib/api'
@@ -129,6 +129,27 @@ describe('ReviewDetailPage', () => {
     renderDetail()
 
     await waitFor(() => expect(screen.getByText(/No review item found/)).toBeInTheDocument())
+  })
+
+  it('resets loading and re-fetches when navigating to a different run id', async () => {
+    vi.spyOn(api, 'getReview')
+      .mockResolvedValueOnce({ ...ITEM, run_id: 'run-one', draft_intent_label: 'buyer' })
+      .mockResolvedValueOnce({ ...ITEM, run_id: 'run-two', draft_intent_label: 'seller' })
+
+    const router = createMemoryRouter(
+      [{ path: '/reviews/:runId', element: <ReviewDetailPage /> }],
+      { initialEntries: ['/reviews/run-one'] },
+    )
+    render(<RouterProvider router={router} />)
+
+    expect(await screen.findByText('buyer')).toBeInTheDocument()
+
+    await act(async () => {
+      router.navigate('/reviews/run-two')
+    })
+
+    expect(await screen.findByText('seller')).toBeInTheDocument()
+    expect(api.getReview).toHaveBeenCalledWith('run-two')
   })
 
   it('shows recent activity for the lead and links to its full history', async () => {

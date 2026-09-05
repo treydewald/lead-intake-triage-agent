@@ -1,7 +1,7 @@
 # Pipeline Reference — Lead Intake Triage Agent
 
-**Last Updated:** 2026-09-05 (RB-008 backlog item — COMPLETED. RB-009 remains OPEN, no other Suggestion
-queued.)
+**Last Updated:** 2026-09-05 (RB-009 backlog item — COMPLETED. Refinement backlog now has zero OPEN
+entries; no Suggestion queued.)
 
 How *this project* is using the Upwork Portfolio Project Pipeline. Distinct from
 `portfolio-reference.md`, which is about the product — this file is about pipeline state.
@@ -10,7 +10,32 @@ How *this project* is using the Upwork Portfolio Project Pipeline. Distinct from
 
 ## Current Step
 
-**This session (2026-09-05, twenty-sixth session same day):** No Suggestion queued this session and
+**This session (2026-09-05, twenty-seventh session same day):** No Suggestion queued and
+`.claude/session-checkpoint.md` was (again) the unfilled template. Per Master Prompt Step 2 (no
+Suggestion + backlog has an OPEN entry), picked up `.claude/refinement-backlog.md`'s only remaining
+entry, RB-009 (the `oxlint` `react(set-state-in-effect)` warning across 5 pages), and routed it through
+its own "Routes to": a scoped Step 6 re-entry (refactor the fetch pattern in the 5 named files) → Step 7
+(verify). Full detail in RB-009's own implementation notes in `.claude/refinement-backlog.md` — summary:
+deleted two redundant `setState` calls in `ReviewQueuePage.tsx` (a mount-only effect duplicating already-
+correct initial state), and for the 4 files where the reset is load-bearing (fires when a route param
+changes without unmounting), moved it to React's documented render-time "adjust state when a prop
+changes" pattern instead of inside the effect — resolving the lint warning with no behavior change.
+Added 3 navigation tests to cover the newly-introduced render-time branches after a coverage regression
+check caught them as unexercised. Verified: lint 0 warnings (was 5), `tsc -b` clean, `vite build` clean
+(338.09 kB), frontend suite 44/44 (was 41/41), frontend coverage 88.53%→89.03%, backend suite unaffected
+138/138. Docs (`README.md`, `portfolio-description.md`, `linkedin-entry.md`) updated for the new test
+count (179→182) per Dimension 8.
+
+**RB-009 marked `COMPLETED`. The refinement backlog now has zero `OPEN` entries** — the next session
+with no Suggestion queued should run `docs/next-action-selection.md`'s Dynamic Next-Action Selection
+rather than assuming there's an OPEN entry to pick up.
+
+Pipeline-level friction check: none found this session — Step 2's backlog-priority routing and the v18.0
+verify-before-committing check both worked exactly as documented, same as noted in prior sessions.
+
+---
+
+**Prior session (2026-09-05, twenty-sixth session same day):** No Suggestion queued this session and
 `.claude/session-checkpoint.md` was the unfilled template (no actual mid-task handoff pending). Per the
 Master Prompt's Step 2 routing (no Suggestion + backlog has an OPEN entry), picked up
 `.claude/refinement-backlog.md`'s highest-priority OPEN entry: RB-008 over RB-009 (Test Coverage gap vs.
@@ -1070,7 +1095,19 @@ Tier section, STANDARD mode with Tier 2/3 features present falls back to full ti
 
 ## Next Step
 
-**This session (2026-09-05, twenty-fifth session same day):** Continual Project Refinement, Round 1,
+**This session (2026-09-05, twenty-seventh session same day):** RB-009 (the last `OPEN` backlog entry)
+COMPLETED — see Current Step above for full detail. **`.claude/refinement-backlog.md` now has zero
+`OPEN` entries.** **Next step for a future session:** with no Suggestion and no `OPEN` backlog entry,
+run `docs/next-action-selection.md`'s Dynamic Next-Action Selection (Scope Expansion, Continual Project
+Refinement Round 2, UI Audit & Refinement, or In-App Cohesion Audit) — this project has already run one
+Continual Refinement round (twenty-fifth session) and 6 rounds of Step 11/12 Visual & UI/UX work, so the
+evidence should be re-surveyed rather than assumed to point anywhere specific.
+
+**Prior session (2026-09-05, twenty-sixth session same day):** RB-008 (Test Coverage gap) COMPLETED —
+see the twenty-sixth-session "Current Step" entry above for full detail. Routed to this session picking
+up RB-009, the remaining `OPEN` entry.
+
+**Prior session (2026-09-05, twenty-fifth session same day):** Continual Project Refinement, Round 1,
 COMPLETED — see Current Step above for full detail. RB-006 (P1) and RB-007 (P2) fixed same round;
 RB-008 and RB-009 (both P3) remain `OPEN` in `.claude/refinement-backlog.md` for a future round.
 `refinement-audit.md` records `NEXT ROUND NEEDED? YES`. **Next step for a future session:** either pick

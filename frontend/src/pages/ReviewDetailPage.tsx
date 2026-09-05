@@ -37,13 +37,18 @@ export function ReviewDetailPage() {
   const [result, setResult] = useState<ReviewActionResult | null>(null)
   const [submitError, setSubmitError] = useState<string | null>(null)
   const [recentActivity, setRecentActivity] = useState<TimelineEntry[] | null>(null)
+  const [prevRunId, setPrevRunId] = useState(runId)
+
+  if (runId !== prevRunId) {
+    setPrevRunId(runId)
+    setLoading(true)
+    setError(null)
+    setNotFound(false)
+  }
 
   useEffect(() => {
     if (!runId) return
     let cancelled = false
-    setLoading(true)
-    setError(null)
-    setNotFound(false)
     getReview(runId)
       .then((data) => {
         if (!cancelled) setItem(data)

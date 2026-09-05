@@ -265,3 +265,27 @@ edit to that same entry once the round they belong to is scored, not a new entry
   being well-tested. A coverage-debt fix for a thin client layer needs its own direct unit test; page
   tests alone cannot close that gap by construction.
 - Agent: claude/claude_code
+
+### 2026-09-05 — continual_refinement (Round 1 backlog follow-up: RB-009)
+- Trigger: no Suggestion queued this session; `.claude/refinement-backlog.md` had exactly one OPEN
+  entry (RB-009) after this session's predecessor closed RB-008. Per Master Prompt Step 2, picked it up
+  directly.
+- Expected effect (RB-009's own "Routes to"): a scoped Step 6 re-entry refactoring the fetch pattern in
+  the 5 flagged pages, then Step 7 verification, resolving the `oxlint` `react(set-state-in-effect)`
+  warning with no functional change.
+- Outcome: verified unchanged since discovery (same 5 files, same lines). Inspection showed two distinct
+  cases rather than one uniform fix: `ReviewQueuePage.tsx`'s flagged calls were pure redundant (a mount-
+  only effect resetting state to values matching its own `useState` defaults) and were simply deleted;
+  the other 4 files' resets are load-bearing (fire when a route param changes on an already-mounted
+  page) and were moved to React's documented render-time "adjust state when a prop changes" pattern
+  instead of living inside the effect — the exact fix the lint rule's own help text points at. Lint
+  0 warnings (was 5), `tsc -b`/`vite build` clean, frontend suite 44/44 (was 41/41, +3 navigation tests
+  added after a coverage check caught the new render-time branches as initially unexercised), coverage
+  88.53%→89.03%, backend unaffected 138/138. RB-009 marked `COMPLETED` — refinement backlog now empty.
+- Surprise: a single lint rule firing identically across 5 files did not mean a single fix — one file's
+  warning was genuinely redundant code (safe to delete) while four others' were load-bearing resets that
+  needed an actual pattern change. Treating all 5 as one mechanical find-and-replace would have either
+  broken the reset-on-navigation behavior (if deleted everywhere) or left the pattern needlessly verbose
+  (if "fixed" the same way everywhere) — the fix required reading each file's effect dependency array to
+  tell which case applied.
+- Agent: claude/claude_code

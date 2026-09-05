@@ -1,5 +1,5 @@
-import { render, screen } from '@testing-library/react'
-import { MemoryRouter, Route, Routes } from 'react-router-dom'
+import { act, render, screen } from '@testing-library/react'
+import { createMemoryRouter, MemoryRouter, Route, RouterProvider, Routes } from 'react-router-dom'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { LeadDetailPage } from './LeadDetailPage'
 import * as api from '../lib/api'
@@ -143,5 +143,27 @@ describe('LeadDetailPage', () => {
       'href',
       '/leads/lead-abc12345/history',
     )
+  })
+
+  it('resets loading and re-fetches when navigating to a different lead id', async () => {
+    vi.spyOn(api, 'getLeadDetail')
+      .mockResolvedValueOnce({ ...BASE_LEAD, lead_id: 'lead-one', status: 'auto_processed', stages: [] })
+      .mockResolvedValueOnce({ ...BASE_LEAD, lead_id: 'lead-two', status: 'auto_processed', stages: [] })
+    vi.spyOn(api, 'getLeadHistory').mockResolvedValue({ lead_id: 'lead-one', entries: [] })
+
+    const router = createMemoryRouter(
+      [{ path: '/leads/:leadId', element: <LeadDetailPage /> }],
+      { initialEntries: ['/leads/lead-one'] },
+    )
+    render(<RouterProvider router={router} />)
+
+    expect(await screen.findByText('Lead lead-one')).toBeInTheDocument()
+
+    await act(async () => {
+      router.navigate('/leads/lead-two')
+    })
+
+    expect(await screen.findByText('Lead lead-two')).toBeInTheDocument()
+    expect(api.getLeadDetail).toHaveBeenCalledWith('lead-two')
   })
 })

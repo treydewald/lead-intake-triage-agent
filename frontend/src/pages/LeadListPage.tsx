@@ -59,6 +59,15 @@ export function LeadListPage() {
   const sort = (searchParams.get('sort') as ListLeadsParams['sort']) || 'created_desc'
   const page = Number(searchParams.get('page') ?? '1') || 1
 
+  const queryKey = `${status}|${sourceChannel}|${sort}|${page}`
+  const [prevQueryKey, setPrevQueryKey] = useState(queryKey)
+
+  if (queryKey !== prevQueryKey) {
+    setPrevQueryKey(queryKey)
+    setLoading(true)
+    setError(null)
+  }
+
   const updateParams = (updates: Record<string, string | undefined>) => {
     setSearchParams((prev) => {
       const next = new URLSearchParams(prev)
@@ -72,8 +81,6 @@ export function LeadListPage() {
 
   useEffect(() => {
     let cancelled = false
-    setLoading(true)
-    setError(null)
     listLeads({
       status: status || undefined,
       source_channel: sourceChannel || undefined,

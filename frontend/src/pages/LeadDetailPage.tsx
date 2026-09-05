@@ -35,13 +35,18 @@ export function LeadDetailPage() {
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
   const [recentActivity, setRecentActivity] = useState<TimelineEntry[] | null>(null)
+  const [prevLeadId, setPrevLeadId] = useState(leadId)
+
+  if (leadId !== prevLeadId) {
+    setPrevLeadId(leadId)
+    setLoading(true)
+    setError(null)
+    setNotFound(false)
+  }
 
   useEffect(() => {
     if (!leadId) return
     let cancelled = false
-    setLoading(true)
-    setError(null)
-    setNotFound(false)
     getLeadDetail(leadId)
       .then((data) => {
         if (!cancelled) setLead(data)

@@ -5,7 +5,7 @@ REFINED TITLE (70 chars max)
 AI Lead Triage Agent: Auto-Acts When Confident, Escalates to Human
 
 REFINED DESCRIPTION (600 chars max)
-A six-stage LangGraph agent that ingests inbound sales leads (web form, email, or callback), classifies intent via a local LLM (Ollama), enriches missing contact data, and writes an idempotent, dedupe-safe update to a HubSpot CRM sandbox. Each stage is tool-scoped to only the external systems it needs. Confident runs complete automatically; low-confidence ones pause in a human review queue for approve, edit, or reject, with a full per-lead audit trail and notifications. FastAPI/SQLAlchemy backend, React/TypeScript frontend, 179 passing tests, and a measured classification-accuracy benchmark.
+A six-stage LangGraph agent that ingests inbound sales leads (web form, email, or callback), classifies intent via a local LLM (Ollama), enriches missing contact data, and writes an idempotent, dedupe-safe update to a HubSpot CRM sandbox. Each stage is tool-scoped to only the external systems it needs. Confident runs complete automatically; low-confidence ones pause in a human review queue for approve, edit, or reject, with a full per-lead audit trail and notifications. FastAPI/SQLAlchemy backend, React/TypeScript frontend, 182 passing tests, and a measured classification-accuracy benchmark.
 
 SKILLS & DELIVERABLES (max 5)
 - Multi-stage AI agent orchestration with LangGraph (per-stage tool scoping, resumable paused-run state)
