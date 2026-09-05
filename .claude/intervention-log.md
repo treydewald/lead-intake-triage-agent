@@ -137,3 +137,22 @@ edit to that same entry once the round they belong to is scored, not a new entry
   50-75% still empty, so the same underlying weakness persists in reduced form rather than being fully
   closed by what looked like a direct fix.
 - Agent: claude/claude_code
+
+### 2026-09-05 — portfolio_evaluation (Round 3)
+- Trigger: Step 12 (Batch Backlog Processor) completed all 3 Round 2 P1 items and re-captured
+  screenshots; Step 11 re-ran unconditionally per `prompts/12_batch-backlog-processor.md`'s own Next
+  Steps section to re-score against the current state rather than assume the batch's effect.
+- Expected effect: an anchored 0-10 re-score per `QUALITY_RUBRIC.md`'s four dimensions, gating routing
+  to either Step 13 (≥9.0, Visual & UI/UX ≥9.0) or another Step 12 batch.
+- Outcome: OVERALL SCORE 7/10 (Visual & UI/UX 8, Feature Signaling 7, Professional Readiness 8, Client
+  Impact 7) — up from 6/10, still below the 9.0 gate, routes to another Step 12 batch. New backlog: 4
+  P1 (Benchmark trend visualization, Review Detail composition fix, motion/microinteraction layer,
+  signature visual characteristic), 1 P2 (Lead Detail remaining dead space), 3 P3 (carried forward
+  unchanged). `.claude/project-metrics.md`'s `PROJECT_COMPLETED` entry appended with matching numbers.
+- Surprise: closing the native-control weakness (Round 2's P1-01) made the *other* still-open
+  weakness — Review Detail's composition gap — visually more conspicuous rather than less, the same
+  pattern Round 2 itself observed about native controls becoming more jarring as everything around
+  them improved. Fixing one weakness in isolation appears to reliably raise the salience of whichever
+  weakness is fixed last, not just leave it unchanged — worth anticipating in future rounds' batch
+  ordering rather than treating each P1 item as independent.
+- Agent: claude/claude_code
