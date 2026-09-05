@@ -1,8 +1,7 @@
 # Pipeline Reference — Lead Intake Triage Agent
 
-**Last Updated:** 2026-09-05 (Step 13, Portfolio Score Gate — **PASS**. First Gate 1 pass in this
-project's history, and the first in this pipeline's own recorded history — `meta/
-PROJECT_METRICS_AGGREGATE.md` went from 0 to 1 project recorded. Next: Step 14, README Generator.)
+**Last Updated:** 2026-09-05 (Step 14, README Generator — COMPLETED. Next: Step 15, Description
+Refiner.)
 
 How *this project* is using the Upwork Portfolio Project Pipeline. Distinct from
 `portfolio-reference.md`, which is about the product — this file is about pipeline state.
@@ -11,7 +10,39 @@ How *this project* is using the Upwork Portfolio Project Pipeline. Distinct from
 
 ## Current Step
 
-**This session (2026-09-05, twenty-first session same day):** Ran Step 11 (Portfolio Evaluator), Round
+**This session (2026-09-05, twenty-second session same day):** Ran Step 14 (README Generator).
+
+Regenerated `README.md` wholesale from direct codebase inspection (not from `implementation_plan.md`
+or memory of the plan) — read every backend router's actual route decorators and prefixes, `main.py`'s
+router registration, `frontend/src/App.tsx`'s actual route table, both `package.json`/
+`requirements.txt` files, both `.env.example` files, and `.claude/portfolio-reference.md`'s Architecture
+Map, per Step 14's own Common Failure Modes warning that a plan/spec can drift from what actually got
+built. Every claimed endpoint (`POST /leads/webform|email|callback`, `GET /leads`, `GET
+/leads/{lead_id}`, `GET /leads/{lead_id}/history`, `GET|POST /reviews...`, `POST /benchmark/run`, `GET
+/benchmark/runs...`, `GET /notifications`, `GET /health`) was cross-checked against its router's actual
+`@router.*` decorator and prefix, not inferred from the schema names alone. Setup commands (`pytest`,
+`npm test`/`lint`/`build`/`dev`) were verified against the actual `package.json` scripts rather than
+assumed by convention.
+
+Per Step 14's Step 7, refreshed `meta/SCHEDULE.md`'s "Current Project State" and "Current Development
+Priorities" sections, which had been stale since Step 4 bootstrap (still describing "no Tier 1 feature
+logic exists yet") — now reflects the actual current state (Gate 1 passed at 9/10, Tier 1+2 complete,
+P3-only backlog remaining) and updated the "Recommended Schedule" section from "no schedule yet, needs
+human-in-the-loop implementation" to a maintenance-mode recommendation (conditional dependency re-scan,
+conditional P3 polish batch, no recurring implementation job — there's no known open defect to justify
+one). The README's own "Autonomous Development Schedule" section (Step 14's Step 7 requirement) was
+carried forward unchanged in structure, since its two copy-paste prompt blocks didn't need edits — only
+`meta/SCHEDULE.md`'s own content needed refreshing.
+
+**Routing per `prompts/14_readme-generator.md`'s Next Steps: unconditional → Step 15 (Description
+Refiner).**
+
+Pipeline-level friction check: none found this session — Step 14's instructions were clear and
+sufficient as written.
+
+---
+
+**Prior session (2026-09-05, twenty-first session same day):** Ran Step 11 (Portfolio Evaluator), Round
 6, then Step 13 (Portfolio Score Gate).
 
 **Step 11, Round 6 — OVERALL SCORE: 9/10** (up from 7/10) — Visual & UI/UX 9, Feature Signaling 9,

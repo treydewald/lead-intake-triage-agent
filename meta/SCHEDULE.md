@@ -17,48 +17,61 @@ portfolio preparation → maintenance).
 
 ## Current Project State
 
-Steps 1-4 complete (2026-09-04). Mode: STANDARD. Environment bootstrapped: FastAPI/SQLAlchemy/
-Alembic backend and Vite/React/TypeScript/Tailwind frontend both scaffolded, verified running
-(health check, build, tests, lint all green), git initialized, GitHub repo created and pushed. No
-Tier 1 feature logic exists yet — `implementation_plan.md` has all 14 features specced but none
-implemented. Local LLM (`llama3.2:3b` via Ollama) is pulled and ready; HubSpot sandbox account/
-Private App token is a manual prerequisite not yet created (see `.claude/pipeline-reference.md`'s
-Deviations section).
+**Updated 2026-09-05 (Step 14, README Generator).** All 16 pipeline steps effectively complete or
+in progress: Tier 1 (8 features) and Tier 2 (3 features: Classification Accuracy Benchmark, External
+Notification Delivery, Per-Lead Audit Trail UI) all implemented and independently verified — 138/138
+backend tests, 18/18 frontend tests, `tsc -b`/`vite build` clean, 0 axe-core accessibility violations.
+Step 9.5's dependency scan found 19 known transitive-package vulnerabilities, investigated and logged
+Moderate (no exploitable condition present) rather than blind-upgraded — see `qa-report.md`. Step 13
+(Portfolio Score Gate) **PASSED** at 9/10 overall (Visual & UI/UX 9, Feature Signaling 9, Professional
+Readiness 9, Client Impact 9) after 6 evaluation rounds — the first Gate 1 pass in this pipeline's own
+recorded history. Remaining backlog (`portfolio-evaluation.md`) is P3-only: 5 optional 9→9.5 polish
+items, none gate-blocking. Steps 14-16 (README, description refinement, publish) are the only work
+left before this project reaches its full "Steps 1→16" completion. HubSpot sandbox integration runs
+against real API calls in dev; `HUBSPOT_ACCESS_TOKEN` is intentionally left unconfigured in the shared
+dev environment by design (documented deviation, `.claude/pipeline-reference.md`), so dev-seeded runs
+show an expected `failed`-status skew at the CRM-write stage rather than a defect.
 
 ---
 
 ## Current Development Priorities
 
-Ordered per `roadmap.md`'s Execution Order Recommendation (itself already priority-ordered by
-dependency and risk):
+The project has moved from feature-implementation mode into portfolio-completion and maintenance
+mode. Ordered by what's actually left:
 
-1. Feature 01 — Pipeline Orchestration Layer (blocking: every other Tier 1 feature depends on it).
-2. Feature 02 — Intake Parsing & Normalization Stage.
-3. Feature 03 — Intent Classification Stage (needs `llama3.2:3b`, already pulled).
-4. Feature 04 — Data Enrichment Stage.
-5. Feature 05 — HubSpot CRM Write Stage (highest external-integration risk; needs a manually-created
-   sandbox token before it can be exercised against the real API — see Human-Gated Tasks).
-6. Feature 06 — Human Review & Approval Gate.
-7. Feature 07 — Outcome Notification (In-App).
-8. Feature 08 — Observability / Monitoring View.
-9. Tier 2 (Features 09-11) — Classification Accuracy Benchmark, External Notification Delivery,
-   Per-Lead Audit Trail UI — startable once their Tier 1 dependency is stable.
-10. Tests/validation, security/dependency scan (Step 9.5), documentation, polish — after Tier 1 is
-    functionally complete, per Steps 7-9 of the pipeline.
+1. Steps 14-16 — README generation (this step), description refinement, and publish/portfolio
+   finalization. No further feature work is gating this.
+2. P3 backlog items in `portfolio-evaluation.md` (all optional 9→9.5 polish: a second signature-visual
+   typography pass, Lead Detail's remaining 15px mobile exception, plus 3 more) — none block
+   publication; candidates for a future low-frequency polish pass, not urgent.
+3. The 19 known transitive dependency vulnerabilities logged Moderate in `qa-report.md` — worth a
+   periodic re-scan as upstream packages release fixed versions, not an immediate action.
+4. Any new client-driven feature requests would enter via `docs/continued-development.md`'s CD-1
+   addendum loop, not this list — this section only covers already-known remaining work.
 
 ---
 
 ## Recommended Schedule
 
-No recommended schedule yet. This is a brand-new STANDARD-mode project with all 8 Tier 1 features
-unimplemented and a hard architectural constraint (per-stage tool/state boundaries must be
-*actually* enforced in code, not cosmetic) that the project definition itself flags as the single
-biggest risk to get wrong. That combination — large unfinished scope plus a subtle correctness
-constraint threading through every feature — calls for close human-in-the-loop implementation via
-Step 6, not autonomous unattended sessions, at least through Tier 1 completion and Step 7's
-implementation verification gate. Revisit once Tier 1 is stable and passing Step 7/9: a benchmark
-re-run (Feature 09) or a dependency/security re-scan (Step 9.5) are the kind of narrow, low-risk
-tasks that could reasonably become a recurring conditional job at that point.
+The project is now stable, fully tested, and past its portfolio quality gate — a materially different
+risk profile than the "large unfinished scope + subtle correctness constraint" state this section
+described at bootstrap. Unattended autonomous execution is now reasonable for a narrow set of
+low-risk, easily-verified tasks, but there is no active backlog large or urgent enough to justify a
+tight recurring cadence. Recommend:
+
+- **Dependency vulnerability re-scan** (`npm audit`, `pip-audit`) — conditional/event-driven
+  (triggered by a new advisory affecting a project dependency, not a fixed timer), since the current
+  19 findings were already triaged as non-exploitable in this project's specific configuration and a
+  fixed-interval re-scan would mostly just re-confirm the same result.
+- **P3 backlog polish batch** — conditional, triggered manually when the developer wants incremental
+  9→9.5 polish; not scheduled automatically, since these are optional and low-urgency by the Step 11
+  evaluator's own classification.
+- **No recurring implementation/bug-fixing job** — there is no known open defect; scheduling one
+  would have nothing productive to do and risks manufacturing busywork.
+
+This recommendation should be revisited if: a new feature request arrives (moves the project back
+into active development), a dependency advisory becomes actually exploitable, or the P3 backlog grows
+enough to justify a batch-processing session.
 
 ---
 

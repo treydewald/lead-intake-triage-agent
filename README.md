@@ -1,66 +1,158 @@
 # Lead Intake Triage Agent
 
-A multi-stage AI agent that ingests inbound sales leads (web form, email, or missed-call callback),
-classifies intent, enriches missing data, writes the result into a real CRM (HubSpot's free
-developer sandbox), and routes low-confidence cases to a human reviewer instead of acting on them
-blindly. Each pipeline stage is a genuinely separate unit — its own scoped tool access, its own
-piece of state — not one large prompt relabeled as "agents."
+A multi-stage AI agent that ingests inbound sales leads, classifies and enriches them, writes the
+result into a real CRM, and pulls a human into the loop only when the model isn't confident enough
+to act alone.
 
-**Status:** Environment bootstrapped (Step 4 of 16). No feature logic implemented yet — see
-`implementation_plan.md` and `.claude/pipeline-reference.md` for current pipeline state.
+## Overview
 
-## Stack
+Sales teams lose leads two ways: acting on bad data automatically, or drowning a human in every
+single inbound message. This project is a working demonstration of the middle path — a pipeline
+that handles the confident cases end-to-end and routes only the genuinely ambiguous ones to a
+reviewer, with a full audit trail either way.
 
-- **Backend:** FastAPI, SQLAlchemy, Alembic, LangGraph (pipeline orchestration), SQLite (dev) /
-  PostgreSQL (production-capable)
-- **Frontend:** React 19, TypeScript, Vite, Tailwind CSS v4, React Router
-- **AI:** Local open-weight LLM via Ollama (`llama3.2:3b` default), with an optional hosted-API
-  fallback only if local reliability proves insufficient
-- **CRM integration:** HubSpot free-tier developer sandbox, via direct `httpx` calls
+**End-to-end flow:** a lead arrives via web form, email, or a missed-call callback → **Intake**
+normalizes it → **Intent Classification** (a local LLM via Ollama) scores intent and confidence →
+**Data Enrichment** looks up the contact in HubSpot and fills in anything Intake left blank →
+**HubSpot CRM Write** upserts the contact record → if confidence cleared the configured threshold,
+the run completes automatically; if it didn't, the run pauses and lands in a **Human Review** queue,
+where an operator approves, edits, or rejects it → an **Outcome Notification** stage records what
+happened (in-app, plus an optional external webhook) and every step is preserved on a per-lead
+history timeline.
 
-## Setup
+**Architecture:** each stage above is a real, isolated unit — its own Pydantic input/output schema,
+its own slice of a shared `LeadPipelineState`, and its own explicit tool allowlist enforced by a
+scoped tool proxy, wired together as a [LangGraph](https://github.com/langchain-ai/langgraph) state
+graph. A stage can never reach another stage's tools directly; that boundary is verified by tests,
+not just convention (`backend/app/tests/test_orchestrator_tool_scope.py`).
 
-### Backend
+## Key Features
 
+### Core Pipeline
+- **Six-stage orchestrated pipeline** (Intake → Intent Classification → Data Enrichment → HubSpot
+  CRM Write → Human Review gate → Outcome Notification), each stage a `Stage` contract
+  implementation under `backend/app/orchestrator/stages/`, wired by
+  `backend/app/orchestrator/graph.py`.
+- **Enforced per-stage tool scoping** — a stage only ever reaches an external system through a
+  `ScopedToolProxy` built from its own declared `allowed_tools`; there is no code path for one
+  stage to call another stage's tool.
+- **Resumable runs** — a paused (awaiting-review) run persists its full pipeline state as one JSON
+  snapshot and resumes through a second, smaller compiled graph starting at the paused stage, reusing
+  the exact same `Stage`/`ToolRegistry` machinery as the primary run.
+- **Idempotent CRM writes** — HubSpot upserts address the contact by its own dedupe-key value
+  (phone or email) via HubSpot's `idProperty` query parameter, so re-processing a lead never creates
+  a duplicate contact.
+
+### Backend (FastAPI + SQLAlchemy + LangGraph)
+- **Three intake channels** — `POST /leads/webform`, `POST /leads/email`, `POST /leads/callback` —
+  each triggers a full pipeline run.
+- **Observability API** — `GET /leads` (paginated, filterable by status/channel), `GET
+  /leads/{lead_id}` (full per-lead stage-trace timeline), `GET /leads/{lead_id}/history` (merged
+  history across every pipeline run and human review action for that lead — never assumes exactly
+  one run per lead).
+- **Human review workflow** — `GET /reviews` (pending queue), `GET /reviews/{run_id}` (item detail,
+  including the original message content), `POST /reviews/{run_id}/action` (approve/edit/reject),
+  with a concurrency-safe atomic claim so two reviewers can't double-action the same item.
+- **Classification accuracy benchmark** — `POST /benchmark/run` executes the Intent Classification
+  stage standalone against a 22-item labeled dataset (`backend/app/benchmark/dataset.py`) and
+  computes attempt-level accuracy and item-level consistency across repeats; `GET /benchmark/runs` /
+  `GET /benchmark/runs/{run_id}` retrieve past runs.
+- **In-app + external notifications** — every terminal outcome (auto-processed, awaiting review,
+  rejected, failed) is recorded via `GET /notifications`; an optional Slack-compatible incoming
+  webhook additionally delivers `awaiting_review` outcomes externally, gated by
+  `NOTIFICATION_WEBHOOK_URL` and never able to affect pipeline state (delivery failure is recorded as
+  data on the notification row, never raised).
+- **Free-by-default stack** — SQLite for local dev (a Postgres DSN swap-in is a config change, no
+  code change), a local open-weight model via Ollama by default, HubSpot's free developer sandbox;
+  any paid LLM API is an explicitly opt-in fallback only.
+
+### Frontend (React 19 + TypeScript + Vite + Tailwind v4)
+- **Lead observability** — a searchable/filterable/paginated lead list, a per-lead detail view with
+  a collapsible full stage-trace timeline, and a dedicated lead history page merging multi-run and
+  review-action events chronologically.
+- **Human review console** — a pending-queue view and a per-item detail page showing the original
+  message, the model's classification/confidence, and an approve/edit/reject action form (with an
+  optional self-reported reviewer name, since this is a single-operator workflow with no auth model).
+- **Benchmark dashboard** — trigger a fresh accuracy run, see accuracy/consistency/model stat tiles,
+  a trend chart across prior runs, and a table of ambiguous or misclassified cases.
+- **Designed for every state** — a shared UI kit (`frontend/src/components/ui/`) gives every page a
+  consistent type scale, card depth, and dedicated empty/loading/error states instead of bare text.
+- **Fully responsive, no unintended scroll** — every page fits common desktop viewports
+  (1920×1080, 1440×900, 1366×768) and a mobile viewport (~390×844) without scroll, verified with a
+  real Playwright measurement script; the one documented exception is a lead's full audit-trail
+  history page, which can scroll for a lead with an unusually long history by design.
+
+### Quality & Accessibility
+- **138 backend tests / 18 frontend tests**, all passing; `tsc -b` and `vite build` clean.
+- **0 accessibility violations** (axe-core, all severities) across every primary page.
+- **Dependency vulnerability scanning** (`npm audit`, `pip-audit`) run and findings triaged during
+  QA — see `qa-report.md`.
+
+## Setup Instructions
+
+### Prerequisites
+- Python 3.11+
+- Node.js 20+
+- [Ollama](https://ollama.com) (for local LLM classification)
+- A free [HubSpot developer account](https://developers.hubspot.com/) with a sandbox (optional for
+  read-only exploration; required for the CRM-write stage to succeed)
+
+### Installation
+
+```bash
+git clone <repo-url>
+cd lead-intake-triage-agent
+```
+
+**Backend:**
 ```bash
 cd backend
 python -m venv .venv
-.venv\Scripts\Activate.ps1   # PowerShell; use .venv/Scripts/activate.bat for cmd.exe, source .venv/Scripts/activate for Git Bash
+.venv\Scripts\Activate.ps1   # PowerShell; .venv/Scripts/activate.bat for cmd.exe, source .venv/Scripts/activate for Git Bash
 pip install -r requirements.txt
 copy .env.example .env       # fill in HUBSPOT_ACCESS_TOKEN once you have a sandbox account
-uvicorn main:app --reload
+alembic upgrade head
 ```
 
-Backend runs at http://localhost:8000 (health check: `GET /health`).
-
-### Frontend
-
+**Frontend:**
 ```bash
 cd frontend
 npm install
 copy .env.example .env
-npm run dev
 ```
 
-Frontend runs at http://localhost:5173.
+### Configuration
 
-### Local LLM
+Backend (`backend/.env`, see `backend/.env.example` for the full list):
+- `DATABASE_URL` — defaults to `sqlite:///./leads.db`; swap for a PostgreSQL DSN in production
+- `OLLAMA_BASE_URL` / `OLLAMA_MODEL` — local LLM endpoint and model (default `llama3.2:3b`)
+- `FALLBACK_LLM_API_KEY` — optional hosted-LLM fallback, unset by default
+- `HUBSPOT_ACCESS_TOKEN` / `HUBSPOT_BASE_URL` — HubSpot Private App token (Settings → Integrations →
+  Private Apps → create one with `crm.objects.contacts` scope)
+- `CONFIDENCE_THRESHOLD` — classification confidence below which a run routes to human review
+  (default `0.7`)
+- `NOTIFICATION_WEBHOOK_URL` — optional Slack-compatible webhook for external `awaiting_review`
+  delivery, unset by default
+- `CORS_ORIGINS` — allowed frontend origins
 
-Requires [Ollama](https://ollama.com) running locally:
+Frontend (`frontend/.env`, see `frontend/.env.example`):
+- `VITE_API_URL` — backend base URL (default `http://localhost:8000`)
+
+### Running Locally
 
 ```bash
+# Local LLM (separate terminal)
 ollama serve
 ollama pull llama3.2:3b
+
+# Backend (from backend/)
+uvicorn main:app --reload   # http://localhost:8000, health check: GET /health
+
+# Frontend (from frontend/)
+npm run dev                 # http://localhost:5173
 ```
 
-### HubSpot Sandbox (manual, one-time)
-
-1. Create a free HubSpot developer account and sandbox at https://developers.hubspot.com/.
-2. In the sandbox: Settings → Integrations → Private Apps → create one with `crm.objects.contacts`
-   scope.
-3. Paste the generated access token into `backend/.env`'s `HUBSPOT_ACCESS_TOKEN`.
-
-## Testing
+### Running Tests
 
 ```bash
 cd backend && pytest
@@ -68,13 +160,81 @@ cd frontend && npm test
 cd frontend && npm run lint
 ```
 
-## Project Documentation
+### Building for Production
 
-- `project-definition.md` — what this project is and why (Step 1 output)
-- `roadmap.md` — tiered feature roadmap (Step 2 output)
-- `implementation_plan.md` — atomic, execution-ready feature specs (Step 3 output)
-- `.claude/portfolio-reference.md` — architecture map, key decisions (read this before the code)
-- `.claude/pipeline-reference.md` — current pipeline step and state
+```bash
+cd frontend && npm run build
+```
+
+## Project Structure
+
+```
+backend/
+  main.py                       # FastAPI app entrypoint — CORS, router registration
+  app/core/config.py            # Pydantic settings (env-driven)
+  app/database/session.py       # SQLAlchemy engine/session
+  app/models/                   # ORM models (pipeline_run, review_queue, notification, benchmark)
+  app/schemas/                  # Pydantic request/response schemas
+  app/routers/                  # FastAPI routers (leads, reviews, notifications, benchmark, health)
+  app/orchestrator/
+    contracts.py                # Stage ABC every pipeline stage implements
+    state.py                    # LeadPipelineState — one slice per stage
+    tool_scope.py                # ToolRegistry / ScopedToolProxy — the enforced tool boundary
+    graph.py                    # LangGraph StateGraph wiring, run/resume entry points
+    stages/                     # One module per pipeline stage
+    tools/                      # Real external-system bindings (Ollama, HubSpot, webhook)
+  app/benchmark/                # Labeled dataset + benchmark harness
+  alembic/                      # DB migrations
+frontend/
+  src/pages/                    # Route-level pages (one per screen)
+  src/components/               # Layout, shared UI kit (components/ui/)
+  src/lib/                      # Typed API client (api.ts), stage-order mirror (stageOrder.ts)
+.claude/
+  portfolio-reference.md        # Architecture map and key decisions — read before the code
+  pipeline-reference.md         # Development pipeline history and current state
+```
+
+## API / Usage
+
+**Intake:**
+- `POST /leads/webform`, `POST /leads/email`, `POST /leads/callback` — submit a new lead, triggers a
+  full pipeline run
+
+**Observability:**
+- `GET /leads` — paginated lead list, filterable by status/source channel
+- `GET /leads/{lead_id}` — lead detail with full stage-trace timeline
+- `GET /leads/{lead_id}/history` — merged history across all runs and review actions for a lead
+
+**Human Review:**
+- `GET /reviews` — pending review queue
+- `GET /reviews/{run_id}` — review item detail (includes original message content)
+- `POST /reviews/{run_id}/action` — approve, edit, or reject a paused run
+
+**Benchmark:**
+- `POST /benchmark/run` — run the classification-accuracy benchmark against the labeled dataset
+- `GET /benchmark/runs` — list past benchmark runs
+- `GET /benchmark/runs/{run_id}` — benchmark run detail, including per-case results
+
+**Notifications:**
+- `GET /notifications` — list outcome notifications, newest first
+
+**Health:**
+- `GET /health` — service health check
+
+**Frontend routes:** `/` (home), `/leads`, `/leads/:leadId`, `/leads/:leadId/history`, `/reviews`,
+`/reviews/:runId`, `/benchmark`.
+
+## Contributing
+
+- Every new pipeline stage implements the `Stage` contract (`backend/app/orchestrator/contracts.py`)
+  and reaches external systems only through its scoped tool proxy — never by importing another
+  stage's tool binding directly.
+- Every new external-system tool binding lives in its own module under
+  `backend/app/orchestrator/tools/`, registered via `register_default_tools()`.
+- See `.claude/portfolio-reference.md`'s Key Decisions before changing pipeline state, tool scoping,
+  or notification behavior — several non-obvious constraints (read-slice boundaries, terminal-status
+  ownership, the mobile no-scroll pattern) are recorded there with the reasoning behind them.
+- Run the full backend and frontend test suites, plus `tsc -b && vite build`, before committing.
 
 ---
 
@@ -161,3 +321,7 @@ Record the date and outcome of this activation attempt in the Scheduling History
 This prompt is safe to re-run at any time — later runs must reconcile against whatever is actually
 configured, not blindly recreate everything.
 ```
+
+---
+
+Generated from codebase analysis.
