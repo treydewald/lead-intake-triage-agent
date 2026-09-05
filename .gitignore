@@ -22,3 +22,8 @@ build/
 # Local SQLite DB / logs
 *.db
 *.log
+
+# Coverage tool output
+.coverage
+htmlcov/
+coverage/

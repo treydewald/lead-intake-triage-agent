@@ -149,3 +149,23 @@ findings:
     ran on this project — Step 7/9's own pass/fail and coverage numbers exist in `.claude/
     validation-results.md`/`qa-report.md`, but were never mirrored into this longitudinal system's
     schema. Not a quality problem with the shipped project, but a gap in this file's own record.
+
+## PROJECT_MIDPOINT — 2026-09-05 — evaluation_version: metrics_rubric_v1
+
+Source: `refinement-audit.md`, Round 1 (Continual Project Refinement — this project's first run of this
+loop, closing the `PROJECT_FINAL_EVALUATION` entry's own RISK note above). No new evaluation work below
+— four numbers already scored in that file, copied.
+
+- **implementation_quality:** 9/10, confidence: HIGH (Dimension 3, Architecture & Code Quality —
+  re-scored this round: named architectural-drift spot-check found no layer/circular-dependency/
+  service-boundary violations; every `architecture-plan-*.md` Actual Footprint shows zero-to-minor
+  deviations from plan)
+- **completeness:** 9/10, confidence: HIGH (Dimension 1, Functional Completeness & Differentiation —
+  re-scored this round: Tier 1+2 fully shipped and verified, Tier 3 consciously deferred per the source
+  spec's own adversarial resolution, not an oversight)
+- **validation_quality:** 8/10, confidence: HIGH (Dimension 4, Test Coverage — re-scored this round: the
+  first coverage-tool run on this project found and closed a real P1 gap, `LeadDetailPage.tsx` at 5.55%
+  coverage with zero dedicated tests; backend now 98%, frontend 82% after the fix, up from 70.64%)
+- **portfolio_value:** 9/10, confidence: HIGH (Dimension 2, Visual & UI/UX Polish — carried forward
+  unchanged from Step 11 Round 6, 2026-09-05; not re-derived, per Continual Refinement's own
+  "re-score cheaply" rule)

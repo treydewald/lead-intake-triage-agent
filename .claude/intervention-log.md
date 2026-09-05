@@ -219,3 +219,29 @@ edit to that same entry once the round they belong to is scored, not a new entry
   not a surprise in outcome, but the specific verification step that made scoring 9 with confidence
   possible rather than repeating the same "looks fixed" mistake a third time.
 - Agent: claude/claude_code
+
+### 2026-09-05 — continual_refinement (Round 1)
+- Trigger: Step 16 (LinkedIn Generator) completed, closing every mandatory numbered pipeline step; the
+  project went genuinely idle for the first time (no Suggestion, no `OPEN` backlog entry, Steps 1-16
+  all done). Per `docs/next-action-selection.md`'s Dynamic Next-Action Selection, Continual Project
+  Refinement was chosen over Scope Expansion (no credible functional gap — Tier 3 is a conscious,
+  documented deferral, not an omission), UI Audit & Refinement, and In-App Cohesion Audit (both already
+  substantially covered by 6 rounds of Step 11/12 scoring Visual & UI/UX and Feature Signaling at
+  9/10) — this loop had never run on this project at all, and Step 13's own gate-pass entry had
+  explicitly flagged the resulting `completeness`/`validation_quality` metric gap.
+- Expected effect: an 8-dimension audit scoring what a careful reviewer would notice beyond the four
+  screenshot-scoped Step 11 dimensions, routing any gap found through an existing pipeline mechanism.
+- Outcome: all 8 dimensions scored 7-10/10 (weakest: Security, 7/10 — see `refinement-audit.md`). Two
+  real gaps found and fixed same round: RB-006 (P1, `LeadDetailPage.tsx` — the project's own named
+  differentiator page — had zero dedicated tests, 5.55% coverage, found via this round's first-ever
+  coverage-tool run on this project; fixed, now 90.74%) and RB-007 (P2, an N+1 query in
+  `GET /leads/{lead_id}/history`; fixed via a single batched query). Two lower-priority gaps logged
+  `OPEN` for a future round (RB-008 residual coverage debt, RB-009 a pre-existing lint style nit).
+  `.claude/project-metrics.md` gained a `PROJECT_MIDPOINT` entry; `README.md`/`portfolio-description.md`/
+  `linkedin-entry.md` updated together to the new 162-test count so all three stayed consistent.
+- Surprise: neither of this project's existing quality gates (6 rounds of Step 11/12 visual scoring, 2
+  Gate 2 pass/fail verification passes) had ever run a coverage tool, so a P1-severity gap — the
+  flagship page shipping with effectively no test — went undetected through every prior check. A
+  screenshot-based score and a pass/fail test suite both looked clean while this sat unmeasured; only
+  running the tool for the first time surfaced it.
+- Agent: claude/claude_code

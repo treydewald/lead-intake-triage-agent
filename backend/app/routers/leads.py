@@ -246,14 +246,19 @@ def get_lead_history(
             raise HTTPException(status_code=404, detail="Lead not found")
 
         entries: list[TimelineEntryOut] = []
+        run_ids = [run_row.id for run_row in run_rows]
+        all_traces = (
+            db.query(StageTrace)
+            .filter(StageTrace.run_id.in_(run_ids))
+            .order_by(StageTrace.created_at)
+            .all()
+        )
+        traces_by_run: dict[str, list[StageTrace]] = {run_id: [] for run_id in run_ids}
+        for trace in all_traces:
+            traces_by_run[trace.run_id].append(trace)
+
         for run_row in run_rows:
-            traces = (
-                db.query(StageTrace)
-                .filter(StageTrace.run_id == run_row.id)
-                .order_by(StageTrace.created_at)
-                .all()
-            )
-            for trace in traces:
+            for trace in traces_by_run[run_row.id]:
                 entries.append(
                     TimelineEntryOut(
                         kind="stage",

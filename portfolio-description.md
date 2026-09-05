@@ -5,7 +5,7 @@ REFINED TITLE (70 chars max)
 AI Lead Triage Agent: Auto-Acts When Confident, Escalates to Human
 
 REFINED DESCRIPTION (600 chars max)
-A six-stage LangGraph agent that ingests inbound sales leads (web form, email, or callback), classifies intent via a local LLM (Ollama), enriches missing contact data, and writes an idempotent, dedupe-safe update to a HubSpot CRM sandbox. Each stage is tool-scoped to only the external systems it needs. Confident runs complete automatically; low-confidence ones pause in a human review queue for approve, edit, or reject, with a full per-lead audit trail and notifications. FastAPI/SQLAlchemy backend, React/TypeScript frontend, 156 passing tests, and a measured classification-accuracy benchmark.
+A six-stage LangGraph agent that ingests inbound sales leads (web form, email, or callback), classifies intent via a local LLM (Ollama), enriches missing contact data, and writes an idempotent, dedupe-safe update to a HubSpot CRM sandbox. Each stage is tool-scoped to only the external systems it needs. Confident runs complete automatically; low-confidence ones pause in a human review queue for approve, edit, or reject, with a full per-lead audit trail and notifications. FastAPI/SQLAlchemy backend, React/TypeScript frontend, 162 passing tests, and a measured classification-accuracy benchmark.
 
 SKILLS & DELIVERABLES (max 5)
 - Multi-stage AI agent orchestration with LangGraph (per-stage tool scoping, resumable paused-run state)
@@ -49,3 +49,10 @@ Character Counts:
 
 Next Step:
 Step 16: LinkedIn Generator
+
+---
+
+**Updated 2026-09-05 (Continual Project Refinement, Round 1):** Test count refreshed 156 → 162 after
+this round added 6 frontend tests (`LeadDetailPage.test.tsx`, closing a coverage gap on the project's
+named differentiator page) — description re-measured at 598/600 chars, still under limit. See
+`.claude/pipeline-reference.md` for the full round detail.

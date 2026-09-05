@@ -216,3 +216,92 @@ renumber.]
   matched). Verified: full frontend suite 15/15 passed (previously 14/15, App.test.tsx failing); full
   backend suite unaffected at 136/136 (this was a frontend-only test fixture change, no production code
   touched).
+
+### RB-006 — `LeadDetailPage.tsx` (the project's own named differentiator page) had zero dedicated tests
+- **Status:** COMPLETED
+- **Dimension:** 4 (Test Coverage, per `docs/continual-refinement.md`'s Eight Dimensions)
+- **Priority:** P1
+- **Discovered:** Continual Project Refinement, Round 1, 2026-09-05 — the first time any coverage tool
+  has ever been run on this project (every prior Step 7/9 validation entry recorded "no coverage tool
+  configured" rather than a number).
+- **Finding:** After installing `pytest-cov`/`@vitest/coverage-v8` and running both suites with coverage
+  for the first time, `LeadDetailPage.tsx` measured 5.55% statement coverage with zero uncovered-code
+  ambiguity — it has no `LeadDetailPage.test.tsx` at all (confirmed via `ls pages/*.test.tsx`), unlike
+  every sibling page. This is the exact page `portfolio-description.md`'s Screenshot Description names
+  as "the project's core differentiator" (full per-stage observability into the pipeline's decisions).
+- **Rationale / Evidence:** `npx vitest run --coverage` output: `LeadDetailPage.tsx` 5.55%/0%/0%/6.52%
+  (stmts/branch/funcs/lines) vs. every other page's test file existing and scoring 68-95%. Backend
+  coverage was a healthy 98% by contrast (`pytest --cov=app`), so this was specifically a frontend gap,
+  not a project-wide testing culture problem.
+- **Routes to:** Scoped re-entry to Step 6 (add tests for the untested surface) → Step 7 (verify) — per
+  the Routing Table's Dimension 4 row.
+- **Implementation notes:** Fixed same round. Added `frontend/src/pages/LeadDetailPage.test.tsx` (6
+  tests: full stage-trace timeline render, failed-pipeline banner, in-progress banner, 404 not-found
+  state, generic error state, recent-activity panel + link to the full history page). Verified: frontend
+  suite 24/24 passing (was 18/18), `LeadDetailPage.tsx` coverage 5.55% → 90.74% statements, project-wide
+  frontend statement coverage 70.64% → 81.65%. `tsc -b`, `vite build`, and `oxlint` all re-confirmed
+  clean (same 5 pre-existing `set-state-in-effect` warnings, no new ones — see RB-009). No production
+  code touched. `README.md`/`portfolio-description.md`/`linkedin-entry.md` test counts updated
+  156 → 162 (138 backend + 24 frontend) to stay accurate, per Dimension 8's own cross-document
+  discipline.
+
+### RB-007 — N+1 query in `GET /leads/{lead_id}/history` (one `StageTrace` query per pipeline run)
+- **Status:** COMPLETED
+- **Dimension:** 6 (Performance, per `docs/continual-refinement.md`'s Eight Dimensions)
+- **Priority:** P2
+- **Discovered:** Continual Project Refinement, Round 1, 2026-09-05 — a reviewer-level skim of
+  `backend/app/routers/leads.py` for the "obvious N+1 queries" this dimension names explicitly.
+- **Finding:** The merged-history endpoint (`GET /leads/{lead_id}/history`, the one README calls out as
+  merging "history across every pipeline run and human review action for that lead") ran one query for
+  the lead's `PipelineRun` rows, then a separate `StageTrace` query inside a `for run_row in run_rows:`
+  loop — one extra round-trip per run instead of a single batched query.
+- **Rationale / Evidence:** `backend/app/routers/leads.py`, the merged-history handler, lines ~242-256
+  (pre-fix): `for run_row in run_rows: db.query(StageTrace).filter(StageTrace.run_id == run_row.id)...`.
+  Low real-world impact at this project's actual scale (SQLite, single local user, small per-lead run
+  counts), but a textbook N+1 a senior engineer reviewing the code would flag immediately.
+- **Routes to:** Scoped re-entry to Step 6 (implement the fix) → Step 7 (verify no regression) — per the
+  Routing Table's Dimension 6 row.
+- **Implementation notes:** Fixed same round. Replaced the per-run query with one batched
+  `db.query(StageTrace).filter(StageTrace.run_id.in_(run_ids))` query, then grouped results by
+  `run_id` in Python before the existing per-run iteration (ordering preserved — the batched query is
+  already sorted by `created_at`, so grouping a sorted sequence keeps each run's own trace order intact).
+  Verified: full backend suite 138/138 passing, no regressions.
+
+### RB-008 — Residual frontend coverage gaps below RB-006's severity (api client layer, list page, 404 page)
+- **Status:** OPEN
+- **Dimension:** 4 (Test Coverage)
+- **Priority:** P3
+- **Discovered:** Continual Project Refinement, Round 1, 2026-09-05 — same coverage run that found
+  RB-006.
+- **Finding:** After RB-006's fix, three files remain under-covered: `frontend/src/lib/api.ts` (21%
+  statements — the typed API client is exercised indirectly through every page's mocked tests, but has
+  no direct unit test of its own request/response shaping), `LeadListPage.tsx` (71%, mainly untested
+  filter/sort/pagination branches), and `NotFoundPage.tsx` (0%, a trivial one-line component).
+- **Rationale / Evidence:** `npx vitest run --coverage` output, post-RB-006-fix. None of these are the
+  project's flagship/differentiator surface the way `LeadDetailPage.tsx` was — this is routine
+  incremental coverage debt, not a standout gap, which is why it's logged as P3 rather than batched into
+  this round's P1/P2 work (`docs/continual-refinement.md`'s Loop Mechanics: "don't try to close every
+  dimension's gaps in one session").
+- **Routes to:** Scoped re-entry to Step 6 (add tests for the named files) → Step 7 (verify) — per the
+  Routing Table's Dimension 4 row.
+- **Implementation notes:** (blank — not yet started.)
+
+### RB-009 — Pre-existing `react(set-state-in-effect)` lint warning in 5 pages (Low)
+- **Status:** OPEN
+- **Dimension:** 3 (Architecture & Code Quality)
+- **Priority:** P3
+- **Discovered:** Step 9 (Unified QA & Repair), 2026-09-04 (`qa-report.md`'s Remaining Issues #2) — not
+  originally a Continual Refinement finding, but that issue's own "Recommended action" named "a future
+  Continual Refinement round, Testing/Reliability or code-quality dimension" as where to pick it up, so
+  it's logged here now that this project has run one for the first time, rather than re-discovering it
+  from scratch.
+- **Finding:** `LeadDetailPage.tsx`, `LeadHistoryPage.tsx`, `LeadListPage.tsx`, `ReviewDetailPage.tsx`,
+  and `ReviewQueuePage.tsx` each call `setLoading(true)`/similar synchronously inside their data-fetch
+  `useEffect` — a standard fetch pattern that `oxlint`'s `react(set-state-in-effect)` rule flags as a
+  style nit, not a functional defect.
+- **Rationale / Evidence:** `npm run lint` output, re-confirmed this round (same 5 files, same warnings,
+  no new ones — no drift since Step 9's original finding).
+- **Routes to:** Scoped re-entry to Step 6 (refactor the fetch pattern across the 5 named files) →
+  Step 7 (verify) — per the Routing Table's Dimension 3 row.
+- **Implementation notes:** (blank — not yet started; low priority, no functional impact, deliberately
+  not batched into this round's P1/P2 work.)

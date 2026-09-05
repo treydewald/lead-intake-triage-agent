@@ -1,7 +1,7 @@
 # Pipeline Reference — Lead Intake Triage Agent
 
-**Last Updated:** 2026-09-05 (Step 16, LinkedIn Generator — COMPLETED. This is the pipeline's final
-numbered stage; only manual publication remains.)
+**Last Updated:** 2026-09-05 (Continual Project Refinement, Round 1 — COMPLETED. Two P1/P2 gaps found
+and fixed same round; RB-008/RB-009 remain OPEN for a future round.)
 
 How *this project* is using the Upwork Portfolio Project Pipeline. Distinct from
 `portfolio-reference.md`, which is about the product — this file is about pipeline state.
@@ -10,7 +10,82 @@ How *this project* is using the Upwork Portfolio Project Pipeline. Distinct from
 
 ## Current Step
 
-**This session (2026-09-05, twenty-fourth session same day):** Ran Step 16 (LinkedIn Generator).
+**This session (2026-09-05, twenty-fifth session same day):** Ran Continual Project Refinement, Round 1
+— an optional idle-time operation, not a numbered pipeline step.
+
+Step 16 (prior session, same day) closed every mandatory numbered step, leaving the project idle for the
+first time. Per `docs/next-action-selection.md`'s Dynamic Next-Action Selection, surveyed all four idle
+operations: Scope Expansion was ruled out (Tier 3 is a conscious, documented deferral per `roadmap.md`,
+not a gap); UI Audit & Refinement and In-App Cohesion Audit were both already substantially covered by
+6 rounds of Step 11/12 (Visual & UI/UX and Feature Signaling both 9/10); Continual Project Refinement had
+never run at all, and Step 13's own `PROJECT_FINAL_EVALUATION` entry had explicitly flagged the resulting
+`completeness`/`validation_quality` metric gap in `.claude/project-metrics.md`. Asked the user directly,
+naming the operation and reason; confirmed to proceed.
+
+Ran the full 8-dimension audit per `docs/continual-refinement.md`. Scores: Functional Completeness 9,
+Visual & UI/UX 9 (carried forward from Step 11 Round 6, not re-derived), Architecture & Code Quality 9,
+Test Coverage 8, Robustness 8, Performance 8, Security 7 (weakest — see below), Documentation Accuracy
+10. Full detail, evidence, and justification for each: `refinement-audit.md` (project root, this
+project's first).
+
+**Two real gaps found and fixed same round** (batch discipline: P1/P2 addressed, P3s deferred):
+- **RB-006 (P1, Dimension 4):** Installed `pytest-cov`/`@vitest/coverage-v8` and ran both suites with
+  coverage for the first time on this project (every prior Step 7/9 entry recorded "no coverage tool
+  configured" rather than a number). Backend: 98%. Frontend: found `LeadDetailPage.tsx` — the page
+  `portfolio-description.md`'s own Screenshot Description names as this project's core differentiator —
+  at 5.55% coverage with zero dedicated test file, unlike every sibling page. Fixed: added
+  `frontend/src/pages/LeadDetailPage.test.tsx` (6 tests covering the stage-trace timeline, failed/
+  in-progress banners, 404/error states, and the recent-activity panel). Verified: frontend suite 24/24
+  passing (was 18/18), `LeadDetailPage.tsx` 5.55%→90.74%, project-wide frontend statement coverage
+  70.64%→81.65%; `tsc -b`/`vite build`/`oxlint` all re-confirmed clean.
+- **RB-007 (P2, Dimension 6):** A reviewer-level skim of `backend/app/routers/leads.py` for "obvious N+1
+  queries" (Dimension 6's own named check) found one in `GET /leads/{lead_id}/history` — a separate
+  `StageTrace` query inside a `for run_row in run_rows:` loop instead of one batched query. Fixed:
+  replaced with a single `StageTrace.run_id.in_(run_ids)` query, grouped by run in Python (ordering
+  preserved — the batched query is pre-sorted by `created_at`). Verified: full backend suite 138/138
+  passing, no regressions.
+
+**Re-ran Dimension 7's dependency-audit commands fresh** rather than trusting the Step 9.5 scan result:
+`pip-audit` still shows the same 19 Moderate advisories across 6 transitive backend packages (no new
+findings, no drift from `qa-report.md`'s original CVSS/exploit-path-verified assessment); `npm audit`
+still 0 frontend vulnerabilities. No new backlog entry — already tracked in `qa-report.md`'s Remaining
+Issues with its own correct remediation path (a future dedicated `langgraph`/`langchain-core`/`starlette`
+compatibility-verification round), not repeated here since nothing changed.
+
+**Also re-measured the frontend bundle:** 337.92 kB / 104.84 kB gzip vs. Step 9.5's 307.21 kB / 97.89 kB
+baseline — a ~10% increase, under CD-4's 15%-material threshold and explained by legitimate Step 6/CD
+feature growth that landed after Step 9.5 first measured it (before Feature 15's Review-workflow work),
+not a regression from this round. Not logged as a gap.
+
+**Documentation kept consistent (Dimension 8):** RB-006 changed the real frontend test count from 18 to
+24 (138+24 = 162 total, up from 156). Updated `README.md`, `portfolio-description.md`, and
+`linkedin-entry.md` together in the same pass so all three state the same number — re-measured
+`portfolio-description.md`'s description at 598/600 chars and `linkedin-entry.md`'s at 1985/2000 chars,
+both still within limit after the edit.
+
+**Two lower-priority gaps logged `OPEN`** in `.claude/refinement-backlog.md` for a future round, per
+batch discipline (don't try to close every dimension's gap in one session): RB-008 (residual frontend
+coverage debt — `api.ts` 21%, `LeadListPage.tsx` 71%, `NotFoundPage.tsx` 0%, none as severe as RB-006
+since none is the flagship/differentiator surface) and RB-009 (a pre-existing `react(set-state-in-effect)`
+lint warning across 5 pages, already noted in `qa-report.md` as belonging to a future Continual
+Refinement round — now formally backlogged there instead of just narratively mentioned).
+
+`.claude/project-metrics.md` gained a `PROJECT_MIDPOINT` entry mirroring this round's four numbers
+(implementation_quality 9, completeness 9, validation_quality 8, portfolio_value 9 carried from Step 11).
+`.claude/intervention-log.md` gained this round's own entry (trigger, expected effect, outcome, surprise).
+
+**Per `docs/continual-refinement.md`'s Loop Mechanics, exit condition not yet met** — `refinement-audit.md`
+records `NEXT ROUND NEEDED? YES` (RB-008/RB-009 remain `OPEN`). This is the honest state, not an
+oversight: this round deliberately batched only the P1/P2 gaps it found, leaving two P3s for later.
+
+Pipeline-level friction check: none found this session — `docs/continual-refinement.md`'s instructions
+were clear and sufficient as written; the coverage-tool-installation step (not itself part of the
+pipeline's own text) was a natural consequence of Dimension 4's "run it now if none exists" instruction,
+not friction with the instruction itself.
+
+---
+
+**Prior session (2026-09-05, twenty-fourth session same day):** Ran Step 16 (LinkedIn Generator).
 
 No Suggestion was given, and `.claude/refinement-backlog.md` has no `OPEN`/`IN_PROGRESS` entries (all
 five, RB-001 through RB-005, are `COMPLETED`) — since Step 16 was the next mandatory foundational step
@@ -959,7 +1034,15 @@ Tier section, STANDARD mode with Tier 2/3 features present falls back to full ti
 
 ## Next Step
 
-**This session (2026-09-05, twenty-fourth session same day):** Step 16 (LinkedIn Generator) COMPLETED —
+**This session (2026-09-05, twenty-fifth session same day):** Continual Project Refinement, Round 1,
+COMPLETED — see Current Step above for full detail. RB-006 (P1) and RB-007 (P2) fixed same round;
+RB-008 and RB-009 (both P3) remain `OPEN` in `.claude/refinement-backlog.md` for a future round.
+`refinement-audit.md` records `NEXT ROUND NEEDED? YES`. **Next step for a future session:** either pick
+up RB-008/RB-009 directly (per Master Prompt Step 2, an `OPEN` backlog entry routes ahead of idle-branch
+selection when no Suggestion is given), or — if a Suggestion arrives first — that takes priority per the
+same Step 2 logic.
+
+**Prior session (2026-09-05, twenty-fourth session same day):** Step 16 (LinkedIn Generator) COMPLETED —
 `linkedin-entry.md` written and committed. **This was the pipeline's final numbered stage.** No further
 step follows; what remains is manual publication only (copy `linkedin-entry.md`'s content to LinkedIn's
 Projects section, plus Upwork/GitHub — see that prompt's own Publication Instructions). Since no

@@ -83,10 +83,16 @@ not just convention (`backend/app/tests/test_orchestrator_tool_scope.py`).
   history page, which can scroll for a lead with an unusually long history by design.
 
 ### Quality & Accessibility
-- **138 backend tests / 18 frontend tests**, all passing; `tsc -b` and `vite build` clean.
+- **138 backend tests / 24 frontend tests**, all passing; `tsc -b` and `vite build` clean.
+- **Measured test coverage** — 98% backend statement coverage (`pytest-cov`); 82% frontend statement
+  coverage (`@vitest/coverage-v8`), up from 71% before a Continual Refinement round found and closed a
+  gap where `LeadDetailPage.tsx` — the page `portfolio-description.md` names as this project's core
+  differentiator — had no dedicated test.
 - **0 accessibility violations** (axe-core, all severities) across every primary page.
 - **Dependency vulnerability scanning** (`npm audit`, `pip-audit`) run and findings triaged during
-  QA — see `qa-report.md`.
+  QA — see `qa-report.md`; re-run during Continual Refinement with no new findings (frontend: 0
+  vulnerabilities; backend: same 19 pre-assessed Moderate transitive advisories, still non-exploitable
+  as this project is deployed).
 
 ## Setup Instructions
 
@@ -158,6 +164,10 @@ npm run dev                 # http://localhost:5173
 cd backend && pytest
 cd frontend && npm test
 cd frontend && npm run lint
+
+# Coverage
+cd backend && pytest --cov=app --cov-report=term-missing
+cd frontend && npm run test:coverage
 ```
 
 ### Building for Production
