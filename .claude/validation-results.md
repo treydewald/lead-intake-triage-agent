@@ -340,3 +340,79 @@ tiebreaker would not reflect insertion order. No production code changed.
 
 **Result:** PASS — 5/5 isolated reruns passed (previously ~2/5 failed); full suite 111/111 passed, no
 regressions.
+
+---
+
+## 2026-09-04 — Step 7 (Implementation Verification, Gate 2) — all 8 Tier 1 features
+
+**Checks run:** `pytest app/tests/` (backend, full suite) + `npm test` (frontend) + `npm run build`
+(`tsc -b && vite build`) + `npm run lint` (oxlint) + started both `uvicorn`/`vite dev` locally and
+drove the running app: submitted a lead through all three intake channels (`POST /leads/webform`,
+`/leads/email`, `/leads/callback`); one high-confidence buyer webform lead (auto-processed path); one
+message classified `spam` at 0.9 confidence (confirms routing is confidence-based, not label-based —
+proceeds past Human Review since 0.9 ≥ the 0.7 threshold); one empty-message webform lead (Feature
+03's short-circuit → `AWAITING_REVIEW`); `GET /reviews`/`GET /reviews/{run_id}` against the queued
+review; `POST /reviews/{run_id}/action` (approve) — confirmed resume reused the same `run_id`,
+appended new `StageTrace` rows (`hubspot_crm_write` + `outcome_notification`), never created a second
+`PipelineRun`; `GET /notifications` (newest-first ordering, 6 rows, correct); `GET /leads` with
+`status`/`source_channel` filters and `sort=created_desc`; `GET /leads/{lead_id}` detail view; `GET
+/leads/does-not-exist` (404). Frontend driven with Playwright (ad hoc `playwright` package already
+present from Feature 08's own check, not `@playwright/test` — used the raw `chromium.launch()` API
+directly): screenshotted `/leads`, `/leads/{lead_id}`, `/leads/does-not-exist`, `/` (home), and `/review`
+(the sidebar's "Review Queue" nav target), checking `console` for errors on each.
+
+**Test Results:** PASS — backend 111/111, frontend 3/3, both unchanged from Feature 08's last run (no
+new code landed this step). `npm run build` clean. `npm run lint` clean except the same 2
+pre-existing `react(set-state-in-effect)` warnings already noted at Feature 08 (not a regression).
+
+**Test Coverage:** No coverage tool configured (backend: no `pytest-cov` installed in `.venv`;
+frontend: no `@vitest/coverage-v8` installed) — same as every prior feature's validation entry, now
+explicitly recorded at the gate level per this step's own exit condition.
+
+**Console Errors:** NONE on `/leads`, `/leads/{lead_id}`, `/`, or `/leads/does-not-exist` (the two
+`console.error` lines on the unknown-lead page are the browser's own network-layer logging of the
+API's expected 404 response, not an application error — the page itself renders the graceful "No lead
+found" message). `/review` produces no console error either — it renders a silently blank page instead
+(see Broken States below), which is arguably worse than an error.
+
+**Broken States found:** ONE — `/review` (the sidebar's "Review Queue" nav item, present on every
+page since Step 4's bootstrap scaffold) has no matching route in `App.tsx` and renders a completely
+blank page (confirmed: `document.body.innerText` is empty; even the sidebar disappears, since
+React Router renders nothing when no route matches and there's no catch-all). This is a pre-existing,
+already-acknowledged gap — `architecture-plan-feature-08.md`'s own Actual Footprint section already
+named it as deliberately out of scope, and `.claude/pipeline-reference.md` had already tracked the
+underlying "no feature builds a Review Queue frontend" gap since Feature 08. **Not counted against
+any Tier 1 feature's acceptance criteria** — no roadmap feature (Tier 1, 2, or 3) specifies a Review
+Queue frontend page; Feature 06's own spec and tests are backend/API-only, and the backend endpoints
+this dead link would reach (`GET /reviews`, `POST /reviews/{run_id}/action`) all verified working
+correctly above. Logged as `.claude/refinement-backlog.md`'s RB-002 (new, OPEN) rather than treated as
+a Step 7 FAIL, per Step 7's own Common Failure Modes guidance (don't force a functional gap that no
+acceptance criterion covers into the PASS/FAIL verdict for features that do work) — routed to a future
+Scope Expansion/Suggestion decision or In-App Cohesion Audit, not something this step should decide
+unilaterally.
+
+**Architectural Deviations:** NONE beyond what's already recorded. All 8 `architecture-plan-
+feature-0{1..8}.md` files already carry a filled-in Actual Footprint section (evidently completed
+during each feature's own Step 6 round, ahead of this gate) — spot-checked Feature 08's in full and
+skimmed the rest; no `AUDIT: Architectural deviation detected` marker exists in any of them
+(grep-confirmed across the project root). Every "Reusable" system named in each plan was actually
+extended, not duplicated (`search_contact` reused via `idProperty` upsert rather than a second lookup
+path being the clearest instance, per `.claude/portfolio-reference.md`'s Key Decisions). Every approved
+Architecture Rule Change is already reflected in `.claude/portfolio-reference.md`'s Key Decisions
+section.
+
+**Cross-feature interaction review (Step 4.5):** Every `.claude/execution-log.md` entry (Features
+01-08) has a corresponding clean `.claude/validation-results.md` entry — no change went in without
+passing its own validation loop. No interaction bugs found: the full backend suite (111 tests) already
+exercises all 8 features together on every run, and this step's live smoke test additionally drove a
+real end-to-end sequence spanning intake → classification → enrichment → CRM write → human review →
+resume → notification → observability view, across all three intake channels, both the high- and
+low-confidence routing paths, and the approve-resume flow — the deepest cross-feature exercise this
+project has had. No conflicts found between individually-clean changes.
+
+**Verdict: PASS** — all 8 Tier 1 features are implementation-complete and verified working end-to-end
+against the real orchestrator, real local Ollama model, and real (empty-token) HubSpot sandbox
+failure path. Application starts cleanly on both frontend and backend, every Tier 1 workflow's primary
+path functions, tests pass, and no acceptance-criterion-covered feature is broken. One pre-existing,
+out-of-scope UI gap found and logged (RB-002) rather than gating this verdict. Ready for Step 8
+(Viewport-First Refactor).

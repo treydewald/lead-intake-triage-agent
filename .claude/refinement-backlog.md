@@ -50,3 +50,35 @@ renumber.]
   reruns passed (previously ~2/5 failed), full backend suite 111/111 passed (no regressions from the
   fixture change). No production code touched — `backend/app/routers/notifications.py`'s query is
   unchanged.
+
+### RB-002 — Dead "Review Queue" nav item renders a blank page
+- **Status:** OPEN
+- **Dimension:** In-App Cohesion (`docs/in-app-cohesion.md`) / Feature Signaling
+- **Priority:** P3
+- **Discovered:** Step 7 (Implementation Verification), 2026-09-04, during the mandatory "can navigate
+  all main routes" / "no obvious broken states" scan — not a Continual Refinement round, logged here
+  per the same backlog mechanism as RB-001.
+- **Finding:** `frontend/src/components/Layout.tsx`'s sidebar has always shipped a "Review Queue" nav
+  item (`to: '/review'`) since Step 4's bootstrap scaffold. No route named `review` has ever been
+  registered in `frontend/src/App.tsx` (only `leads` and `leads/:leadId`, added by Feature 08). Since
+  the parent `<Routes>` has no matching child and no catch-all route, navigating to `/review` renders a
+  completely blank page — not even the sidebar/Layout persists, no error message, no 404 state.
+  Confirmed live via Playwright: `document.body.innerText` is empty string at that URL.
+- **Rationale / Evidence:** Not a regression from any specific feature — `architecture-plan-
+  feature-08.md`'s own Actual Footprint section already names this explicitly ("`Layout.tsx`'s 'Review
+  Queue' nav item were deliberately left as-is (not in `owned_files`)"), and `.claude/pipeline-
+  reference.md` has separately tracked the underlying gap since Feature 08 ("no feature anywhere in
+  the 14-feature roadmap builds a frontend for the existing `GET /reviews`/`POST /reviews/{run_id}/
+  action` routes"). Step 7 is the first verification pass to actually click the link and confirm the
+  concrete failure mode (silent blank page, not merely "unbuilt"). The backend routes themselves work
+  correctly — verified live this session: `GET /reviews`, `GET /reviews/{run_id}`, and `POST /reviews/
+  {run_id}/action` (approve) all functioned correctly against a real queued review, resuming the run
+  through `crm_write`/`notify` with one `PipelineRun` row and appended `StageTrace` rows, exactly as
+  Feature 06's tests already assert.
+- **Routes to:** A product decision, not something Step 7 should make unilaterally — either (a) a
+  small, scoped Step 6-style fix removing the dead nav item until a real destination exists, or (b) a
+  Scope Expansion / explicit Suggestion round to build a Review Queue frontend page against the
+  already-working backend routes (this is the more valuable fix — the backend has supported this
+  entire workflow since Feature 06). Surface at the next idle-session Dynamic Next-Action Selection
+  (`docs/next-action-selection.md`) or the next In-App Cohesion Audit, whichever comes first.
+- **Implementation notes:** _(pending)_

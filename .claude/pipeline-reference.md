@@ -1,6 +1,6 @@
 # Pipeline Reference — Lead Intake Triage Agent
 
-**Last Updated:** 2026-09-04 (RB-001 backlog fix session)
+**Last Updated:** 2026-09-04 (Step 7 — Implementation Verification, Gate 2, PASSED)
 
 How *this project* is using the Upwork Portfolio Project Pipeline. Distinct from
 `portfolio-reference.md`, which is about the product — this file is about pipeline state.
@@ -12,7 +12,17 @@ How *this project* is using the Upwork Portfolio Project Pipeline. Distinct from
 **Project Mode:** STANDARD (Intent: PORTFOLIO, Lifetime: MEDIUM, Scale: MEDIUM, Optimization
 Objective: PORTFOLIO_SIGNAL — see `docs/project-strategy.md`). Steps 10-16 are MANDATORY this cycle.
 
-**Step:** Step 6: Worker Pool Orchestrator — Group_F08 (Feature 08, Observability / Monitoring View)
+**Step:** Step 7 (Implementation Verification, Gate 2) COMPLETED this session — **verdict PASS**. All
+8 Tier 1 features spot-checked live end-to-end (both servers started, all 3 intake channels exercised,
+high/low-confidence routing, approve-resume flow, notifications, observability list/detail/404), full
+test suite re-confirmed (111 backend + 3 frontend, unchanged), build/lint clean, no test coverage tool
+configured (recorded, not gating), cross-feature interaction review clean, no architectural deviations
+found beyond what was already recorded in each `architecture-plan-feature-0{1..8}.md`'s Actual
+Footprint section. **One pre-existing, non-gating gap found and logged:** the sidebar's "Review Queue"
+nav item (`/review`) has no matching frontend route and renders a blank page — not a Tier 1 acceptance
+criterion, backend `/reviews` endpoints all verified working; logged as `.claude/refinement-
+backlog.md`'s RB-002 (OPEN). Full detail: `.claude/validation-results.md`'s Step 7 entry. Prior to
+this: Step 6 Worker Pool Orchestrator — Group_F08 (Feature 08, Observability / Monitoring View)
 COMPLETED this session, built against `architecture-plan-feature-08.md`'s 8-step Implementation
 Order. Added `PipelineRun.source_channel`/`.confidence_score` (denormalized, migration
 `9217c457cc82`), exported `graph.py`'s `STAGE_ORDER`, new `GET /leads`/`GET /leads/{lead_id}`
@@ -35,10 +45,11 @@ has not yet run against any completed feature, including this one.
 **Completed steps:** 1 (Project Advisor), 2 (Roadmap Architect), 3 (Feature Specification Engine), 4
 (Environment Bootstrap), 5.5 (Implementation Planner — Feature 01 through Feature 08; re-entered per
 feature group, see `docs/implementation-planning.md` §16), 6 (Worker Pool Orchestrator — Group_F01
-through Group_F08 all COMPLETED — all 8 Tier 1 features implemented end-to-end).
+through Group_F08 all COMPLETED — all 8 Tier 1 features implemented end-to-end), 7 (Implementation
+Verification — Gate 2 — PASSED).
 
-**Gates passed:** None yet — Gate 2 (Step 7, implementation verification) and Gate 1 (Step 13,
-portfolio score ≥9.0/10) are both ahead. Step 7 has not yet run against any completed feature.
+**Gates passed:** Gate 2 (Step 7, implementation verification) — PASSED, 2026-09-04. Gate 1 (Step 13,
+portfolio score ≥9.0/10, per `docs/premium-ui-standard.md`) is still ahead.
 
 **`.claude/` scaffold status:** Current — full-tier scaffold copied from pipeline templates on
 2026-09-04. See `PIPELINE-SYNC.md`.
@@ -51,22 +62,22 @@ Tier section, STANDARD mode with Tier 2/3 features present falls back to full ti
 
 ## Next Step
 
-**Step 7: Implementation Verification (Gate 2)** — all 8 Tier 1 features are now COMPLETED, and Step 7
-has not run against any of them yet. Per the pipeline's standard sequence, this is the natural point to
-run it before continuing into Tier 2, checking the full Tier 1 implementation (not just each feature's
-own inline test-based validation from its Step 6 round) against its architecture plans and specs.
+**Step 6 (Worker Pool Orchestrator), Tier 2** — Gate 2 passed, so Tier 2 feature groups are now clear
+to start. Dependency-satisfiable and ready: Group_F09 (Feature 09, Classification Accuracy Benchmark
+Report, `depends_on: [Group_F03]`), Group_F10 (Feature 10, External Notification Delivery,
+`depends_on: [Group_F07]`), Group_F11 (Feature 11, Per-Lead Audit/History Trail UI, `depends_on:
+[Group_F08, Group_F06]`). Each needs its own Step 5.5 (Implementation Planner) pass first, per this
+project's established per-feature-group pattern. Group_F13 (Feature 13, Tier 3) is
+dependency-satisfiable but lower priority. Group_F14 (Feature 14) remains CLAIMABLE-but-deferred
+(Tier 3, visibility only).
 
-**Also available, not yet started:** Group_F09 (Feature 09, Classification Accuracy Benchmark Report,
-`depends_on: [Group_F03]`, completed) and Group_F10 (Feature 10, External Notification Delivery,
-`depends_on: [Group_F07]`, completed) are both dependency-satisfiable Tier 2 items. Group_F11 (Feature
-11, Per-Lead Audit/History Trail UI) is now also dependency-satisfiable (`depends_on: [Group_F08,
-Group_F06]` — both completed as of this session). Group_F13 (Feature 13, Tier 3) is dependency-
-satisfiable but lower priority. Group_F14 (Feature 14) remains CLAIMABLE-but-deferred as previously
-noted (Tier 3, visibility only). None of these should be started ahead of Step 7 per the pipeline's
-own sequence, absent an explicit Suggestion to the contrary.
+**Also available:** `.claude/refinement-backlog.md`'s RB-002 (dead "Review Queue" nav item, OPEN,
+P3) — this session's Step 7 finding. Per its own "Routes to" note, it's a product decision (remove the
+dead link vs. build the Review Queue frontend via Scope Expansion/Suggestion) rather than a mechanical
+fix, so it wasn't auto-routed anywhere this session. Surface it the next time a Suggestion is being
+picked, or at the next Dynamic Next-Action Selection / In-App Cohesion Audit.
 
-**RB-001 resolved this session** (see `.claude/refinement-backlog.md`) — no longer outstanding. Step 7
-is the sole next action.
+RB-001 remains COMPLETED (resolved last session) — no longer outstanding.
 
 Step 5 (Workspace Recovery) does not apply — this is a fresh bootstrap, not a recovery.
 
