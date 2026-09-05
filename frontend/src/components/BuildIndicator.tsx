@@ -6,7 +6,10 @@ function formatBuildTime(iso: string): string {
 
 export function BuildIndicator() {
   return (
-    <div className="pointer-events-none fixed bottom-2 right-3 z-50 select-none text-[11px] text-slate-400 dark:text-slate-600">
+    <div
+      aria-hidden="true"
+      className="pointer-events-none fixed bottom-2 right-3 z-50 select-none text-[11px] text-slate-500 dark:text-slate-400"
+    >
       Updated: {formatBuildTime(__BUILD_TIME__)}
     </div>
   )

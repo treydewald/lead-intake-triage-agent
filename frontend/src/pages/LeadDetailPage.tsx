@@ -88,19 +88,19 @@ export function LeadDetailPage() {
 
       <dl className="grid grid-cols-2 gap-2.5 rounded-lg border border-slate-200 bg-white p-2.5 text-sm sm:grid-cols-4">
         <div>
-          <dt className="text-slate-400">Source</dt>
+          <dt className="text-slate-500">Source</dt>
           <dd>{lead.source_channel ?? '—'}</dd>
         </div>
         <div>
-          <dt className="text-slate-400">Confidence</dt>
+          <dt className="text-slate-500">Confidence</dt>
           <dd>{lead.confidence_score != null ? lead.confidence_score.toFixed(2) : '—'}</dd>
         </div>
         <div>
-          <dt className="text-slate-400">Created</dt>
+          <dt className="text-slate-500">Created</dt>
           <dd>{new Date(lead.created_at).toLocaleString()}</dd>
         </div>
         <div>
-          <dt className="text-slate-400">Updated</dt>
+          <dt className="text-slate-500">Updated</dt>
           <dd>{new Date(lead.updated_at).toLocaleString()}</dd>
         </div>
       </dl>
@@ -128,7 +128,7 @@ export function LeadDetailPage() {
             <div key={key} className={`rounded-lg border p-2.5 ${STAGE_STATUS_CLASSES[status]}`}>
               <div className="flex items-center justify-between">
                 <h2 className="font-medium">{label}</h2>
-                <span className="text-xs font-medium uppercase tracking-wide text-slate-500">
+                <span className="text-xs font-medium uppercase tracking-wide text-slate-600">
                   {STAGE_STATUS_LABELS[status]}
                 </span>
               </div>

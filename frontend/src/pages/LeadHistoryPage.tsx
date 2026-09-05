@@ -22,7 +22,7 @@ function TimelineRow({ entry }: { entry: TimelineEntry }) {
             ? (REVIEW_ACTION_LABELS[entry.reviewer_action ?? ''] ?? entry.reviewer_action)
             : entry.stage_label}
         </h2>
-        <span className="text-xs text-slate-400">{new Date(entry.created_at).toLocaleString()}</span>
+        <span className="text-xs text-slate-500">{new Date(entry.created_at).toLocaleString()}</span>
       </div>
       {!isReviewAction && (
         <span className="text-xs font-medium uppercase tracking-wide text-slate-500">{entry.status}</span>

@@ -104,15 +104,15 @@ export function ReviewDetailPage() {
 
       <dl className="grid grid-cols-2 gap-4 rounded-lg border border-slate-200 bg-white p-4 text-sm sm:grid-cols-3">
         <div>
-          <dt className="text-slate-400">Draft classification</dt>
+          <dt className="text-slate-500">Draft classification</dt>
           <dd>{item.draft_intent_label ?? '—'}</dd>
         </div>
         <div>
-          <dt className="text-slate-400">Confidence</dt>
+          <dt className="text-slate-500">Confidence</dt>
           <dd>{item.confidence_score != null ? item.confidence_score.toFixed(2) : '—'}</dd>
         </div>
         <div>
-          <dt className="text-slate-400">Queued</dt>
+          <dt className="text-slate-500">Queued</dt>
           <dd>{new Date(item.created_at).toLocaleString()}</dd>
         </div>
       </dl>
