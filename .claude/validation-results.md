@@ -319,3 +319,24 @@ against this feature's PASS result; logged to `.claude/refinement-backlog.md` (R
    list/detail response regardless of outcome (auto-processed, awaiting-review, failed)
 8. No stage's `run()`/`allowed_tools`/tool-scoping code touched — grep-verified the diff touches no
    file under `app/orchestrator/stages/`
+
+---
+
+## 2026-09-04 — RB-001 fix (flaky notification-ordering test)
+
+**Checks run:** `pytest app/tests/test_router_notifications.py::test_list_notifications_returns_newest_first`
+run in isolation 5x, then full backend suite (`pytest app/tests/`).
+
+**Root cause confirmed:** `Notification.created_at` defaults from wall-clock time
+(`app/models/notification.py`); the test's two seeded rows, committed back-to-back, could land on
+the same or out-of-order timestamp at this platform's clock resolution, making the `ORDER BY
+created_at DESC` result nondeterministic.
+
+**Fix applied:** `test_router_notifications.py`'s `_seed_run_and_notifications` now sets explicit,
+strictly increasing `created_at` values (1s apart) on the two seeded `Notification` rows instead of
+relying on wall-clock ordering. Chose this over the entry's other named option (`ORDER BY
+created_at DESC, id DESC`) because `Notification.id` is a random UUID, not sequential — an id
+tiebreaker would not reflect insertion order. No production code changed.
+
+**Result:** PASS — 5/5 isolated reruns passed (previously ~2/5 failed); full suite 111/111 passed, no
+regressions.

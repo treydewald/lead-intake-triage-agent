@@ -19,7 +19,7 @@ it's found, not only the findings that round implements.
 renumber.]
 
 ### RB-001 — Flaky notification-ordering test
-- **Status:** OPEN
+- **Status:** COMPLETED
 - **Dimension:** 6 (Testing/Reliability, per `docs/continual-refinement.md`'s Eight Dimensions)
 - **Priority:** P3
 - **Discovered:** Step 6 (Group_F08, Feature 08), 2026-09-04 — not a Continual Refinement round, but
@@ -39,4 +39,14 @@ renumber.]
   strictly increasing timestamps to the two seeded notifications instead of relying on wall-clock
   ordering) — per `docs/continual-refinement.md`'s routing table for a contained, single-file
   correctness fix.
-- **Implementation notes:** (blank — not yet actioned)
+- **Implementation notes:** Fixed 2026-09-04, no Suggestion queued this session (Master Prompt Step 2
+  routes an OPEN backlog entry ahead of idle-branch selection when no Suggestion is given). Chose the
+  test-fixture option from the two named in this entry's "Routes to" (not the `ORDER BY ..., id DESC`
+  DB tiebreaker) — `Notification.id` is a random UUID (`backend/app/models/notification.py`), so
+  ordering by it would not actually produce a stable insertion-order tiebreak. Instead
+  `backend/app/tests/test_router_notifications.py`'s `_seed_run_and_notifications` now assigns
+  explicit, strictly increasing `created_at` timestamps (1s apart) to the two seeded notifications
+  instead of relying on wall-clock ordering between two back-to-back commits. Verified: 5/5 isolated
+  reruns passed (previously ~2/5 failed), full backend suite 111/111 passed (no regressions from the
+  fixture change). No production code touched — `backend/app/routers/notifications.py`'s query is
+  unchanged.

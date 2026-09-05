@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from datetime import datetime, timedelta, timezone
+
 import pytest
 
 from app.models.notification import Notification
@@ -17,6 +19,12 @@ def _override_session_factory(db_session_factory):
 
 
 def _seed_run_and_notifications(db_session_factory) -> str:
+    # RB-001: two notifications committed back-to-back can land on the same (or
+    # out-of-order) `created_at` at this platform's clock resolution, since
+    # `Notification.created_at` defaults from wall-clock time. Assign explicit,
+    # strictly increasing timestamps here so ordering is deterministic regardless
+    # of how fast the two commits actually execute.
+    base = datetime(2026, 1, 1, tzinfo=timezone.utc)
     db = db_session_factory()
     try:
         run = PipelineRun(lead_id="lead-1", status=RunStatus.COMPLETED.value)
@@ -31,6 +39,7 @@ def _seed_run_and_notifications(db_session_factory) -> str:
                 outcome_type="awaiting_review",
                 message="Lead Jane Doe is awaiting human review.",
                 detail_link=f"/reviews/{run.id}",
+                created_at=base,
             )
         )
         db.commit()
@@ -41,6 +50,7 @@ def _seed_run_and_notifications(db_session_factory) -> str:
                 outcome_type="auto_processed",
                 message="Lead Jane Doe was auto-processed and written to CRM.",
                 detail_link="/leads/lead-1",
+                created_at=base + timedelta(seconds=1),
             )
         )
         db.commit()

@@ -1,6 +1,6 @@
 # Pipeline Reference — Lead Intake Triage Agent
 
-**Last Updated:** 2026-09-04 (Step 6, Group_F08 session)
+**Last Updated:** 2026-09-04 (RB-001 backlog fix session)
 
 How *this project* is using the Upwork Portfolio Project Pipeline. Distinct from
 `portfolio-reference.md`, which is about the product — this file is about pipeline state.
@@ -65,9 +65,8 @@ satisfiable but lower priority. Group_F14 (Feature 14) remains CLAIMABLE-but-def
 noted (Tier 3, visibility only). None of these should be started ahead of Step 7 per the pipeline's
 own sequence, absent an explicit Suggestion to the contrary.
 
-**Also outstanding:** `.claude/refinement-backlog.md`'s RB-001 (flaky `test_router_notifications.py`
-test) — a small, contained fix, independent of Step 7/Tier 2 sequencing, that could be picked up in
-any session.
+**RB-001 resolved this session** (see `.claude/refinement-backlog.md`) — no longer outstanding. Step 7
+is the sole next action.
 
 Step 5 (Workspace Recovery) does not apply — this is a fresh bootstrap, not a recovery.
 
