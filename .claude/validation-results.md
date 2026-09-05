@@ -676,3 +676,71 @@ Verdict: Application is implementation-complete and ready for Step 8 (Viewport O
 Tier 1 + Tier 2 (Features 09-11) all verified. Feature 15 (CD round) already has its own CD-4
 verification and does not need a separate Gate 2 pass.
 ```
+
+---
+
+## 2026-09-05 — Step 9 (Unified QA & Repair)
+
+**Checks run:** Full black-box discovery + realistic interaction testing across all 7 routes via
+Playwright (`playwright-core`, since `playwright`'s top-level package was pruned as extraneous by an
+`npm install` this session — `playwright-core` alone launches Chromium fine, no functional loss),
+against the real backend/SQLite DB and real local `llama3.2:3b`, not mocks. Plus Step 9.5's automated
+scans: `npm audit` (frontend), `pip-audit` (backend), and an `@axe-core/playwright` accessibility scan
+across all 6 primary pages. Full detail and every defect: `qa-report.md` (project root).
+
+**Result:** 4 confirmed defects (2 functional: High severity each; 2 accessibility: 1 Critical, 1
+Serious, both systemic across multiple files) — all fixed and live-re-verified this session. 1
+dependency-audit finding (19 known vulnerabilities, all assessed Moderate for this project's actual
+configuration via OSV.dev CVSS lookups on the two worst-sounding ones) logged to `qa-report.md`'s
+Remaining Issues, not fixed (would require major-version upgrades of `langgraph`/`langchain-core`/
+`starlette` — a compatibility-verification task of its own, out of scope for a same-session QA pass).
+
+**Fixes applied (see `qa-report.md` for full root-cause detail on each):**
+- QA-1 (High): `backend/app/orchestrator/tools/hubspot_tools.py` — added `_require_token()`, called
+  from `search_contact`/`write_contact`, so an unconfigured `HUBSPOT_ACCESS_TOKEN` raises a clear
+  `HubSpotWriteError` instead of leaking `httpx.LocalProtocolError`'s raw "Illegal header value
+  b'Bearer '" into the pipeline run's FAILED status/notification text. Affected 21/25 (84%) of seeded
+  runs. 2 new tests in `test_orchestrator_tools.py`.
+- QA-2 (High): `frontend/src/App.tsx` + new `frontend/src/pages/NotFoundPage.tsx` — added a catch-all
+  `<Route path="*">` inside the `Layout` route; any unmatched URL previously rendered a fully blank
+  page (no sidebar, empty `document.body.innerText`).
+- QA-3 (Medium): `frontend/src/pages/LeadListPage.tsx` — refactored filter/sort/page state from local
+  `useState` to `useSearchParams`, so browser Back/Forward preserves filters (previously reset silently
+  on navigating to a lead and back).
+- QA-4 (Critical, accessibility): added `aria-label` to `LeadListPage.tsx`'s 3 filter `<select>`s
+  (axe-core `select-name` violation — no accessible name on any of them).
+- QA-5 (Serious, accessibility): replaced all 11 `text-slate-400` occurrences (app-wide muted-label
+  color, 2.51-2.63:1 contrast against white) with `text-slate-500` (~4.6:1) across 7 files; bumped one
+  additional near-miss (stage-status badge on red background, 4.35:1) to `text-slate-600`.
+- QA-6 (Moderate, accessibility): `frontend/src/components/BuildIndicator.tsx` — added
+  `aria-hidden="true"` to the decorative build-timestamp watermark (axe-core `region` violation: content
+  outside any landmark; correct fix for non-essential decorative content is hiding it, not landmarking
+  it).
+
+**Re-verify result:** PASS —
+- Backend: 138/138 passed (136 baseline + 2 new)
+- Frontend: 15/15 passed (unchanged), `npm run build` clean, `npm run lint` clean except 5 pre-existing
+  `react(set-state-in-effect)` warnings confirmed via `git stash` comparison to predate this session
+  (logged to `qa-report.md`'s Remaining Issues as Low, not fixed — a broader style change outside
+  contained-defect scope)
+- axe-core: 0 violations of any severity across all 6 primary pages (started at 1 critical + 1 serious
+  + 1 moderate per page)
+- Step 8's no-scroll invariant re-checked: 0 overflow across all 7 original routes × 4 viewports
+  (1920×1080/1440×900/1366×768/390×844) = 28 combinations, plus the new not-found route and the
+  filtered-URL case at tablet (768×1024) and mobile — no regression from any fix
+- Live end-to-end regression check: Approve and Reject actions on the two real pending review items
+  both completed correctly through the full `human_review`→`crm_write`(fails cleanly with the QA-1
+  fix's message)→`outcome_notification` resume path, including the already-actioned 409 conflict
+  check — confirms QA-2's routing change introduced no regression in the Tier 1 review workflow
+
+**Acceptance criteria coverage:** N/A (Step 9 is a cross-cutting QA pass, not tied to one feature's
+spec) — see `qa-report.md`'s Tested Workflows section for full per-page coverage.
+
+**Note on live test data:** both `AWAITING_REVIEW` review-queue items present at session start were
+consumed by the live Approve/Reject verification above (one approved, one rejected) — Step 10 will need
+to seed a fresh pending item. Two `FAILED` test leads were created live via `/leads/webform` to verify
+QA-1's fix and left in place (no delete-lead API exists to remove them safely). Full detail:
+`qa-report.md`'s Final Verdict note.
+
+Verdict: Application QA-complete, all functional and accessibility defects found this session fixed and
+regression-verified. Ready for Step 10 (Screenshot Capture).

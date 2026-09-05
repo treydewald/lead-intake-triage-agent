@@ -1,8 +1,7 @@
 # Pipeline Reference — Lead Intake Triage Agent
 
-**Last Updated:** 2026-09-05 (Step 8, Viewport-First Refactor, COMPLETED — see Current Step. Prior:
-Step 7 Gate 2 re-pass COMPLETED — Features 09/10/11 batch-verified, verdict PASS;
-`architecture-plan-feature-10.md`'s missing Actual Footprint section fixed)
+**Last Updated:** 2026-09-05 (Step 9, Unified QA & Repair, COMPLETED — see Current Step. Prior:
+Step 8 Viewport-First Refactor COMPLETED — see below)
 
 How *this project* is using the Upwork Portfolio Project Pipeline. Distinct from
 `portfolio-reference.md`, which is about the product — this file is about pipeline state.
@@ -11,7 +10,53 @@ How *this project* is using the Upwork Portfolio Project Pipeline. Distinct from
 
 ## Current Step
 
-**This session (2026-09-05, eighth session same day):** No Suggestion was given, the refinement backlog
+**This session (2026-09-05, ninth session same day):** Ran Step 9 (Unified QA & Repair) — the
+unconditional next step per `docs/decision-trees.md` once Step 8's Quality Checkpoint passed. Full
+black-box discovery and realistic interaction testing across all 7 routes via Playwright (using
+`playwright-core` directly — `npm install`'s dependency resolution during this session pruned the
+top-level `playwright` package as extraneous, since it was never a declared `package.json` dependency
+per Step 8's own note; `playwright-core` alone launches Chromium fine, no capability lost), against the
+real backend/SQLite DB and real local `llama3.2:3b`, plus Step 9.5's automated scans (`npm audit`,
+`pip-audit`, `@axe-core/playwright`).
+
+**Found and fixed 4 confirmed defects, all live-re-verified with no regressions:**
+1. **(High)** An empty `HUBSPOT_ACCESS_TOKEN` produced an `Authorization: Bearer ` header ending in
+   whitespace, which httpx/h11 rejects at send-time as `httpx.LocalProtocolError` — a transport
+   exception never caught by `write_contact`'s `except httpx.HTTPStatusError`, so it leaked its raw
+   internal message ("Illegal header value b'Bearer '") into 21 of 25 seeded pipeline runs' FAILED
+   status and notification text. Fixed with a `_require_token()` check in
+   `backend/app/orchestrator/tools/hubspot_tools.py` raising a clear `HubSpotWriteError` instead —
+   preserves Feature 05's existing "halt the run on write failure" architecture decision, only the
+   message quality changed.
+2. **(High)** No catch-all route existed in `frontend/src/App.tsx` — any unmatched URL rendered a
+   completely blank page (not even the sidebar). Fixed with a new `NotFoundPage.tsx` and
+   `<Route path="*">` inside the `Layout` route.
+3. **(Medium)** `LeadListPage.tsx`'s filters/sort/page lived in local `useState`, so browser
+   back-navigation after opening a lead silently reset them. Fixed by moving state into
+   `useSearchParams`.
+4. **(Critical + Serious, accessibility)** `@axe-core/playwright` found a `select-name` violation
+   (LeadListPage's 3 filter selects had no accessible name) and a `color-contrast` violation present on
+   every page (the app-wide muted-label color `text-slate-400` measured 2.51-2.63:1 against white,
+   under WCAG AA's 4.5:1). Fixed with `aria-label`s on the selects and a systemic `text-slate-400` →
+   `text-slate-500` replacement across 7 files (plus one `text-slate-600` fix for a near-miss on a red
+   background, and `aria-hidden="true"` on a decorative watermark that also cleared a moderate `region`
+   violation). **axe-core now reports 0 violations of any severity across all 6 primary pages.**
+
+One dependency-audit finding (19 known vulnerabilities across 6 transitive backend packages via
+`pip-audit`) was investigated (real CVSS/exploit-condition lookups via OSV.dev on the two
+worst-sounding ones, both landing at Medium/6.5-6.6 and requiring conditions this project doesn't
+have — no custom LangGraph cache backend, no Host-header-based routing logic) and logged as Moderate in
+`qa-report.md` rather than fixed — a same-session blind major-version bump across
+`langgraph`/`langchain-core`/`starlette` would itself need its own compatibility-verification pass.
+
+Re-verified after all fixes: 138/138 backend tests (136 baseline + 2 new), 15/15 frontend tests
+(unchanged), `npm run build`/`npm audit` clean, and Step 8's no-scroll invariant re-confirmed across all
+28 route×viewport combinations plus the new not-found route (0 regressions). Live end-to-end regression
+check: Approve and Reject on the two real pending review items both completed correctly through the
+full resume path, confirming the App.tsx routing change introduced no Tier 1 regression. Full detail:
+`qa-report.md` (project root); `.claude/validation-results.md`'s 2026-09-05 Step 9 entry.
+
+Prior to this (eighth session same day): No Suggestion was given, the refinement backlog
 was empty, and both Gate 2 passes were done — the prior session's own Next Step note framed this as
 idle and recommended Dynamic Next-Action Selection (`docs/next-action-selection.md`). That was a
 misapplication of the idle branch: `docs/scope-expansion.md` §4's idle definition requires "no further
@@ -225,7 +270,8 @@ Orchestrator — Group_F01 through Group_F11 all COMPLETED — all 8 Tier 1 feat
 Feature 10, and Feature 11 [Tier 2] implemented end-to-end), 7 (Implementation Verification — Gate 2 —
 PASSED twice: 2026-09-04 against Tier 1, 2026-09-05 against Features 09/10/11), Continued Development
 Round 1 (CD-1 through CD-4 — Feature 15, Review Queue Frontend UI, COMPLETED and verified), 8
-(Viewport-First Refactor, COMPLETED 2026-09-05 — see Current Step).
+(Viewport-First Refactor, COMPLETED 2026-09-05), 9 (Unified QA & Repair, COMPLETED 2026-09-05 — see
+Current Step).
 
 **Gates passed:** Gate 2 (Step 7, implementation verification) — PASSED, 2026-09-04 (Tier 1) and
 2026-09-05 (Features 09/10/11 batch). Gate 1 (Step 13, portfolio score ≥9.0/10, per
@@ -242,12 +288,19 @@ Tier section, STANDARD mode with Tier 2/3 features present falls back to full ti
 
 ## Next Step
 
-**This session (2026-09-05, eighth session same day):** Step 8 (Viewport-First Refactor) COMPLETED — see
-Current Step above for full detail. **Next Step is Step 9 (Unified QA & Repair)**, unconditional per
-`docs/decision-trees.md` now that Step 8's Quality Checkpoint has passed (all pages viewport-ready or
-documented exception, functionality preserved, tests passing at Step 7's baseline count). Step 9 should
-re-verify the no-scroll constraint on any page its own repairs touch (per `docs/ui-design-standards.md`
-§1) rather than treating Step 8's work as a one-time deliverable.
+**This session (2026-09-05, ninth session same day):** Step 9 (Unified QA & Repair) COMPLETED — see
+Current Step above for full detail. **Next Step is Step 10 (Screenshot Capture)**, unconditional per
+`docs/decision-trees.md`/`docs/project-strategy.md` (Steps 10-16 MANDATORY this cycle, Step 9's Quality
+Checkpoint passed: all discovered defects fixed, no critical/high remaining, responsive/accessibility
+validation complete, QA report generated). Step 10 should seed at least one fresh `AWAITING_REVIEW`
+review-queue item before capturing Review Queue screenshots — both real pending items were consumed by
+this session's live Approve/Reject verification (see `qa-report.md`'s Final Verdict note). Per
+`prompts/10_screenshot-capture.md`, this is also the step that persists `.claude/seed-data.md` (still an
+unfilled template) and scaffolds a reusable capture script into `.claude/skills/` for the first time on
+this project.
+
+Prior to this (eighth session same day): Step 8 (Viewport-First Refactor) COMPLETED — see
+"Prior to this" below for full detail.
 
 Note for future sessions: the idle-branch (`docs/next-action-selection.md`) does not apply to a project
 that hasn't yet run its own mandatory Steps 8-16 — check `docs/decision-trees.md`'s actual routing
