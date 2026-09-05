@@ -1,8 +1,7 @@
 # Pipeline Reference — Lead Intake Triage Agent
 
-**Last Updated:** 2026-09-05 (Step 6 — Worker Pool Orchestrator, Group_F11 COMPLETED: Feature 11,
-Per-Lead Audit/History Trail UI, built against `architecture-plan-feature-11.md`'s 6-step
-Implementation Order and fully verified)
+**Last Updated:** 2026-09-05 (Refinement backlog RB-005 COMPLETED — stale `App.test.tsx` assertion
+fixed; backlog now empty)
 
 How *this project* is using the Upwork Portfolio Project Pipeline. Distinct from
 `portfolio-reference.md`, which is about the product — this file is about pipeline state.
@@ -32,7 +31,8 @@ verification above plus 14 jsdom/RTL component-render tests. Recorded honestly, 
 `architecture-plan-feature-11.md`'s Actual Footprint. One pre-existing, unrelated test failure found
 (`src/App.test.tsx` asserts `HomePage.tsx`'s pre-RB-004 placeholder text, broken since that same-day
 RB-004 fix) — confirmed via `git stash` to predate this session, outside Group_F11's `owned_files`,
-logged as `.claude/refinement-backlog.md`'s RB-005 (OPEN) rather than fixed here.
+logged as `.claude/refinement-backlog.md`'s RB-005 rather than fixed here — resolved the following
+session (see below).
 `implementation_plan.md` marks Feature 11 `COMPLETED`, Group_F11 `COMPLETED`.
 
 Prior to this (fourth session same day): No Suggestion was given; the refinement backlog
@@ -178,8 +178,20 @@ Tier section, STANDARD mode with Tier 2/3 features present falls back to full ti
 
 ## Next Step
 
-**Feature 11 is now COMPLETED** (Group_F11, this session's Step 6 run) — `implementation_plan.md`
+**Feature 11 is now COMPLETED** (Group_F11, prior session's Step 6 run) — `implementation_plan.md`
 marks both Feature 11 and Group_F11 `COMPLETED`.
+
+**This session (2026-09-05, sixth session same day):** No Suggestion was given; the refinement backlog
+had exactly one `OPEN` entry (RB-005), so per Master Prompt Step 2 it was picked up directly ahead of
+idle-branch Dynamic Next-Action Selection. Verified the finding first (v18.0 verify-before-committing
+check): re-confirmed `frontend/src/App.test.tsx` still asserted the removed "Observability view"
+placeholder and still failed (`npm test -- --run src/App.test.tsx`) before editing. Rewrote the test to
+assert against `HomePage.tsx`'s real post-RB-004 content — heading text plus the three linked cards to
+`/leads`/`/reviews`/`/benchmark` — scoping all queries to `within(screen.getByRole('main'))` to
+disambiguate from `Layout.tsx`'s sidebar, which independently renders the same "Lead Intake Triage"
+title and the same three nav labels. Verified: full frontend suite 15/15 passed (was 14/15); full
+backend suite unaffected at 136/136. `.claude/refinement-backlog.md`'s RB-005 marked `COMPLETED` with
+implementation notes. No architecture, backend, or production frontend code touched — test file only.
 
 Paths available next session:
 - **A Gate 2 (Step 7) re-pass covering Feature 09, Feature 10, and Feature 11** — the last full Gate 2
@@ -189,13 +201,11 @@ Paths available next session:
   own CD-4 verification recorded in `architecture-plan-feature-15.md` and does not need a separate
   Gate 2 pass. This is now the strongest candidate — three Tier 2 features have accumulated without a
   batch Gate 2 pass.
-- **`.claude/refinement-backlog.md`'s RB-005 is OPEN** — a contained, single-file fix to
-  `frontend/src/App.test.tsx`'s stale assertion (see that entry's "Routes to"). Per Master Prompt
-  Step 2, an OPEN backlog entry routes ahead of idle-branch selection when no Suggestion is given.
-- With no Suggestion given and RB-005 the only OPEN backlog entry, the next idle session should still
-  weigh `docs/next-action-selection.md`'s Dynamic Next-Action Selection against picking up RB-005 first
-  — this project has landed several backend/frontend features across recent Step 6 and CD rounds with
-  no full In-App Cohesion Audit or UI Audit & Refinement pass since Step 7's Tier-1-only Gate 2 run.
+- **The refinement backlog is now empty** (RB-001 through RB-005 all `COMPLETED`) — the next idle
+  session (no Suggestion, no OPEN backlog entry) should run `docs/next-action-selection.md`'s Dynamic
+  Next-Action Selection rather than defaulting to Scope Expansion. This project has landed several
+  backend/frontend features across recent Step 6 and CD rounds with no full In-App Cohesion Audit or UI
+  Audit & Refinement pass since Step 7's Tier-1-only Gate 2 run — likely candidates for that selection.
 - Group_F13 (Feature 13, Tier 3) is also dependency-satisfiable but lower priority; Group_F14
   (Feature 14) remains CLAIMABLE-but-deferred (Tier 3, visibility only).
 

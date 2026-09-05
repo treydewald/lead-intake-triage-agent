@@ -183,7 +183,7 @@ renumber.]
   RB-005 rather than fixed here, since `App.test.tsx` was outside RB-004's own scope/owned files.
 
 ### RB-005 — `App.test.tsx` asserts stale HomePage placeholder text, fails since RB-004
-- **Status:** OPEN
+- **Status:** COMPLETED
 - **Dimension:** 6 (Testing/Reliability, per `docs/continual-refinement.md`'s Eight Dimensions)
 - **Priority:** P3
 - **Discovered:** Step 6 (Group_F11, Feature 11), 2026-09-05 — not a Continual Refinement round, but
@@ -202,4 +202,17 @@ renumber.]
   ideally its test name) to match `HomePage.tsx`'s current real landing-page copy from RB-004 (title,
   summary, and the three linked cards). Per `docs/continual-refinement.md`'s routing table this is a
   contained correctness fix, the same class of fix RB-001 used — doesn't need a fresh Step 5.5 plan.
-- **Implementation notes:** [pending]
+- **Implementation notes:** Resolved 2026-09-05 — picked up per the Master Prompt's Step 2 routing
+  (no Suggestion given this session, backlog had exactly one OPEN entry). Verified the finding first
+  per the v18.0 verify-before-committing check: re-read `App.test.tsx` and `HomePage.tsx`, then
+  reproduced the failure directly (`npm test -- --run src/App.test.tsx`) before touching anything.
+  Rewrote the test to assert against `HomePage.tsx`'s actual current content (title heading plus the
+  three linked cards to `/leads`, `/reviews`, `/benchmark`) instead of the removed placeholder string,
+  and renamed it to describe that behavior. Two disambiguation issues surfaced while fixing, both
+  resolved by scoping queries to the `<main>` region via `within()`: `Layout.tsx`'s sidebar renders the
+  same "Lead Intake Triage" text (as a `div`, not a heading — fixed by asserting `getByRole('heading',
+  ...)`) and the same three nav labels ("Observability", "Review Queue", "Benchmark") as `NavLink`s
+  (fixed by scoping all queries to `within(screen.getByRole('main'))` so only `HomePage.tsx`'s cards are
+  matched). Verified: full frontend suite 15/15 passed (previously 14/15, App.test.tsx failing); full
+  backend suite unaffected at 136/136 (this was a frontend-only test fixture change, no production code
+  touched).
