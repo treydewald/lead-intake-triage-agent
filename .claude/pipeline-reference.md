@@ -1,7 +1,7 @@
 # Pipeline Reference — Lead Intake Triage Agent
 
-**Last Updated:** 2026-09-05 (Step 9, Unified QA & Repair, COMPLETED — see Current Step. Prior:
-Step 8 Viewport-First Refactor COMPLETED — see below)
+**Last Updated:** 2026-09-05 (Step 10, Screenshot Capture, COMPLETED — see Current Step. Prior:
+Step 9 Unified QA & Repair COMPLETED — see below)
 
 How *this project* is using the Upwork Portfolio Project Pipeline. Distinct from
 `portfolio-reference.md`, which is about the product — this file is about pipeline state.
@@ -10,7 +10,60 @@ How *this project* is using the Upwork Portfolio Project Pipeline. Distinct from
 
 ## Current Step
 
-**This session (2026-09-05, ninth session same day):** Ran Step 9 (Unified QA & Repair) — the
+**This session (2026-09-05, tenth session same day):** Ran Step 10 (Screenshot Capture) —
+unconditional per the prior session's own Next Step note, Steps 10-16 MANDATORY this cycle.
+Both dev servers (frontend :5173, backend :8000) were already running from the prior session.
+
+Both real `AWAITING_REVIEW` review-queue items had been consumed by Step 9's own live
+Approve/Reject verification, so this session first needed a fresh one for the Review Queue
+screenshots. The real local `llama3.2:3b` model proved consistently overconfident against the
+default `CONFIDENCE_THRESHOLD=0.7` (same finding Feature 15's build session hit) — a plain webform
+submission of an ambiguous message classified above threshold and routed straight past review.
+Rather than edit the running dev server's `.env`, started a second, disposable `uvicorn` instance
+on port 8001 against the same SQLite file with `CONFIDENCE_THRESHOLD=0.95` set only in that
+process's environment, submitted one webform lead through it, confirmed the main server (port
+8000, untouched) picked up the new `awaiting_review` row via the shared DB file, then stopped the
+temporary instance. No `.env` or committed config changed.
+
+Wrote `.claude/skills/capture-screenshots.mjs` (new, registered in `.claude/skills/README.md`) —
+a `playwright-core`-driven script that launches Chromium and navigates every portfolio route via
+real in-app link clicks (Home → Lead List → Lead Detail → Lead History → Review Queue → Review
+Detail → Benchmark, desktop 1920×1080; Home and Lead List again at mobile 390×844), matching
+Step 8/9's established pattern of using the locally-installed Playwright binary directly (no MCP
+browser tool available, confirmed via `ToolSearch` again this session).
+
+**Real defect found and fixed in the capture script itself (not application code):** the first
+attempt relied on `page.waitForLoadState('networkidle')` alone after each in-app link click to
+detect when navigation had completed. This is unreliable for client-side (React Router)
+navigation — there's a brief gap between a click resolving and the destination page's own
+`useEffect`-driven fetch starting, during which zero requests are in flight; `networkidle` can
+resolve in that gap, before the new page's fetch even begins. Reproduced non-deterministically
+(passed ~1 in 3 runs): one capture of the "Review Queue" route actually saved the *previous*
+page's ("Lead History") rendered content, even though `page.url()` had already updated correctly
+— no thrown error, nothing that would flag it without visually re-inspecting every image. Fixed by
+waiting for each destination page's own `<h1>` heading text (a real content signal) before
+treating navigation as complete, with `networkidle` only as a secondary settle after that. Re-ran
+3 times after the fix with zero recurrences; all 9 screenshots visually re-inspected and confirmed
+correct. Logged as a generic pipeline-level insight (this is a known Playwright/SPA pitfall, not
+specific to this project) to the pipeline repo's `meta/PIPELINE_INSIGHTS_LOG.md`, committed and
+pushed.
+
+Captured 9 PNGs to `./portfolio-screenshots/` (project root): `01-home`, `02-lead-list`,
+`03-lead-detail`, `04-lead-history`, `05-review-queue`, `06-review-detail`, `07-benchmark`
+(desktop), `08-mobile-home`, `09-mobile-lead-list` (mobile). The Lead List screenshot honestly
+shows the real status mix (1 awaiting_review, mostly failed, a couple rejected) — the `failed`
+skew is expected, not a bug: `HUBSPOT_ACCESS_TOKEN` is intentionally unconfigured in this dev
+environment (documented deviation below), so every run halts at `hubspot_crm_write` by the
+architecture's own design. The Benchmark screenshot reused an existing real run (87.0%/90.9%,
+llama3.2:3b) already in the dev DB from Feature 09's own session — no new run needed.
+
+Wrote `.claude/seed-data.md` for the first time (previously an unfilled template) — full dataset
+detail (30 leads accumulated organically across every session's live testing, the 1 seeded review
+item and how it was produced, the 2 pre-existing benchmark runs) — see that file directly rather
+than duplicating it here. `.claude/screenshots/` (Step 9's QA evidence) had 0 active PNGs at Step
+6.5's cleanup check — nothing to archive.
+
+Prior to this (ninth session same day): Ran Step 9 (Unified QA & Repair) — the
 unconditional next step per `docs/decision-trees.md` once Step 8's Quality Checkpoint passed. Full
 black-box discovery and realistic interaction testing across all 7 routes via Playwright (using
 `playwright-core` directly — `npm install`'s dependency resolution during this session pruned the
@@ -270,8 +323,8 @@ Orchestrator — Group_F01 through Group_F11 all COMPLETED — all 8 Tier 1 feat
 Feature 10, and Feature 11 [Tier 2] implemented end-to-end), 7 (Implementation Verification — Gate 2 —
 PASSED twice: 2026-09-04 against Tier 1, 2026-09-05 against Features 09/10/11), Continued Development
 Round 1 (CD-1 through CD-4 — Feature 15, Review Queue Frontend UI, COMPLETED and verified), 8
-(Viewport-First Refactor, COMPLETED 2026-09-05), 9 (Unified QA & Repair, COMPLETED 2026-09-05 — see
-Current Step).
+(Viewport-First Refactor, COMPLETED 2026-09-05), 9 (Unified QA & Repair, COMPLETED 2026-09-05), 10
+(Screenshot Capture, COMPLETED 2026-09-05 — see Current Step).
 
 **Gates passed:** Gate 2 (Step 7, implementation verification) — PASSED, 2026-09-04 (Tier 1) and
 2026-09-05 (Features 09/10/11 batch). Gate 1 (Step 13, portfolio score ≥9.0/10, per
@@ -288,16 +341,16 @@ Tier section, STANDARD mode with Tier 2/3 features present falls back to full ti
 
 ## Next Step
 
-**This session (2026-09-05, ninth session same day):** Step 9 (Unified QA & Repair) COMPLETED — see
-Current Step above for full detail. **Next Step is Step 10 (Screenshot Capture)**, unconditional per
-`docs/decision-trees.md`/`docs/project-strategy.md` (Steps 10-16 MANDATORY this cycle, Step 9's Quality
-Checkpoint passed: all discovered defects fixed, no critical/high remaining, responsive/accessibility
-validation complete, QA report generated). Step 10 should seed at least one fresh `AWAITING_REVIEW`
-review-queue item before capturing Review Queue screenshots — both real pending items were consumed by
-this session's live Approve/Reject verification (see `qa-report.md`'s Final Verdict note). Per
-`prompts/10_screenshot-capture.md`, this is also the step that persists `.claude/seed-data.md` (still an
-unfilled template) and scaffolds a reusable capture script into `.claude/skills/` for the first time on
-this project.
+**This session (2026-09-05, tenth session same day):** Step 10 (Screenshot Capture) COMPLETED — see
+Current Step above for full detail. **Next Step is Step 11 (Portfolio Evaluator)**, unconditional per
+`prompts/10_screenshot-capture.md`'s own Next Steps section — Step 11 evaluates portfolio quality
+directly from `./portfolio-screenshots/`'s 9 PNGs this stage produced. Note for that session: per
+`docs/premium-ui-standard.md` (v37.0), the gate is now ≥9.0/10 (target 9.5) with Visual & UI/UX as a
+hard gate — check the interface against the Premium UI Feature Catalog and the product-class visual
+profile for an internal ops/analytics tool, not just score an average.
+
+Prior to this (ninth session same day): Step 9 (Unified QA & Repair) COMPLETED — see
+Current Step above for full detail.
 
 Prior to this (eighth session same day): Step 8 (Viewport-First Refactor) COMPLETED — see
 "Prior to this" below for full detail.
