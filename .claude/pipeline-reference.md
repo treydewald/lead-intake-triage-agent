@@ -1,7 +1,8 @@
 # Pipeline Reference — Lead Intake Triage Agent
 
-**Last Updated:** 2026-09-05 (Step 7 Gate 2 re-pass COMPLETED — Features 09/10/11 batch-verified,
-verdict PASS; `architecture-plan-feature-10.md`'s missing Actual Footprint section fixed)
+**Last Updated:** 2026-09-05 (Step 8, Viewport-First Refactor, COMPLETED — see Current Step. Prior:
+Step 7 Gate 2 re-pass COMPLETED — Features 09/10/11 batch-verified, verdict PASS;
+`architecture-plan-feature-10.md`'s missing Actual Footprint section fixed)
 
 How *this project* is using the Upwork Portfolio Project Pipeline. Distinct from
 `portfolio-reference.md`, which is about the product — this file is about pipeline state.
@@ -10,7 +11,46 @@ How *this project* is using the Upwork Portfolio Project Pipeline. Distinct from
 
 ## Current Step
 
-**This session (2026-09-05, seventh session same day):** No Suggestion was given and the refinement
+**This session (2026-09-05, eighth session same day):** No Suggestion was given, the refinement backlog
+was empty, and both Gate 2 passes were done — the prior session's own Next Step note framed this as
+idle and recommended Dynamic Next-Action Selection (`docs/next-action-selection.md`). That was a
+misapplication of the idle branch: `docs/scope-expansion.md` §4's idle definition requires "no further
+foundational pipeline step to run (Step 16 published, or cleanly stopped)," and this project — Project
+Mode STANDARD, Steps 10-16 MANDATORY this cycle — had never run Steps 8 through 16 at all. Per
+`docs/decision-trees.md`, a Step 7 PASS routes to Step 8 (Viewport-First Refactor), not to idle-branch
+selection; seven same-day sessions had kept building features and re-verifying without ever advancing
+past Step 7. Ran Step 8 this session instead.
+
+**Step 8 (Viewport-First Refactor) — COMPLETED.** No browser-automation MCP tool was available (checked
+via `ToolSearch`, consistent with every prior session this project), but Playwright's binary and
+Chromium browser turned out to be actually installed locally under `frontend/node_modules/.bin` and
+`~/AppData/Local/ms-playwright` (a stray install from some earlier `npm install`, never a declared
+`package.json` dependency — noted since Feature 11's session but never actually exercised until now).
+Used it directly via ad hoc Node scripts (not wired into the project or `.claude/skills/` — that's Step
+10's job if it chooses to formalize a capture script) to measure real `scrollWidth`/`scrollHeight`
+overflow against real seeded data (25 pipeline runs, 8 review items, 31 notifications, 2 benchmark runs
+already in the dev DB from prior sessions' live testing) across all 7 pages × 4 target viewports
+(1920×1080, 1440×900, 1366×768, mobile 390×844) — 28 combinations, real browser measurement, not a
+visual guess. Found 3 real defects: (1) `Layout.tsx`'s sidebar had no mobile breakpoint at all, leaving
+~166px for `main` at 390px width and causing horizontal overflow on nearly every page — root-caused and
+fixed with a responsive top-bar-below-`md` pattern, which closed most mobile findings project-wide in
+one change; (2) `LeadDetailPage.tsx` overflowed vertically by 284-596px on desktop (up to ~1000px
+mobile) because every stage's decision JSON was always rendered inline uncollapsed — fixed with a
+collapsed-by-default `<details>` disclosure per stage, no data removed; (3) `LeadListPage.tsx` overflowed
+147-279px at 1440x900/1366x768 with `PAGE_SIZE=20` — reduced to 10 (server-paginated, no API contract
+change). Also fixed smaller wrap-on-mobile issues on `BenchmarkPage.tsx`'s header/stat tiles and
+`LeadHistoryPage.tsx`'s timeline row header. Iterated with real re-measurement after each change (not
+guessed) until all 28 combinations passed with zero overflow. **One documented exception recorded:**
+`LeadHistoryPage.tsx` can need minimal scroll (36px/15px measured) for a lead with a genuinely long
+history (7+ timeline entries from a resumed run) — this page's purpose is a complete, unbounded-length
+audit trail, not a fixable layout choice, per Step 8's own Common Failure Modes language. Full detail:
+`.claude/portfolio-reference.md`'s new Key Decision entry. Verified no regression: 15/15 frontend tests,
+136/136 backend tests (unchanged, no backend files touched), `npm run build`/`npm run lint` clean.
+Committed per file (5 commits: `Layout.tsx`, `LeadDetailPage.tsx`, `LeadListPage.tsx`,
+`BenchmarkPage.tsx`, `LeadHistoryPage.tsx`), each independently reversible, per this stage's own
+"commit per feature area/page" instruction.
+
+Prior to this (seventh session same day): No Suggestion was given and the refinement
 backlog was empty, but the project was not yet idle — `.claude/pipeline-reference.md`'s own Next Step
 section named a Gate 2 (Step 7) re-pass covering Features 09/10/11 as the strongest recorded candidate
 (three Tier 2 features had accumulated without a batch Implementation Verification gate; the prior
@@ -184,7 +224,8 @@ CD-2.5; re-entered per feature group, see `docs/implementation-planning.md` §16
 Orchestrator — Group_F01 through Group_F11 all COMPLETED — all 8 Tier 1 features plus Feature 09,
 Feature 10, and Feature 11 [Tier 2] implemented end-to-end), 7 (Implementation Verification — Gate 2 —
 PASSED twice: 2026-09-04 against Tier 1, 2026-09-05 against Features 09/10/11), Continued Development
-Round 1 (CD-1 through CD-4 — Feature 15, Review Queue Frontend UI, COMPLETED and verified).
+Round 1 (CD-1 through CD-4 — Feature 15, Review Queue Frontend UI, COMPLETED and verified), 8
+(Viewport-First Refactor, COMPLETED 2026-09-05 — see Current Step).
 
 **Gates passed:** Gate 2 (Step 7, implementation verification) — PASSED, 2026-09-04 (Tier 1) and
 2026-09-05 (Features 09/10/11 batch). Gate 1 (Step 13, portfolio score ≥9.0/10, per
@@ -201,10 +242,21 @@ Tier section, STANDARD mode with Tier 2/3 features present falls back to full ti
 
 ## Next Step
 
+**This session (2026-09-05, eighth session same day):** Step 8 (Viewport-First Refactor) COMPLETED — see
+Current Step above for full detail. **Next Step is Step 9 (Unified QA & Repair)**, unconditional per
+`docs/decision-trees.md` now that Step 8's Quality Checkpoint has passed (all pages viewport-ready or
+documented exception, functionality preserved, tests passing at Step 7's baseline count). Step 9 should
+re-verify the no-scroll constraint on any page its own repairs touch (per `docs/ui-design-standards.md`
+§1) rather than treating Step 8's work as a one-time deliverable.
+
+Note for future sessions: the idle-branch (`docs/next-action-selection.md`) does not apply to a project
+that hasn't yet run its own mandatory Steps 8-16 — check `docs/decision-trees.md`'s actual routing
+before assuming a project with a passing Step 7 and an empty backlog is idle.
+
 **Feature 11 is now COMPLETED** (Group_F11, prior session's Step 6 run) — `implementation_plan.md`
 marks both Feature 11 and Group_F11 `COMPLETED`.
 
-**This session (2026-09-05, seventh session same day):** Ran the Gate 2 (Step 7) re-pass covering
+Prior to this (seventh session same day): Ran the Gate 2 (Step 7) re-pass covering
 Features 09/10/11 — see Current Step above for full detail. **Verdict: PASS.** This closes the
 strongest-candidate item the prior session's Next Step named; that path is now consumed, not merely
 attempted.
@@ -221,17 +273,21 @@ title and the same three nav labels. Verified: full frontend suite 15/15 passed 
 backend suite unaffected at 136/136. `.claude/refinement-backlog.md`'s RB-005 marked `COMPLETED` with
 implementation notes. No architecture, backend, or production frontend code touched — test file only.
 
-Paths available next session:
-- **The refinement backlog is empty** (RB-001 through RB-005 all `COMPLETED`) and **both Gate 2 passes
-  are now done** (Tier 1 on 2026-09-04, Features 09/10/11 on 2026-09-05) — with no Suggestion and no
-  OPEN backlog entry, the next session should run `docs/next-action-selection.md`'s Dynamic
-  Next-Action Selection rather than defaulting to Scope Expansion. This project has landed several
-  backend/frontend features across recent Step 6 and CD rounds with no full In-App Cohesion Audit or UI
-  Audit & Refinement pass since Step 7's original Tier-1-only Gate 2 run — likely candidates for that
-  selection; the newly-completed Feature 09/10/11 Gate 2 pass adds no new candidate of its own beyond
-  those already on record.
+**(Superseded 2026-09-05, eighth session)** — the paragraph below was this file's own routing mistake:
+it treated the project as idle when `docs/scope-expansion.md` §4's idle definition was never met (Steps
+8-16 hadn't run, and are MANDATORY for this STANDARD-mode project). Left here so a future session can
+see the error and why the routing was corrected, not as live guidance. See "Next Step" above for the
+actual next step (Step 9, Unified QA & Repair).
+
+~~Paths available next session:~~
+~~- The refinement backlog is empty (RB-001 through RB-005 all COMPLETED) and both Gate 2 passes are now
+  done (Tier 1 on 2026-09-04, Features 09/10/11 on 2026-09-05) — with no Suggestion and no OPEN backlog
+  entry, the next session should run docs/next-action-selection.md's Dynamic Next-Action Selection
+  rather than defaulting to Scope Expansion.~~
 - Group_F13 (Feature 13, Tier 3) is also dependency-satisfiable but lower priority; Group_F14
-  (Feature 14) remains CLAIMABLE-but-deferred (Tier 3, visibility only).
+  (Feature 14) remains CLAIMABLE-but-deferred (Tier 3, visibility only) — both still genuinely lower
+  priority than continuing the foundational Steps 9-16 pipeline for the 8 Tier 1 + 3 Tier 2 features
+  already built.
 
 Step 5 (Workspace Recovery) does not apply — this is a fresh bootstrap, not a recovery.
 

@@ -1,7 +1,9 @@
 # Portfolio Reference — Lead Intake Triage Agent
 
-**Last Updated:** 2026-09-05 (Step 6 — Feature 11, Per-Lead Audit/History Trail UI, Group_F11
-COMPLETED. New `GET /leads/{lead_id}/history` merges every `PipelineRun` row for a `lead_id` with any
+**Last Updated:** 2026-09-05 (Step 8 — Viewport-First Refactor COMPLETED. No-scroll constraint achieved
+across all 7 pages × 4 target viewports, one documented exception on `LeadHistoryPage.tsx` for
+multi-entry histories — see Key Decisions. Prior update: Step 6 — Feature 11, Per-Lead Audit/History
+Trail UI, Group_F11 COMPLETED. New `GET /leads/{lead_id}/history` merges every `PipelineRun` row for a `lead_id` with any
 `ACTIONED` `ReviewQueueItem`; new nullable `reviewer_name` column on `ReviewQueueItem`; new
 `LeadHistoryPage.tsx`, bidirectionally linked with `LeadDetailPage.tsx`; optional "Your name" input on
 `ReviewDetailPage.tsx`. Architecture Map rows updated for `models/review_queue.py`,
@@ -358,3 +360,24 @@ that doesn't exist yet.)*
   introducing authentication. This generalizes, rather than contradicts, Feature 07's existing note that
   `Notification` has "no addressee field (no User/auth model exists)" — same underlying constraint,
   different original reason. Set by Feature 11's implementation plan (`architecture-plan-feature-11.md`).
+- **No-scroll constraint achieved (Step 8, 2026-09-05) — every page fits 1920×1080, 1440×900, 1366×768,
+  and the mobile viewport (~390×844) with zero vertical or horizontal scroll for primary content, per
+  `docs/ui-design-standards.md` §1.** Verified with a real Playwright script (Chromium is locally
+  installed under `frontend/node_modules/.bin` though not a declared `package.json` dependency — see
+  Feature 11's session notes) measuring `main`'s `scrollWidth`/`scrollHeight` against its
+  `clientWidth`/`clientHeight` across all 7 pages × 4 viewports, against real seeded data (failed,
+  awaiting-review, and multi-stage lead states). **One documented exception:**
+  `LeadHistoryPage.tsx` (`/leads/{lead_id}/history`) can need minimal scroll for a lead with many
+  timeline entries (e.g. a resumed run: 5 stages + a review action + a re-run stage, 7+ rows) — this
+  page's whole purpose is a complete, unbounded-length per-lead audit trail (Feature 11's Key Decision
+  above: history length is data-driven, not fixed), so a long history genuinely cannot compress into a
+  fixed viewport the way a fixable layout choice could. Every other page, and `LeadHistoryPage.tsx`
+  itself for a lead with a normal (non-multi-run) history, has zero scroll. **Root-cause fix, not a
+  per-page patch:** `Layout.tsx`'s sidebar was fixed-width with no mobile breakpoint, leaving as little
+  as 166px for `main` at 390px width and causing horizontal overflow on nearly every page — it now hides
+  below `md` in favor of a compact top bar with the same nav links, which is what actually closed most
+  of the mobile findings; `LeadDetailPage.tsx`'s per-stage decision JSON (previously always rendered
+  inline) is now a collapsed-by-default `<details>` disclosure, which closed the largest desktop
+  overflow (up to 596px on a failed/multi-stage lead); `LeadListPage.tsx`'s page size dropped from 20 to
+  10 rows to fit a full page without scroll. Steps 9 and 12 must preserve this — see
+  `docs/ui-design-standards.md` §1.
