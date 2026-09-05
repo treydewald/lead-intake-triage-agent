@@ -1,0 +1,93 @@
+SCOPE EXPANSION
+================
+
+Round: 1
+Date: 2026-09-05
+
+Trigger: Explicit user request ("run scope expansion") — overrides the same-day Dynamic Next-Action
+Selection session that concluded NO_ACTION (per `.claude/pipeline-reference.md`, twenty-eighth session),
+per the Master Prompt's "an explicit Suggestion still wins" rule. That NO_ACTION conclusion was correct
+on its own terms (no *discovered* gap forced an operation) — it does not mean no valuable net-new
+capability exists; ideation has no honest-zero exit condition (§9), so an explicit ask is always a valid
+trigger independent of that conclusion.
+
+Inputs read: `project-definition.md`, `roadmap.md` (all 3 tiers), `.claude/portfolio-reference.md`
+(Architecture Map + Key Decisions), `refinement-audit.md`, `portfolio-evaluation.md`. No
+`product-expansion-map.md` (PRODUCT-mode only; this project is STANDARD) or prior `scope-expansion.md`
+existed before this round.
+
+CANDIDATES (this round)
+
+- S-01 Failed-Run Retry / Resubmission: Value: High | Cost: Low-Medium | Priority: P1 | Status: Not Started
+  Today a `FAILED` `PipelineRun` (e.g. a HubSpot write exhausting its retries) is a permanent dead end —
+  the UI can show that it failed, but nothing lets anyone act on it short of manually recreating the lead
+  from scratch. This is genuinely new: no roadmap tier mentions retry, and it's distinct from Feature 06's
+  human-review resume path (that resumes a *paused*, not a *failed*, run). It's also architecturally
+  anticipated rather than speculative — `.claude/portfolio-reference.md`'s Key Decisions already states
+  `PipelineRun.lead_id` was deliberately left non-unique "so multi-attempt history stays representable if
+  a future feature ever adds a retry/resubmit path." Mechanically it reuses Feature 06's existing
+  resume-graph abstraction (a second compiled graph re-entering at the failed stage, using the same
+  `Stage`/`ToolRegistry` instances) rather than inventing a new execution path. New surface: one endpoint
+  (`POST /leads/{lead_id}/retry`) and a "Retry" action on `LeadDetailPage.tsx`'s existing failed-state
+  banner. Strengthens the project's core "reliable multi-step action, not just answer questions" value
+  proposition — "what happens when it fails" is exactly the production-readiness question a real client
+  would ask next.
+
+- S-02 Confidence-Threshold "What-If" Simulator: Value: High | Cost: Medium | Priority: P1 | Status: Not Started
+  Ties two systems that already exist but have never been connected: the benchmark harness's 22-item
+  labeled dataset (`BenchmarkCase`, with a per-item confidence score already persisted) and the live
+  `CONFIDENCE_THRESHOLD` setting that gates auto-processing vs. human review. Nothing today lets anyone
+  see how many labeled leads would land on each side of a *candidate* threshold before changing the real
+  setting. This is a genuinely new capability, not a restatement of Tier 2's existing Benchmark Report
+  (which measures accuracy/consistency at the *current* threshold, not threshold sensitivity) — and it
+  directly demonstrates a "human-AI collaboration tuning" story the market rewards, per
+  `project-definition.md`'s own differentiation framing. Cost is contained: no new external integration,
+  a new derived endpoint computing the auto/review split from a benchmark run's already-stored per-case
+  confidence values, and one new panel (a threshold slider plus resulting counts) on `BenchmarkPage.tsx`.
+
+- S-03 Aggregate Lead Funnel & Reviewer Throughput Dashboard: Value: High | Cost: Medium | Priority: P2 | Status: Not Started
+  `project-definition.md`'s Use Case 4 already names a "sales manager" persona wanting to see pipeline
+  performance, but the existing Observability view (`LeadListPage.tsx`/`LeadDetailPage.tsx`) only answers
+  "what happened to this one lead" — nothing answers "how is the whole pipeline performing": conversion
+  rate by source channel, average time-to-resolution, review-queue throughput per reviewer. This is a
+  distinct question from every existing page, not a restyle of one. Cost is a pure read-path aggregation
+  over data the project already persists (`PipelineRun`, `ReviewQueueItem`) — no new write paths, no new
+  external integration, one new backend endpoint plus one new frontend page.
+
+- S-04 Interactive Slack Review Actions: Value: Medium-High | Cost: Medium-High | Priority: P2 | Status: Not Started
+  Feature 10 (External Notification Delivery, Tier 2) already delivers a one-way Slack-compatible webhook
+  alert when a lead reaches `awaiting_review`. This candidate closes the loop — approve/reject/edit
+  directly from Slack's interactive-message buttons — so a reviewer never has to leave Slack to act. It's
+  the natural next chapter of an already-shipped feature, not a duplicate of it (Feature 10 only ever
+  sends; this receives). Cost is higher than the other candidates because it's the only one requiring a
+  new *inbound* trust boundary: a Slack interactive-component callback endpoint with request-signature
+  verification, wired to the existing `POST /reviews/{run_id}/action` logic underneath (no new business
+  logic, just a new authenticated entry point to it).
+
+- S-05 Exportable Per-Lead / Date-Range Audit Trail (CSV): Value: Medium | Cost: Low | Priority: P3 | Status: Not Started
+  A compliance/audit artifact — "give me a document of everything that happened to this lead" — is a
+  common enterprise ask around AI-driven CRM actions and costs little to add: it reuses
+  `GET /leads/{lead_id}/history`'s already-merged timeline data verbatim. One new export endpoint (CSV;
+  PDF would be a further, separate stretch) and an "Export" button on `LeadHistoryPage.tsx`. Lower
+  priority than S-01 through S-04 since it adds credibility polish rather than closing a functional gap.
+
+DECLINED / REJECTED
+
+- Multi-Agent Orchestration, Swappable CRM Interface, Multi-Channel Intake Expansion: not proposed here —
+  all three are already `roadmap.md` Tier 3 items. Multi-Agent Orchestration is explicitly, deliberately
+  deferred per the source specification's adversarial resolution ("do not re-add mid-build" —
+  `.claude/portfolio-reference.md`'s Project Overview restates this). The other two are undecided-future
+  roadmap items, not undiscovered gaps. Per §5, redirected to Continual Refinement's Dimension 1 (fidelity
+  to the existing plan) rather than duplicated here — Dimension 1 already re-confirmed this exact status
+  as recently as `refinement-audit.md`'s own record.
+- Bulk/batch review-queue actions (approve/reject several queued items at once): considered, but declined
+  this round — `.claude/portfolio-reference.md`'s Key Decisions frames the review queue as an
+  architecturally single-operator workflow (no auth/User model, self-reported `reviewer_name` only); at
+  that scale, batch tooling solves a volume problem this project doesn't yet have. Revisit if a future
+  round's data shows queue volume growing past what one-at-a-time review comfortably handles.
+
+NEXT ROUND
+No forced follow-up. If S-01 or S-02 (the two P1s) ship via CD-1, a natural next-round candidate worth
+revisiting is extending S-02's simulator into a live "preview this threshold against real pending
+reviews" view once S-01's retry path establishes the pattern for a second lead-level action button next
+to the existing ones.

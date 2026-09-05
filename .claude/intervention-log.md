@@ -289,3 +289,21 @@ edit to that same entry once the round they belong to is scored, not a new entry
   (if "fixed" the same way everywhere) — the fix required reading each file's effect dependency array to
   tell which case applied.
 - Agent: claude/claude_code
+
+### 2026-09-05 — scope_expansion (Round 1)
+- Trigger: explicit user request ("run scope expansion") this same day, immediately after a prior session
+  this same day concluded `NO_ACTION` via Dynamic Next-Action Selection (no *discovered* gap forced an
+  operation). An explicit ask is a valid, independent trigger per `docs/scope-expansion.md` §9 (ideation
+  has no honest-zero exit condition) — does not contradict or override the NO_ACTION conclusion, which
+  answered a different question (was anything already broken/stale).
+- Expected effect: a ranked 3-5 candidate backlog of genuinely new capabilities (not already implied by
+  `roadmap.md` or logged in `refinement-audit.md`), feeding CD-1 once a top candidate is chosen.
+- Outcome: 5 candidates recorded in new `scope-expansion.md` (project root, this project's first) — S-01
+  Failed-Run Retry/Resubmission (P1), S-02 Confidence-Threshold What-If Simulator (P1), S-03 Aggregate
+  Lead Funnel/Reviewer Throughput Dashboard (P2), S-04 Interactive Slack Review Actions (P2), S-05
+  Exportable Audit Trail CSV (P3). Two Tier-3-roadmap redirects and one declined candidate (bulk review
+  actions) recorded with reasons rather than silently dropped. Per §4's tie-break rule, S-01/S-02 share
+  top priority (P1) — user asked directly which to pursue before CD-1; outcome pending that answer.
+- Surprise: none — the mechanism's own documented tie-break rule (more than one candidate at the same top
+  tier) applied on this project's very first round, confirming it isn't a hypothetical edge case.
+- Agent: claude/claude_code

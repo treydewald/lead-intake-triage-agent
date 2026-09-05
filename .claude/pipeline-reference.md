@@ -1,7 +1,7 @@
 # Pipeline Reference — Lead Intake Triage Agent
 
-**Last Updated:** 2026-09-05 (Dynamic Next-Action Selection run, twenty-eighth session same day —
-concluded NO_ACTION.)
+**Last Updated:** 2026-09-05 (Scope Expander — Round 1, twenty-ninth session same day — 5 candidates
+proposed, S-01/S-02 tied P1, awaiting user's tie-break decision before CD-1.)
 
 How *this project* is using the Upwork Portfolio Project Pipeline. Distinct from
 `portfolio-reference.md`, which is about the product — this file is about pipeline state.
@@ -10,7 +10,39 @@ How *this project* is using the Upwork Portfolio Project Pipeline. Distinct from
 
 ## Current Step
 
-**This session (2026-09-05, twenty-eighth session same day):** No Suggestion was given and
+**This session (2026-09-05, twenty-ninth session same day):** Explicit user request ("run scope
+expansion"), overriding the prior session's own `NO_ACTION` conclusion (a valid independent trigger per
+`docs/scope-expansion.md` §9 — ideation has no honest-zero exit condition, so an explicit ask doesn't
+contradict a "nothing was already broken/stale" finding). Ran the Scope Expander per `docs/
+scope-expansion.md` §5's mechanics, reading `project-definition.md`, `roadmap.md` (all 3 tiers),
+`.claude/portfolio-reference.md`, `refinement-audit.md`, and `portfolio-evaluation.md` first. No
+`product-expansion-map.md` exists (this project is STANDARD mode, not PRODUCT) and no prior
+`scope-expansion.md` existed — this is the project's first round.
+
+**Output:** new `scope-expansion.md` (project root) — 5 candidates: S-01 Failed-Run Retry/Resubmission
+(P1, reuses Feature 06's resume-graph abstraction, grounded in a Key Decision that already anticipated
+this exact use case for `PipelineRun.lead_id`'s non-uniqueness), S-02 Confidence-Threshold What-If
+Simulator (P1, connects the existing benchmark dataset to the live confidence threshold — a capability
+neither Tier 2's Benchmark Report nor anything else today provides), S-03 Aggregate Lead Funnel/Reviewer
+Throughput Dashboard (P2), S-04 Interactive Slack Review Actions (P2, closes the loop on Feature 10's
+one-way webhook), S-05 Exportable Audit Trail CSV (P3). Multi-Agent Orchestration/Swappable CRM
+Interface/Multi-Channel Intake Expansion were considered and redirected (already `roadmap.md` Tier 3,
+Continual Refinement's Dimension 1 territory, not new); bulk review-queue actions were considered and
+declined (the review queue is architecturally single-operator per an existing Key Decision — no volume
+problem to solve yet).
+
+**Per §4's tie-break rule (added v15.0):** S-01 and S-02 share the top priority tier (P1) — asked the
+user directly which to pursue as this round's candidate into CD-1, rather than defaulting to list order.
+Awaiting that answer before proceeding into CD-1. `.claude/intervention-log.md` gained this round's own
+entry (outcome pending).
+
+Pipeline-level friction check: none found this session — `docs/scope-expansion.md`'s mechanics and
+output-format instructions were clear and sufficient as written; this was also the first real exercise
+of its §4 tie-break rule on this project, and it applied cleanly.
+
+---
+
+**Prior session (2026-09-05, twenty-eighth session same day):** No Suggestion was given and
 `.claude/refinement-backlog.md` has zero `OPEN`/`IN_PROGRESS` entries (RB-001 through RB-009 all
 `COMPLETED`) — per Master Prompt Step 2, ran `docs/next-action-selection.md`'s Dynamic Next-Action
 Selection rather than assuming Scope Expansion by default.
