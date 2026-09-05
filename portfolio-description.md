@@ -5,7 +5,7 @@ REFINED TITLE (70 chars max)
 AI Lead Triage Agent: Auto-Acts When Confident, Escalates to Human
 
 REFINED DESCRIPTION (600 chars max)
-A six-stage LangGraph agent that ingests inbound sales leads (web form, email, or callback), classifies intent via a local LLM (Ollama), enriches missing contact data, and writes an idempotent, dedupe-safe update to a HubSpot CRM sandbox. Each stage is tool-scoped to only the external systems it needs. Confident runs complete automatically; low-confidence ones pause in a human review queue for approve, edit, or reject, with a full per-lead audit trail and notifications. FastAPI/SQLAlchemy backend, React/TypeScript frontend, 162 passing tests, and a measured classification-accuracy benchmark.
+A six-stage LangGraph agent that ingests inbound sales leads (web form, email, or callback), classifies intent via a local LLM (Ollama), enriches missing contact data, and writes an idempotent, dedupe-safe update to a HubSpot CRM sandbox. Each stage is tool-scoped to only the external systems it needs. Confident runs complete automatically; low-confidence ones pause in a human review queue for approve, edit, or reject, with a full per-lead audit trail and notifications. FastAPI/SQLAlchemy backend, React/TypeScript frontend, 179 passing tests, and a measured classification-accuracy benchmark.
 
 SKILLS & DELIVERABLES (max 5)
 - Multi-stage AI agent orchestration with LangGraph (per-stage tool scoping, resumable paused-run state)
@@ -56,3 +56,8 @@ Step 16: LinkedIn Generator
 this round added 6 frontend tests (`LeadDetailPage.test.tsx`, closing a coverage gap on the project's
 named differentiator page) — description re-measured at 598/600 chars, still under limit. See
 `.claude/pipeline-reference.md` for the full round detail.
+
+**Updated 2026-09-05 (RB-008, Round 1's deferred backlog item):** Test count refreshed 162 → 179 after
+closing the round's remaining named frontend coverage gaps (`lib/api.ts`, `LeadListPage.tsx`,
+`NotFoundPage.tsx` — 17 new tests). Description re-measured, still 598/600 chars (same digit count). See
+`.claude/refinement-backlog.md`'s RB-008 entry for full detail.

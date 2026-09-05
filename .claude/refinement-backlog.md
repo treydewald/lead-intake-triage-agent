@@ -268,7 +268,7 @@ renumber.]
   Verified: full backend suite 138/138 passing, no regressions.
 
 ### RB-008 — Residual frontend coverage gaps below RB-006's severity (api client layer, list page, 404 page)
-- **Status:** OPEN
+- **Status:** COMPLETED
 - **Dimension:** 4 (Test Coverage)
 - **Priority:** P3
 - **Discovered:** Continual Project Refinement, Round 1, 2026-09-05 — same coverage run that found
@@ -284,7 +284,24 @@ renumber.]
   dimension's gaps in one session").
 - **Routes to:** Scoped re-entry to Step 6 (add tests for the named files) → Step 7 (verify) — per the
   Routing Table's Dimension 4 row.
-- **Implementation notes:** (blank — not yet started.)
+- **Implementation notes:** Resolved 2026-09-05 — picked up per the Master Prompt's Step 2 routing (no
+  Suggestion given this session, backlog had two OPEN entries; chose this one over RB-009 as the
+  higher-priority Test Coverage gap vs. a cosmetic lint nit). Verified the finding first per the v18.0
+  check: re-ran `npx vitest run --coverage`, confirmed the same three files still at 21%/71%/0%.
+  Added `frontend/src/lib/api.test.ts` (9 tests, one per exported API function, spying on the underlying
+  `api.get`/`api.post` axios methods directly rather than the exported wrapper — the existing page tests
+  all mock the wrapper functions themselves, which never exercises the real function bodies).
+  Added `frontend/src/pages/NotFoundPage.test.tsx` (1 test). Expanded
+  `frontend/src/pages/LeadListPage.test.tsx` from 2 to 8 tests, adding coverage for the error state, the
+  summary-count failure path, and all three filter/sort selects plus pagination Previous/Next (the
+  interactive branches `vi.spyOn` on the wrapper function had never exercised). Verified: frontend suite
+  41/41 passing (was 24/24) — 17 new tests. Coverage: `api.ts` 21%→100% stmts, `LeadListPage.tsx`
+  71%→97% stmts, `NotFoundPage.tsx` 0%→100% stmts; project-wide frontend statement coverage 81.65%→
+  88.53%. `tsc -b`, `vite build` (337.92 kB, unchanged — test-only change), and `oxlint` all re-confirmed
+  clean (same 5 pre-existing `set-state-in-effect` warnings, no new ones — see RB-009, still OPEN).
+  Backend suite re-run unaffected at 138/138 (no backend files touched). `README.md`/
+  `portfolio-description.md`/`linkedin-entry.md` test counts updated 162 → 179 (138 backend + 41
+  frontend) and frontend coverage 82%→89%, per Dimension 8's cross-document discipline.
 
 ### RB-009 — Pre-existing `react(set-state-in-effect)` lint warning in 5 pages (Low)
 - **Status:** OPEN

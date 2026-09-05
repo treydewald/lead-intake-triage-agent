@@ -245,3 +245,23 @@ edit to that same entry once the round they belong to is scored, not a new entry
   screenshot-based score and a pass/fail test suite both looked clean while this sat unmeasured; only
   running the tool for the first time surfaced it.
 - Agent: claude/claude_code
+
+### 2026-09-05 — continual_refinement (Round 1 backlog follow-up: RB-008)
+- Trigger: no Suggestion queued this session; `.claude/refinement-backlog.md` had two OPEN entries
+  (RB-008, RB-009). Per the Master Prompt's Step 2 routing (no Suggestion + backlog has an OPEN entry),
+  picked up the higher-priority one — RB-008 (Test Coverage) over RB-009 (a cosmetic lint nit).
+- Expected effect (RB-008's own "Routes to"): a scoped Step 6 re-entry adding tests for `lib/api.ts`
+  (21%), `LeadListPage.tsx` (71%), and `NotFoundPage.tsx` (0%), then Step 7 verification.
+- Outcome: verified the gap first (v18.0 check) — unchanged since Round 1. Added `api.test.ts` (9 tests,
+  spying on the underlying `api.get`/`api.post` methods rather than the exported wrappers, since every
+  existing page test mocks the wrapper and never exercises `api.ts`'s real bodies), `NotFoundPage.test.tsx`
+  (1 test), and expanded `LeadListPage.test.tsx` 2→8 tests (error state, count-failure path, all three
+  filter/sort selects, pagination). Frontend suite 41/41 (was 24/24, +17). Coverage: `api.ts` 100%,
+  `LeadListPage.tsx` 97%, `NotFoundPage.tsx` 100% (all statements); project-wide 81.65%→88.53%. Backend
+  unaffected, 138/138. RB-008 marked `COMPLETED`; RB-009 remains the only `OPEN` entry.
+- Surprise: the project's existing page-level tests (`vi.spyOn(api, 'listLeads')` etc.) mock the
+  exported wrapper functions, which structurally can never exercise `api.ts`'s own function bodies no
+  matter how many page tests exist — explaining why `api.ts` sat at 21% despite every page that calls it
+  being well-tested. A coverage-debt fix for a thin client layer needs its own direct unit test; page
+  tests alone cannot close that gap by construction.
+- Agent: claude/claude_code

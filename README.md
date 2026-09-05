@@ -83,11 +83,12 @@ not just convention (`backend/app/tests/test_orchestrator_tool_scope.py`).
   history page, which can scroll for a lead with an unusually long history by design.
 
 ### Quality & Accessibility
-- **138 backend tests / 24 frontend tests**, all passing; `tsc -b` and `vite build` clean.
-- **Measured test coverage** — 98% backend statement coverage (`pytest-cov`); 82% frontend statement
-  coverage (`@vitest/coverage-v8`), up from 71% before a Continual Refinement round found and closed a
-  gap where `LeadDetailPage.tsx` — the page `portfolio-description.md` names as this project's core
-  differentiator — had no dedicated test.
+- **138 backend tests / 41 frontend tests**, all passing; `tsc -b` and `vite build` clean.
+- **Measured test coverage** — 98% backend statement coverage (`pytest-cov`); 89% frontend statement
+  coverage (`@vitest/coverage-v8`), up from 71% before Continual Refinement Round 1: it first found
+  `LeadDetailPage.tsx` — the page `portfolio-description.md` names as this project's core
+  differentiator — had no dedicated test, then its own deferred backlog item (RB-008) closed the
+  remaining named gaps (`lib/api.ts`, `LeadListPage.tsx`, `NotFoundPage.tsx`).
 - **0 accessibility violations** (axe-core, all severities) across every primary page.
 - **Dependency vulnerability scanning** (`npm audit`, `pip-audit`) run and findings triaged during
   QA — see `qa-report.md`; re-run during Continual Refinement with no new findings (frontend: 0

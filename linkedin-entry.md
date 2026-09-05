@@ -16,7 +16,7 @@ Description
 ▪ Developed a classification-accuracy benchmark harness that runs the Intent Classification stage standalone against a 22-item labeled dataset, tracking attempt-level accuracy and item-level consistency across repeats.
 ▪ Delivered a React 19 + TypeScript + Tailwind v4 frontend with lead observability, a human review console, and a benchmark dashboard with trend visualization — fully responsive across desktop and mobile viewports.
 ▪ Instrumented full observability: per-lead stage-trace timelines, merged multi-run and review-action history, and in-app plus external webhook notifications for every terminal outcome.
-▪ Validated the system with 162 passing automated tests (138 backend, 24 frontend; 98%/82% statement coverage), clean TypeScript/build checks, 0 axe-core accessibility violations, and triaged dependency vulnerability scans.
+▪ Validated the system with 179 passing automated tests (138 backend, 41 frontend; 98%/89% statement coverage), clean TypeScript/build checks, 0 axe-core accessibility violations, and triaged dependency vulnerability scans.
 
 Skills
 • Full-Stack Development

@@ -1,7 +1,7 @@
 # Pipeline Reference — Lead Intake Triage Agent
 
-**Last Updated:** 2026-09-05 (Continual Project Refinement, Round 1 — COMPLETED. Two P1/P2 gaps found
-and fixed same round; RB-008/RB-009 remain OPEN for a future round.)
+**Last Updated:** 2026-09-05 (RB-008 backlog item — COMPLETED. RB-009 remains OPEN, no other Suggestion
+queued.)
 
 How *this project* is using the Upwork Portfolio Project Pipeline. Distinct from
 `portfolio-reference.md`, which is about the product — this file is about pipeline state.
@@ -10,7 +10,43 @@ How *this project* is using the Upwork Portfolio Project Pipeline. Distinct from
 
 ## Current Step
 
-**This session (2026-09-05, twenty-fifth session same day):** Ran Continual Project Refinement, Round 1
+**This session (2026-09-05, twenty-sixth session same day):** No Suggestion queued this session and
+`.claude/session-checkpoint.md` was the unfilled template (no actual mid-task handoff pending). Per the
+Master Prompt's Step 2 routing (no Suggestion + backlog has an OPEN entry), picked up
+`.claude/refinement-backlog.md`'s highest-priority OPEN entry: RB-008 over RB-009 (Test Coverage gap vs.
+a cosmetic lint nit; RB-008 also has the lower ID).
+
+Verified the finding first per the v18.0 check (`npx vitest run --coverage`): confirmed `api.ts` (21%),
+`LeadListPage.tsx` (71%), and `NotFoundPage.tsx` (0%) were still under-covered exactly as RB-008
+described — no drift since Round 1. Fixed via a scoped Step 6-style re-entry:
+- Added `frontend/src/lib/api.test.ts` (9 tests, one per exported function) — spied on the underlying
+  `api.get`/`api.post` axios methods rather than the exported wrapper functions, since every existing
+  page test mocks the wrapper directly and never exercises the real function bodies inside `api.ts`.
+- Added `frontend/src/pages/NotFoundPage.test.tsx` (1 test).
+- Expanded `frontend/src/pages/LeadListPage.test.tsx` 2→8 tests: error state, summary-count failure
+  path, all three filter/sort `<select>`s, and pagination Previous/Next — the interactive branches the
+  existing wrapper-level mock never reached.
+
+Verified (Step 7-style): frontend suite 41/41 passing (was 24/24, +17 tests). Coverage: `api.ts`
+21%→100%, `LeadListPage.tsx` 71%→97%, `NotFoundPage.tsx` 0%→100% (all statements); project-wide frontend
+statement coverage 81.65%→88.53%. `tsc -b`, `vite build` (337.92 kB, unchanged — test-only diff), and
+`oxlint` all re-confirmed clean (same 5 pre-existing RB-009 warnings, no new ones). Backend suite
+re-run unaffected, 138/138 (no backend files touched).
+
+**Documentation kept consistent (Dimension 8):** Test count 162→179 (138 backend + 41 frontend), frontend
+coverage 82%→89%. Updated `README.md`, `portfolio-description.md`, and `linkedin-entry.md` together in
+the same pass. `portfolio-description.md`'s description re-measured at 598/600 chars (unchanged — same
+digit count swapping "162" for "179").
+
+**RB-008 marked `COMPLETED`** in `.claude/refinement-backlog.md` with full implementation notes. RB-009
+remains the only `OPEN` entry — next idle session with no Suggestion queued should pick it up directly.
+
+Pipeline-level friction check: none found this session — the Step 2 backlog-priority routing and the
+v18.0 verify-before-committing check both worked exactly as documented.
+
+---
+
+**Prior session (2026-09-05, twenty-fifth session same day):** Ran Continual Project Refinement, Round 1
 — an optional idle-time operation, not a numbered pipeline step.
 
 Step 16 (prior session, same day) closed every mandatory numbered step, leaving the project idle for the
