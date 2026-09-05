@@ -70,8 +70,8 @@ export function LeadDetailPage() {
   const stagesByKey = new Map(lead.stages.map((s) => [s.stage_key, s]))
 
   return (
-    <div className="flex flex-col gap-6">
-      <div className="flex items-center justify-between">
+    <div className="flex flex-col gap-3">
+      <div className="flex flex-col gap-1.5 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <Link to="/leads" className="text-sm text-teal-700 hover:underline">
             ← Back to leads
@@ -81,12 +81,12 @@ export function LeadDetailPage() {
             View Full History →
           </Link>
         </div>
-        <span className="inline-flex rounded-full bg-slate-100 px-3 py-1 text-sm font-medium text-slate-700">
+        <span className="inline-flex w-fit rounded-full bg-slate-100 px-3 py-1 text-sm font-medium text-slate-700">
           {lead.status.replace('_', ' ')}
         </span>
       </div>
 
-      <dl className="grid grid-cols-2 gap-4 rounded-lg border border-slate-200 bg-white p-4 text-sm sm:grid-cols-4">
+      <dl className="grid grid-cols-2 gap-2.5 rounded-lg border border-slate-200 bg-white p-2.5 text-sm sm:grid-cols-4">
         <div>
           <dt className="text-slate-400">Source</dt>
           <dd>{lead.source_channel ?? '—'}</dd>
@@ -106,7 +106,7 @@ export function LeadDetailPage() {
       </dl>
 
       {lead.status === 'failed' && lead.failed_stage && (
-        <div className="rounded-lg border border-red-300 bg-red-50 p-4 text-sm text-red-800">
+        <div className="rounded-lg border border-red-300 bg-red-50 p-2.5 text-sm text-red-800">
           <p className="font-medium">
             Pipeline failed at {STAGE_ORDER.find((s) => s.key === lead.failed_stage)?.label ?? lead.failed_stage}
           </p>
@@ -115,28 +115,33 @@ export function LeadDetailPage() {
       )}
 
       {lead.status === 'in_progress' && (
-        <div className="rounded-lg border border-sky-300 bg-sky-50 p-4 text-sm text-sky-800">
+        <div className="rounded-lg border border-sky-300 bg-sky-50 p-3 text-sm text-sky-800">
           This lead is still mid-pipeline — later stages have not run yet.
         </div>
       )}
 
-      <div className="flex flex-col gap-3">
+      <div className="flex flex-col gap-1">
         {STAGE_ORDER.map(({ key, label }) => {
           const stage = stagesByKey.get(key)
           const status = stage?.status ?? 'NOT_YET_RUN'
           return (
-            <div key={key} className={`rounded-lg border p-4 ${STAGE_STATUS_CLASSES[status]}`}>
+            <div key={key} className={`rounded-lg border p-2.5 ${STAGE_STATUS_CLASSES[status]}`}>
               <div className="flex items-center justify-between">
                 <h2 className="font-medium">{label}</h2>
                 <span className="text-xs font-medium uppercase tracking-wide text-slate-500">
                   {STAGE_STATUS_LABELS[status]}
                 </span>
               </div>
-              {stage?.error && <p className="mt-2 text-sm text-red-700">{stage.error}</p>}
+              {stage?.error && <p className="mt-1.5 text-sm text-red-700">{stage.error}</p>}
               {stage?.decision && (
-                <pre className="mt-2 overflow-x-auto rounded bg-white/70 p-2 text-xs text-slate-700">
-                  {JSON.stringify(stage.decision, null, 2)}
-                </pre>
+                <details className="mt-1.5">
+                  <summary className="cursor-pointer text-xs font-medium text-slate-500 hover:text-slate-700">
+                    View stage output
+                  </summary>
+                  <pre className="mt-1.5 overflow-x-auto rounded bg-white/70 p-2 text-xs text-slate-700">
+                    {JSON.stringify(stage.decision, null, 2)}
+                  </pre>
+                </details>
               )}
             </div>
           )
