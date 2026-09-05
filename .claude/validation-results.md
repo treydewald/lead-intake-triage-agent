@@ -588,3 +588,91 @@ here (outside Group_F11's `owned_files`).
 **Additional confirmation:** `GET /leads/{lead_id}` (Feature 08) re-verified unchanged — same response
 shape, same `.first()` semantics — via the full existing `test_router_leads_list.py` suite passing
 unmodified; Feature 11 adds a new endpoint alongside it rather than altering it.
+
+---
+
+## 2026-09-05 — Step 7: Implementation Verification (Gate 2 re-pass — Features 09, 10, 11)
+
+**Scope:** The prior Gate 2 pass (2026-09-04) covered only the 8 Tier 1 features. Features 09
+(Classification Accuracy Benchmark Report), 10 (External Notification Delivery), and 11 (Per-Lead
+Audit/History Trail UI) had each passed their own Step 6 validation loop individually but had
+accumulated without a dedicated batch Implementation Verification gate. This session ran that gate.
+
+**Step 1 — Application start:** Backend (`uvicorn main:app --port 8000`) and frontend (`npm run dev`,
+port 5173) both started cleanly against the real dev SQLite DB and real local Ollama
+(`llama3.2:3b`, confirmed serving via `/api/version`). No startup errors in either log.
+
+**Step 4 — Full test suite:** 136/136 backend (`pytest`, 26.27s), 15/15 frontend (`vitest run`,
+7.07s) — both unchanged from the numbers each feature's own Step 6 session already recorded.
+**Test coverage:** no coverage tool configured on either side (Istanbul/nyc or `pytest-cov` never
+set up) — recorded, not gating, consistent with the 2026-09-04 Gate 2 entry.
+
+**Step 3 — Spot-check, live against the real backend (no mocks):**
+- **Feature 09:** `GET /benchmark/runs` returned the one real run on record (accuracy 87.04%,
+  consistency 90.91%, 22 cases, model `llama3.2:3b`); `GET /benchmark/runs/{id}` returned all 22
+  cases with detail — matches the figures Feature 09's own Step 6 session produced, no drift.
+- **Feature 10:** queried the `notification` table directly — all three real delivery outcomes from
+  Feature 10's own live verification are still present and correct: `sent` (real webhook receiver),
+  `failed` (`ConnectError`, unreachable URL), `skipped` (no URL configured), plus `null` on
+  `auto_processed`/`failed`/`rejected` rows confirming the outcome-type gate holds under real data,
+  not just at the moment Feature 10 was built.
+- **Feature 11:** `GET /leads/{lead_id}/history` exercised against two real leads — one with only
+  stage transitions (no review yet), one with an `ACTIONED` review interleaved
+  (`reviewer_action="approve"`, `reviewer_name="Jordan"`) followed by a real `hubspot_crm_write`
+  resume attempt (`FAILED` — expected, sandbox token is a placeholder per this project's known
+  deviation) and a second `outcome_notification` entry. Chronological merge, review-action
+  interleaving, and post-approval resume are all correct against real persisted data.
+- No browser-automation tool available this session (Playwright binaries exist under
+  `frontend/node_modules/.bin` but the package is not a declared `frontend/package.json` dependency —
+  a stray/transitive install, not a usable project fixture; `.claude/seed-data.md` is still the
+  unfilled Step 10 template, confirming Screenshot Capture genuinely hasn't run yet). Compensated with
+  direct HTTP-level verification against the real backend plus direct SQLite queries, same
+  methodology Feature 11's own Step 6 session used for the same reason.
+- Both dev server logs reviewed end-to-end: zero errors, only expected `INFO` access logs.
+
+**Step 4.5 — Cross-feature interaction review:** No conflicts found. Feature 09's benchmark harness
+runs `IntentClassificationStage` out-of-graph and touches no state Features 10/11 depend on. Feature
+10's delivery hook and Feature 11's `reviewer_name` field are independent extension points on
+different call sites (`persist_outcome_notification()` vs. the reviews router's atomic claim UPDATE)
+with no shared code path. Feature 11's history endpoint correctly excludes notification-delivery data
+(a different concern, per `portfolio-reference.md`'s Key Decisions) — verified by inspection, no
+notification fields appear in `GET /leads/{lead_id}/history` responses.
+
+**Step 4.6 — Architectural fidelity:** Features 09 and 11 already had `Actual Footprint` sections in
+their `architecture-plan-*.md` files (appended during their own Step 6 sessions) — reviewed, both
+accurate against what's actually in the codebase, no deviations beyond what each already recorded.
+**Gap found:** `architecture-plan-feature-10.md` was missing its `Actual Footprint` section entirely
+— it had a `Predicted Footprint` but nothing appended after implementation. **Fixed this session:**
+appended the section using `.claude/execution-log.md`'s existing Feature 10 entry as the source of
+truth (files actually touched, the one corrected migration-chain detail, and the three live-verified
+delivery paths) — no new investigation needed, the data already existed, it just hadn't been copied
+into the plan file per Step 4.6's exit condition.
+
+**Console errors:** None (dev server logs reviewed; no browser console available this session — see
+above).
+
+**Verdict: PASS.** All three features function correctly against real, live data with no regressions
+and no unresolved cross-feature conflicts. One documentation gap (Feature 10's missing Actual
+Footprint) found and fixed as part of this gate, not deferred.
+
+```
+IMPLEMENTATION VERIFICATION REPORT
+===================================
+
+Status: PASS
+
+Features Verified: 3 (Feature 09, Feature 10, Feature 11 — Tier 2 batch; Tier 1 covered 2026-09-04)
+Routes Tested: 3 (GET /benchmark/runs, GET /benchmark/runs/{id}, GET /leads/{lead_id}/history) +
+  1 read-only DB check (notification delivery status, no dedicated route)
+Broken Features: 0
+
+Test Results: PASS (136/136 backend, 15/15 frontend)
+Test Coverage: no coverage tool configured
+Console Errors: NONE
+Architectural Deviations: NONE (one missing Actual Footprint section found and fixed — documentation
+  gap, not a functional or architectural deviation)
+
+Verdict: Application is implementation-complete and ready for Step 8 (Viewport Optimization) —
+Tier 1 + Tier 2 (Features 09-11) all verified. Feature 15 (CD round) already has its own CD-4
+verification and does not need a separate Gate 2 pass.
+```

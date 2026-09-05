@@ -1,7 +1,7 @@
 # Pipeline Reference — Lead Intake Triage Agent
 
-**Last Updated:** 2026-09-05 (Refinement backlog RB-005 COMPLETED — stale `App.test.tsx` assertion
-fixed; backlog now empty)
+**Last Updated:** 2026-09-05 (Step 7 Gate 2 re-pass COMPLETED — Features 09/10/11 batch-verified,
+verdict PASS; `architecture-plan-feature-10.md`'s missing Actual Footprint section fixed)
 
 How *this project* is using the Upwork Portfolio Project Pipeline. Distinct from
 `portfolio-reference.md`, which is about the product — this file is about pipeline state.
@@ -10,7 +10,29 @@ How *this project* is using the Upwork Portfolio Project Pipeline. Distinct from
 
 ## Current Step
 
-**This session (2026-09-05, fifth session same day):** Continued directly from the prior session's
+**This session (2026-09-05, seventh session same day):** No Suggestion was given and the refinement
+backlog was empty, but the project was not yet idle — `.claude/pipeline-reference.md`'s own Next Step
+section named a Gate 2 (Step 7) re-pass covering Features 09/10/11 as the strongest recorded candidate
+(three Tier 2 features had accumulated without a batch Implementation Verification gate; the prior
+Gate 2 run, 2026-09-04, covered Tier 1 only). Ran it: both dev servers started clean against the real
+DB and real local `llama3.2:3b`; full suites re-confirmed unchanged (136/136 backend, 15/15 frontend);
+live-verified all three features directly against the real backend/DB with no mocks — Feature 09's
+`/benchmark/runs` endpoints matched its own recorded 87.04%/90.91% figures exactly, Feature 10's
+`notification` table still shows all three real delivery outcomes (`sent`/`failed`/`skipped`) with the
+outcome-type gate holding, Feature 11's `/leads/{lead_id}/history` correctly merged a real `ACTIONED`
+review (`reviewer_name="Jordan"`) with its stage transitions including a post-approval
+`hubspot_crm_write` resume. No browser-automation tool usable (Playwright binaries present under
+`frontend/node_modules/.bin` but not a declared `package.json` dependency — a stray install, not a
+project fixture); compensated with HTTP-level + direct SQLite verification, same approach Feature 11's
+own session used. Cross-feature interaction review: no conflicts. Architectural fidelity check found
+one real gap — `architecture-plan-feature-10.md` was missing its `Actual Footprint` section entirely
+(had `Predicted Footprint` only) — fixed this session by appending it from `.claude/execution-log.md`'s
+already-recorded Feature 10 data, no new investigation needed. **Verdict: PASS.** Full report:
+`.claude/validation-results.md`'s 2026-09-05 Gate 2 re-pass entry.
+
+Prior to this (sixth session same day): backlog consumption — RB-005 COMPLETED (see below).
+
+Prior to this (fifth session same day): Continued directly from the prior session's
 Step 5.5 output — `architecture-plan-feature-11.md`'s Implementation Order was unconditional for
 Step 6 next on Group_F11, so this session claimed it and built Feature 11 (Per-Lead Audit/History
 Trail UI) end-to-end. New `GET /leads/{lead_id}/history` endpoint aggregates every `PipelineRun` row
@@ -161,11 +183,12 @@ has not yet run against any completed feature, including this one.
 CD-2.5; re-entered per feature group, see `docs/implementation-planning.md` §16), 6 (Worker Pool
 Orchestrator — Group_F01 through Group_F11 all COMPLETED — all 8 Tier 1 features plus Feature 09,
 Feature 10, and Feature 11 [Tier 2] implemented end-to-end), 7 (Implementation Verification — Gate 2 —
-PASSED, against Tier 1 only; Feature 09/10/11 not yet covered by a Gate 2 pass), Continued Development
+PASSED twice: 2026-09-04 against Tier 1, 2026-09-05 against Features 09/10/11), Continued Development
 Round 1 (CD-1 through CD-4 — Feature 15, Review Queue Frontend UI, COMPLETED and verified).
 
-**Gates passed:** Gate 2 (Step 7, implementation verification) — PASSED, 2026-09-04. Gate 1 (Step 13,
-portfolio score ≥9.0/10, per `docs/premium-ui-standard.md`) is still ahead.
+**Gates passed:** Gate 2 (Step 7, implementation verification) — PASSED, 2026-09-04 (Tier 1) and
+2026-09-05 (Features 09/10/11 batch). Gate 1 (Step 13, portfolio score ≥9.0/10, per
+`docs/premium-ui-standard.md`) is still ahead.
 
 **`.claude/` scaffold status:** Current — full-tier scaffold copied from pipeline templates on
 2026-09-04. See `PIPELINE-SYNC.md`.
@@ -181,12 +204,17 @@ Tier section, STANDARD mode with Tier 2/3 features present falls back to full ti
 **Feature 11 is now COMPLETED** (Group_F11, prior session's Step 6 run) — `implementation_plan.md`
 marks both Feature 11 and Group_F11 `COMPLETED`.
 
-**This session (2026-09-05, sixth session same day):** No Suggestion was given; the refinement backlog
-had exactly one `OPEN` entry (RB-005), so per Master Prompt Step 2 it was picked up directly ahead of
-idle-branch Dynamic Next-Action Selection. Verified the finding first (v18.0 verify-before-committing
-check): re-confirmed `frontend/src/App.test.tsx` still asserted the removed "Observability view"
-placeholder and still failed (`npm test -- --run src/App.test.tsx`) before editing. Rewrote the test to
-assert against `HomePage.tsx`'s real post-RB-004 content — heading text plus the three linked cards to
+**This session (2026-09-05, seventh session same day):** Ran the Gate 2 (Step 7) re-pass covering
+Features 09/10/11 — see Current Step above for full detail. **Verdict: PASS.** This closes the
+strongest-candidate item the prior session's Next Step named; that path is now consumed, not merely
+attempted.
+
+Prior to this (sixth session same day): No Suggestion was given; the refinement backlog had exactly
+one `OPEN` entry (RB-005), so per Master Prompt Step 2 it was picked up directly ahead of idle-branch
+Dynamic Next-Action Selection. Verified the finding first (v18.0 verify-before-committing check):
+re-confirmed `frontend/src/App.test.tsx` still asserted the removed "Observability view" placeholder
+and still failed (`npm test -- --run src/App.test.tsx`) before editing. Rewrote the test to assert
+against `HomePage.tsx`'s real post-RB-004 content — heading text plus the three linked cards to
 `/leads`/`/reviews`/`/benchmark` — scoping all queries to `within(screen.getByRole('main'))` to
 disambiguate from `Layout.tsx`'s sidebar, which independently renders the same "Lead Intake Triage"
 title and the same three nav labels. Verified: full frontend suite 15/15 passed (was 14/15); full
@@ -194,18 +222,14 @@ backend suite unaffected at 136/136. `.claude/refinement-backlog.md`'s RB-005 ma
 implementation notes. No architecture, backend, or production frontend code touched — test file only.
 
 Paths available next session:
-- **A Gate 2 (Step 7) re-pass covering Feature 09, Feature 10, and Feature 11** — the last full Gate 2
-  run only verified Tier 1; all three Tier 2 features have their own full validation loops already
-  recorded in `.claude/execution-log.md`/`validation-results.md` but have not been through a dedicated
-  Implementation Verification gate the way the 8 Tier 1 features were as a batch. Feature 15 has its
-  own CD-4 verification recorded in `architecture-plan-feature-15.md` and does not need a separate
-  Gate 2 pass. This is now the strongest candidate — three Tier 2 features have accumulated without a
-  batch Gate 2 pass.
-- **The refinement backlog is now empty** (RB-001 through RB-005 all `COMPLETED`) — the next idle
-  session (no Suggestion, no OPEN backlog entry) should run `docs/next-action-selection.md`'s Dynamic
+- **The refinement backlog is empty** (RB-001 through RB-005 all `COMPLETED`) and **both Gate 2 passes
+  are now done** (Tier 1 on 2026-09-04, Features 09/10/11 on 2026-09-05) — with no Suggestion and no
+  OPEN backlog entry, the next session should run `docs/next-action-selection.md`'s Dynamic
   Next-Action Selection rather than defaulting to Scope Expansion. This project has landed several
   backend/frontend features across recent Step 6 and CD rounds with no full In-App Cohesion Audit or UI
-  Audit & Refinement pass since Step 7's Tier-1-only Gate 2 run — likely candidates for that selection.
+  Audit & Refinement pass since Step 7's original Tier-1-only Gate 2 run — likely candidates for that
+  selection; the newly-completed Feature 09/10/11 Gate 2 pass adds no new candidate of its own beyond
+  those already on record.
 - Group_F13 (Feature 13, Tier 3) is also dependency-satisfiable but lower priority; Group_F14
   (Feature 14) remains CLAIMABLE-but-deferred (Tier 3, visibility only).
 

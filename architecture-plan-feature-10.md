@@ -183,3 +183,28 @@ Files predicted to change: 7 — `app/models/notification.py`, one new Alembic r
 Systems predicted to touch: `Notification` persistence (Feature 07), orchestrator plumbing
 (`persist_outcome_notification()`), Settings/`.env` config, one genuinely new external system (a
 generic Slack-compatible webhook endpoint).
+
+Actual Footprint
+Files actually changed: 9 (7 predicted, as predicted, plus 2 additional test files not enumerated by
+name in the Predicted Footprint's count — `app/tests/test_webhook_tools.py` (new, 5 tests) and
+`app/tests/test_router_notifications.py` (modified, 1 new test); `app/orchestrator/graph.py`'s own
+`test_orchestrator_graph.py` also gained 4 new tests). No new production system beyond the predicted 7
+files.
+Deviations from plan: one stale detail, corrected during implementation, not a design deviation — the
+plan's stated migration `down_revision` (`5f3cbe979b96_*`) was the alembic head when the plan was
+written, but Feature 09's `b86e4d4ef367` migration landed first; the actual migration
+(`a95fad549dbf_*`) chains onto that real head instead. No architectural deviation: delivery is gated to
+`awaiting_review` only exactly as planned, all three `persist_outcome_notification()` call sites kept
+their existing signatures, and the webhook URL itself never leaks into a recorded `error` string (the
+plan's stated risk mitigation).
+Rework required: none. All 5 acceptance criteria passed on first test run (128/128 backend tests — 118
+pre-existing + 10 new; `alembic upgrade head` applied cleanly to a single head). Live manual
+verification against the real local `llama3.2:3b` model (not mocked) across all three delivery paths
+via a disposable local HTTP receiver: sent (real payload delivered, `external_delivery_status="sent"`),
+failed (unreachable URL, `external_delivery_status="failed"`/`external_delivery_error="ConnectError"`,
+run still reached `AWAITING_REVIEW` normally), and skipped (`NOTIFICATION_WEBHOOK_URL` unset). Confirmed
+pre-existing `auto_processed`/`failed`/`rejected` rows never attempt delivery (`external_delivery_status`
+stays `null`). Re-confirmed live during this session's Gate 2 pass (2026-09-05): querying the dev DB's
+`notification` table directly shows all three real recorded delivery outcomes (`sent`/`failed`/
+`skipped`) plus `null` on non-`awaiting_review` rows, matching this record exactly — no drift since
+Feature 10's own Step 6 session.
