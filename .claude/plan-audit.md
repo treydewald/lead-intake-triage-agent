@@ -454,3 +454,57 @@ entries: worth a human look before Step 6 starts writing code, particularly the 
 **Next:** Step 6 (Worker Pool Orchestrator) claims Group_F08 using this plan's Implementation Order and
 reuse instructions; `implementation_plan.md`'s `owned_files` for Group_F08 already finalized this
 session.
+
+---
+
+## 2026-09-04 — Step 5.5: Implementation Planner — Feature 09 (Classification Accuracy Benchmark Report)
+
+Produced `architecture-plan-feature-09.md`. Planning Depth: Standard — a genuinely new backend
+subsystem (labeled dataset, out-of-graph harness, two new tables, three new endpoints) plus this
+project's second real frontend page, but every individual piece reuses an existing pattern (Feature 03's
+stage/tool-scoping machinery, Feature 08's router/schema/page conventions) rather than inventing new
+architecture; not Deep because no state-machine/graph change is involved.
+
+**Existing Systems Analysis:** No duplication risk found — no dataset, harness, or benchmark-reporting
+code exists anywhere yet, and `.claude/seed-data.md`'s screenshot fixture is explicitly a different,
+unlabeled thing that must not be conflated with this feature's ground-truth dataset. **Key finding:**
+`app/orchestrator/tools/register_default_tools(registry, settings)` already wires the real
+`ollama_classify` binding into a `ToolRegistry` — the harness reuses this factory plus
+`ToolRegistry.scoped_proxy()` to invoke the real `IntentClassificationStage` outside the compiled graph,
+the same construction `app/tests/test_stage_intent_classification.py` already uses with fake tool
+functions, now with the real registered tool for the first time. This is what satisfies the feature
+spec's own requirement that the benchmark call "the same code path production leads use," with zero new
+classification logic.
+
+**Architecture Rule Changes approved (1, conflict-checked against existing Key Decisions, none found):**
+1. New: a harness needing to invoke a single orchestrator stage in isolation (outside the compiled
+   graph) for a non-test purpose builds its own `ToolRegistry`, calls the existing
+   `register_default_tools(registry, settings)` factory, and invokes `stage.run(input, registry.
+   scoped_proxy(stage.allowed_tools, stage.name))` directly — never reimplementing stage logic, never
+   bypassing `ScopedToolProxy`. No conflict found; new ground — nothing previously addressed
+   out-of-graph single-stage invocation for a non-test purpose.
+
+Applied to `.claude/portfolio-reference.md`'s Key Decisions this session.
+
+**Implementation Order set (10 steps):** `app/benchmark/dataset.py` (labeled fixture: buyer/browser/
+spam/ambiguous) → `app/models/benchmark.py` (`BenchmarkRun`/`BenchmarkCase`) → Alembic migration →
+`app/benchmark/harness.py` (`run_benchmark()`: one `ToolRegistry`/`register_default_tools()` per run,
+`repeats` calls per dataset item, failure/None-sentinel counted as incorrect per the spec's own
+timeout edge case) → `app/schemas/benchmark.py` → `app/routers/benchmark.py` (`POST /benchmark/run`,
+`GET /benchmark/runs`, `GET /benchmark/runs/{run_id}`) → `main.py` registration → frontend
+`lib/api.ts` additions → `BenchmarkPage.tsx` (trigger button, latest accuracy/consistency, full
+failure-case table) → `App.tsx`/`Layout.tsx` routing + nav.
+
+**Notable design resolution:** defined accuracy (correct/total non-ambiguous attempts across all
+repeats, ambiguous items excluded from the denominator but never dropped from the report) and
+consistency (fraction of items whose repeats all produced an identical label) as two genuinely distinct
+metrics computed from the same run, rather than one run producing only a single-pass accuracy number —
+directly required by the feature spec's own acceptance criteria. `POST /benchmark/run` runs
+synchronously (no background job infra) since the dataset is deliberately kept small (~20-30 items).
+
+**Approved by:** auto (Auto Mode + master prompt's "EXECUTE NOW" applied — same standing note as prior
+entries: worth a human look before Step 6 starts writing code, particularly the accuracy/consistency
+metric definitions, since Step 7 will validate implementation against exactly this definition).
+
+**Next:** Step 6 (Worker Pool Orchestrator) claims Group_F09 using this plan's Implementation Order and
+reuse instructions; `implementation_plan.md`'s `owned_files` for Group_F09 finalized this session.

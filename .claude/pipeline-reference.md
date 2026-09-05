@@ -1,6 +1,6 @@
 # Pipeline Reference — Lead Intake Triage Agent
 
-**Last Updated:** 2026-09-04 (Step 7 — Implementation Verification, Gate 2, PASSED)
+**Last Updated:** 2026-09-04 (Step 5.5 — Implementation Planner, Feature 09, complete)
 
 How *this project* is using the Upwork Portfolio Project Pipeline. Distinct from
 `portfolio-reference.md`, which is about the product — this file is about pipeline state.
@@ -12,7 +12,20 @@ How *this project* is using the Upwork Portfolio Project Pipeline. Distinct from
 **Project Mode:** STANDARD (Intent: PORTFOLIO, Lifetime: MEDIUM, Scale: MEDIUM, Optimization
 Objective: PORTFOLIO_SIGNAL — see `docs/project-strategy.md`). Steps 10-16 are MANDATORY this cycle.
 
-**Step:** Step 7 (Implementation Verification, Gate 2) COMPLETED this session — **verdict PASS**. All
+**Step:** Step 5.5 (Implementation Planner) COMPLETED this session for Feature 09 (Classification
+Accuracy Benchmark Report, Tier 2) — produced `architecture-plan-feature-09.md`. Planning Depth:
+Standard. The harness reuses Feature 03's real `IntentClassificationStage`/`ToolRegistry`/
+`register_default_tools()` machinery directly (invoked outside the compiled graph, the same pattern
+`test_stage_intent_classification.py` already uses with fake tools, now with the real registered
+tool) — no classification logic is reimplemented. One new Architecture Rule Change applied to
+`.claude/portfolio-reference.md`'s Key Decisions (out-of-graph single-stage invocation convention).
+Designed as a genuine cross-system feature (2 new DB tables, 3 new endpoints, this project's second
+real frontend page) reusing Feature 08's router/schema/page conventions throughout — see
+`.claude/plan-audit.md`'s new entry for the full Existing Systems Analysis, Implementation Order (10
+steps), and the accuracy/consistency metric definitions Step 7 will later validate against.
+`implementation_plan.md`'s Group_F09 `owned_files` finalized. **Next: Step 6 claims Group_F09.**
+
+Prior to this: Step 7 (Implementation Verification, Gate 2) COMPLETED — **verdict PASS**. All
 8 Tier 1 features spot-checked live end-to-end (both servers started, all 3 intake channels exercised,
 high/low-confidence routing, approve-resume flow, notifications, observability list/detail/404), full
 test suite re-confirmed (111 backend + 3 frontend, unchanged), build/lint clean, no test coverage tool
@@ -43,10 +56,10 @@ renders nothing (see `architecture-plan-feature-08.md`'s Risks). Step 7 (Impleme
 has not yet run against any completed feature, including this one.
 
 **Completed steps:** 1 (Project Advisor), 2 (Roadmap Architect), 3 (Feature Specification Engine), 4
-(Environment Bootstrap), 5.5 (Implementation Planner — Feature 01 through Feature 08; re-entered per
+(Environment Bootstrap), 5.5 (Implementation Planner — Feature 01 through Feature 09; re-entered per
 feature group, see `docs/implementation-planning.md` §16), 6 (Worker Pool Orchestrator — Group_F01
-through Group_F08 all COMPLETED — all 8 Tier 1 features implemented end-to-end), 7 (Implementation
-Verification — Gate 2 — PASSED).
+through Group_F08 all COMPLETED — all 8 Tier 1 features implemented end-to-end; Group_F09 planned,
+not yet claimed), 7 (Implementation Verification — Gate 2 — PASSED, against Tier 1 only).
 
 **Gates passed:** Gate 2 (Step 7, implementation verification) — PASSED, 2026-09-04. Gate 1 (Step 13,
 portfolio score ≥9.0/10, per `docs/premium-ui-standard.md`) is still ahead.
@@ -62,14 +75,13 @@ Tier section, STANDARD mode with Tier 2/3 features present falls back to full ti
 
 ## Next Step
 
-**Step 6 (Worker Pool Orchestrator), Tier 2** — Gate 2 passed, so Tier 2 feature groups are now clear
-to start. Dependency-satisfiable and ready: Group_F09 (Feature 09, Classification Accuracy Benchmark
-Report, `depends_on: [Group_F03]`), Group_F10 (Feature 10, External Notification Delivery,
-`depends_on: [Group_F07]`), Group_F11 (Feature 11, Per-Lead Audit/History Trail UI, `depends_on:
-[Group_F08, Group_F06]`). Each needs its own Step 5.5 (Implementation Planner) pass first, per this
-project's established per-feature-group pattern. Group_F13 (Feature 13, Tier 3) is
-dependency-satisfiable but lower priority. Group_F14 (Feature 14) remains CLAIMABLE-but-deferred
-(Tier 3, visibility only).
+**Step 6 (Worker Pool Orchestrator) claims Group_F09** (Feature 09, Classification Accuracy Benchmark
+Report) — its Step 5.5 plan (`architecture-plan-feature-09.md`) is complete with a 10-step
+Implementation Order and finalized `owned_files`. Also dependency-satisfiable, still needing their own
+Step 5.5 pass first: Group_F10 (Feature 10, External Notification Delivery, `depends_on: [Group_F07]`),
+Group_F11 (Feature 11, Per-Lead Audit/History Trail UI, `depends_on: [Group_F08, Group_F06]`).
+Group_F13 (Feature 13, Tier 3) is dependency-satisfiable but lower priority. Group_F14 (Feature 14)
+remains CLAIMABLE-but-deferred (Tier 3, visibility only).
 
 **Also available:** `.claude/refinement-backlog.md`'s RB-002 (dead "Review Queue" nav item, OPEN,
 P3) — this session's Step 7 finding. Per its own "Routes to" note, it's a product decision (remove the

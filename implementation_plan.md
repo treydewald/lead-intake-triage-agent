@@ -184,9 +184,21 @@ GROUPS:
     status: UNCLAIMED
     owner: null
     features: [Feature 09]
-    owned_files: [TBD — pending Step 5.5 architecture plan for Feature 09]
+    owned_files: [backend/app/benchmark/dataset.py (new),
+      backend/app/benchmark/harness.py (new),
+      backend/app/models/benchmark.py (new — BenchmarkRun, BenchmarkCase),
+      backend/app/schemas/benchmark.py (new),
+      backend/app/routers/benchmark.py (new — POST /benchmark/run, GET /benchmark/runs,
+      GET /benchmark/runs/{run_id}),
+      backend/alembic/versions/<new>_add_benchmark_tables.py (new),
+      backend/main.py (modify — register benchmark.router),
+      frontend/src/pages/BenchmarkPage.tsx (new),
+      frontend/src/lib/api.ts (modify — runBenchmark(), listBenchmarkRuns(), getBenchmarkRun()),
+      frontend/src/App.tsx (modify — /benchmark route),
+      frontend/src/components/Layout.tsx (modify — nav link)]
     dependency_groups: [Group_F03]
     isolation_level: HIGH
+    # architecture-plan-feature-09.md (Step 5.5) sets Implementation Order — see that file
 
   Group_F10:
     status: UNCLAIMED

@@ -1,8 +1,8 @@
 # Portfolio Reference — Lead Intake Triage Agent
 
-**Last Updated:** 2026-09-04 (Key Decisions updated by Feature 08's Step 5.5 plan, see
-`architecture-plan-feature-08.md`; Architecture Map still reflects Feature 07's Step 6 implementation —
-Group_F08 not yet built)
+**Last Updated:** 2026-09-04 (Key Decisions updated by Feature 09's Step 5.5 plan, see
+`architecture-plan-feature-09.md`; Architecture Map still reflects Feature 08's Step 6 implementation —
+Group_F09 not yet built)
 
 Read this before opening source files. Only open the actual code when this doc doesn't answer the
 question.
@@ -279,3 +279,14 @@ that doesn't exist yet.)*
   a specific stage produces should add a similarly-scoped denormalized column here, set at the same
   commit point, rather than parsing trace JSON at query time or inventing a second query-optimized
   store. Set by Feature 08's implementation plan (`architecture-plan-feature-08.md`).
+- **A harness that needs to invoke a single orchestrator stage in isolation (outside the compiled
+  graph) for a non-test purpose builds its own `ToolRegistry`, calls the existing
+  `register_default_tools(registry, settings)` factory, and invokes `stage.run(input, registry.
+  scoped_proxy(stage.allowed_tools, stage.name))` directly — never reimplementing the stage's decision
+  logic, never bypassing `ScopedToolProxy`, and never registering a second, parallel tool binding for
+  the same external system.** This is the production-benchmark analogue of the pattern
+  `app/tests/test_stage_intent_classification.py` already uses with fake tool functions, now used with
+  the real registered tools outside a test for the first time. Any future feature needing to invoke a
+  stage standalone (a different benchmark, a manual replay/debug tool) should follow this same
+  construction rather than inventing a new one. Set by Feature 09's implementation plan
+  (`architecture-plan-feature-09.md`).
