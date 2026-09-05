@@ -1,8 +1,9 @@
 # Pipeline Reference — Lead Intake Triage Agent
 
-**Last Updated:** 2026-09-05 (Step 11, Portfolio Evaluator — Round 5. OVERALL SCORE 7/10, unchanged
-from Round 3/4 — Visual & UI/UX 8, Feature Signaling 9 (up from 8), Professional Readiness 8, Client
-Impact 7. Routes to Step 12, Round 5. See Current Step)
+**Last Updated:** 2026-09-05 (Step 12, Batch Backlog Processor — Round 5. Processed the full "Not
+Started" backlog (P1-01 project-wide whitespace fix, P2-01 mobile density exceptions closed as a side
+effect). Pixel-measured empty space dropped from 30-57% to 2-3% across all 7 desktop pages. Routes to
+Step 11, Round 6. See Current Step)
 
 How *this project* is using the Upwork Portfolio Project Pipeline. Distinct from
 `portfolio-reference.md`, which is about the product — this file is about pipeline state.
@@ -11,7 +12,76 @@ How *this project* is using the Upwork Portfolio Project Pipeline. Distinct from
 
 ## Current Step
 
-**This session (2026-09-05, nineteenth session same day):** Ran Step 11 (Portfolio Evaluator), Round 5
+**This session (2026-09-05, twentieth session same day):** Ran Step 12 (Batch Backlog Processor),
+Round 5 — processed Round 5's full backlog (only 2 items remained: 1 P1, 1 P2; within the step's 3-5
+item range only by virtue of there not being more available).
+
+- **P1-01 (project-wide page-height/whitespace gap, all 7 desktop pages):** Applied one consistent
+  strategy instead of another per-page patch: (1) gave `Layout.tsx`'s route wrapper and every page's
+  root element a real resolved height (`h-full` on the wrapper, `flex h-full min-h-0 flex-col` on each
+  page root) so a "fill remaining space" child has something definite to grow into; (2) marked each
+  page's own last content section `flex-1 min-h-0 overflow-y-auto`/`overflow-auto` so it grows to fill
+  that space without ever making `main` itself scroll (Home's Recent Leads panel, Lead List's table,
+  Lead Detail's Recent Activity card, Lead History's timeline — now wrapped in its own `Card` — Review
+  Queue's Recently Processed panel, Review Detail's Reviewer Decision card, Benchmark's Run History
+  card); (3) increased real data shown in previously-capped panels using existing endpoints only (Home
+  4→10 recent leads, Review Queue 3→8 recently processed, Recent Activity slices 2→4 entries); (4)
+  applied generous, consistent spacing increases (row/card padding) project-wide. New reusable
+  `.claude/skills/measure-page-whitespace.py` (Python/Pillow) reproduces Step 11 Round 5's pixel-scan
+  method exactly, registered in `.claude/skills/README.md`.
+- **Three real CSS pitfalls found and fixed while building the fill-to-bottom pattern**, all now
+  documented in `.claude/portfolio-reference.md`'s Key Decisions for future work: switching the route
+  wrapper to `display: grid` briefly reintroduced 268px of horizontal mobile overflow on Benchmark (a
+  grid/flex item's content-based automatic minimum size can force it wider than its container — fixed by
+  keeping the wrapper a plain block with `h-full` and adding explicit `min-w-0` at each flex boundary
+  wrapping a scrollable table); `LeadHistoryPage.tsx`'s right-column card had `h-fit`, which silently
+  defeats CSS Grid's default stretch-to-row-height behavior that `LeadDetailPage.tsx`/
+  `ReviewDetailPage.tsx` both already relied on for the same effect.
+- **A bug in the new measurement script itself was caught before trusting its output:** the first
+  version scanned the full screenshot width, which always intersects the persistent left sidebar
+  (`w-60`/240px, present at every row) — its own white background differs from the page's `slate-50`,
+  so every row falsely registered as "content," reporting 0% empty everywhere including
+  `LeadHistoryPage.tsx`, which was still visibly broken at that point. Caught specifically by
+  cross-checking the corrected script's numbers against a direct visual read of the actual screenshots,
+  not by trusting a script whose output "looked done." Fixed by scanning only x≥240px on desktop
+  screenshots.
+- **Result:** empty-space measurement (same pixel-scan method Step 11 Round 5 introduced) dropped from
+  30-57% to 2.0-2.9% across all 7 primary desktop pages — Home 44%→2.6%, Lead List 32%→2.9%, Lead
+  Detail 43%→2.0%, Lead History 53%→2.0%, Review Queue 57%→2.0%, Review Detail 51%→2.0%, Benchmark
+  32%→2.0%.
+- **P2-01 (mobile Lead Detail/Benchmark density exceptions):** closed as a side effect of P1-01, not
+  independently implemented — Benchmark's 94px mobile vertical overflow closed to 0px (the `min-w-0` fix
+  added for the desktop regression above also resolved a pre-existing mobile constraint), and Lead
+  Detail's 303px reduced to 15px (padding/spacing redistribution, not a net height increase). Lead
+  Detail's remaining 15px stays a documented exception under the same "genuinely data-heavy" reasoning as
+  before, now far smaller.
+
+Verification: full backend suite 138/138 passed (unchanged, no backend files touched), full frontend
+suite 18/18 passed (unchanged), `tsc -b`/`vite build` clean. Re-ran the no-scroll invariant
+(`docs/ui-design-standards.md` §1) via a Playwright script across all 7 pages × 4 viewports — zero
+overflow at all three desktop widths both before and after this batch (including catching and fixing the
+`display: grid` regression above before it shipped). All 9 portfolio screenshots re-captured and
+reviewed directly, including pixel-sampling specific rows to confirm a stretched card's near-white
+background genuinely extends to the bottom of the viewport (not a measurement artifact) — a `bg-white`
+card against this app's `bg-slate-50` page background differs by only ~7 RGB values, real but nearly
+invisible to the eye at normal screenshot zoom.
+
+`portfolio-evaluation.md` updated in place: P1-01 and P2-01 marked Completed with full implementation
+notes and a new "Batch Backlog Processor Report" section. `.claude/portfolio-reference.md`'s Key
+Decisions gained the page-shell stretch pattern, the three CSS pitfalls, and the measurement-script
+sidebar-exclusion fix; its mobile-exception numbers updated (Benchmark 94px→0px, Lead Detail 303px→15px).
+`.claude/skills/README.md` gained the new script's entry.
+
+Pipeline-level friction check: none found this session — the friction encountered (grid/flex automatic
+minimum sizing, `h-fit` defeating stretch, the sidebar-exclusion measurement bug) was this project's own
+component/tooling work, not friction with the pipeline's own instructions or templates.
+
+**Routing per `prompts/12_batch-backlog-processor.md`'s Next Steps: unconditional loop back to Step 11
+(Portfolio Evaluator) to re-evaluate — Round 6.**
+
+---
+
+**Prior session (2026-09-05, nineteenth session same day):** Ran Step 11 (Portfolio Evaluator), Round 5
 — re-evaluated against the 9 screenshots Round 4's Step 12 batch re-captured (2026-09-05 18:11,
 confirmed fresh via file timestamp), reviewed directly via the Read tool. **OVERALL SCORE: 7/10**
 (unchanged from Round 3/4) — Visual & UI/UX 8, Feature Signaling 9 (up from 8), Professional Readiness

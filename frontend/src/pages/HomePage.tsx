@@ -72,7 +72,7 @@ export function HomePage() {
 
   useEffect(() => {
     let cancelled = false
-    listLeads({ sort: 'created_desc', page_size: 4 })
+    listLeads({ sort: 'created_desc', page_size: 10 })
       .then((data) => {
         if (!cancelled) setRecentLeads(data.items)
       })
@@ -85,7 +85,7 @@ export function HomePage() {
   }, [])
 
   return (
-    <div className="flex flex-col gap-4 sm:gap-6">
+    <div className="flex h-full min-h-0 flex-col gap-4 sm:gap-6">
       <PageHeader
         eyebrow="Lead Intake Triage Agent"
         title="Automated classification, routing, and review"
@@ -136,9 +136,9 @@ export function HomePage() {
         ))}
       </div>
 
-      <div className="flex flex-col gap-2">
+      <div className="flex flex-1 min-h-0 flex-col gap-2">
         <SectionLabel>Recent leads</SectionLabel>
-        <Card className="flex flex-col divide-y divide-slate-100">
+        <Card className="flex flex-1 min-h-0 flex-col divide-y divide-slate-100 overflow-y-auto">
           {recentLeads === null ? (
             <p className="p-4 text-sm text-slate-500">Loading…</p>
           ) : recentLeads.length === 0 ? (
@@ -148,7 +148,7 @@ export function HomePage() {
               <Link
                 key={lead.lead_id}
                 to={`/leads/${lead.lead_id}`}
-                className="flex items-center justify-between gap-3 px-4 py-2.5 text-sm transition-colors hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-teal-600"
+                className="flex shrink-0 items-center justify-between gap-3 px-4 py-3 text-sm transition-colors hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-teal-600"
               >
                 <div className="flex min-w-0 items-center gap-2.5">
                   <span className="font-medium text-teal-700">{lead.lead_id.slice(0, 8)}</span>

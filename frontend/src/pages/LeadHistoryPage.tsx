@@ -84,7 +84,7 @@ export function LeadHistoryPage() {
   }
 
   return (
-    <div className="flex flex-col gap-6">
+    <div className="flex h-full min-h-0 flex-col gap-5 sm:gap-6">
       <div>
         <Link
           to={`/leads/${history.lead_id}`}
@@ -99,8 +99,8 @@ export function LeadHistoryPage() {
         </h1>
       </div>
 
-      <div className="grid grid-cols-1 gap-5 lg:grid-cols-3">
-        <div className="flex flex-col gap-2 lg:col-span-2">
+      <div className="grid flex-1 min-h-0 grid-cols-1 gap-5 lg:grid-cols-3">
+        <Card className="flex min-h-0 flex-col gap-3 overflow-y-auto p-5 lg:col-span-2">
           {history.entries.length === 0 ? (
             <p className="text-slate-500">No history recorded for this lead yet.</p>
           ) : (
@@ -108,10 +108,10 @@ export function LeadHistoryPage() {
               <TimelineRow key={`${entry.run_id}-${entry.kind}-${index}`} entry={entry} />
             ))
           )}
-        </div>
+        </Card>
 
         {lead && (
-          <Card className="flex h-fit flex-col gap-4 p-5">
+          <Card className="flex flex-col gap-4 p-6">
             <h2 className="text-xs font-semibold uppercase tracking-wider text-slate-500">Lead summary</h2>
             <dl className="grid grid-cols-2 gap-4 text-sm">
               <div className="col-span-2">

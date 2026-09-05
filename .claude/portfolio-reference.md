@@ -1,6 +1,11 @@
 # Portfolio Reference — Lead Intake Triage Agent
 
-**Last Updated:** 2026-09-05 (Step 12 — Batch Backlog Processor COMPLETED, Round 4: fixed
+**Last Updated:** 2026-09-05 (Step 12 — Batch Backlog Processor COMPLETED, Round 5: closed the
+project-wide page-height/whitespace gap across all 7 primary desktop pages (pixel-measured 30-57%→
+2-3% empty), closed as a side effect the two remaining mobile density exceptions (Benchmark 94px→0px,
+Lead Detail 303px→15px). New reusable measurement script `.claude/skills/measure-page-whitespace.py`.
+Routes to Step 11, Round 6. See Key Decisions for the page-shell stretch pattern and three CSS pitfalls
+found while building it. Prior update: Step 12 — Batch Backlog Processor COMPLETED, Round 4: fixed
 `TrendChart.tsx`'s axis-label distortion at its real root cause (non-uniform SVG scaling, not
 font-size/contrast — see Key Decisions), added composition content to Home/Review Queue/
 `LeadHistoryPage.tsx`, and closed most of a mobile (390×844) overflow regression across 6 pages via a
@@ -425,6 +430,12 @@ that doesn't exist yet.)*
   cards plus 2 summary cards in one mobile column, and Benchmark genuinely renders two real data tables
   plus a trend chart on one page — the same "genuinely data-heavy" reasoning `prompts/
   08_viewport-first-refactor.md`'s Common Failure Modes already allows, not a fixable layout choice.
+  **Updated Step 12, Round 5 (2026-09-05):** both figures improved substantially as a side effect of
+  that round's unrelated desktop whitespace fix, not a mobile-targeted change — `BenchmarkPage.tsx`'s
+  94px closed to 0px (the `min-w-0` fix added to stop its Run History table forcing horizontal overflow
+  on desktop also resolved a pre-existing mobile constraint), and `LeadDetailPage.tsx`'s 303px reduced to
+  15px (padding/spacing redistribution, not a net height increase). Lead Detail's remaining 15px stays a
+  documented exception under the same reasoning, now far smaller.
 - **A chart's axis-label legibility defect can survive a fontSize/fill fix untouched if the real cause
   is non-uniform SVG scaling, not text styling (Step 12, Round 4, 2026-09-05).** `TrendChart.tsx`'s
   `<svg preserveAspectRatio="none">` inside a fixed-height, full-width container stretches X and Y by
@@ -437,3 +448,43 @@ that doesn't exist yet.)*
   fix instead of trusting the named cause — see `docs/ui-audit-refinement.md`'s general lesson about a
   fix's own before/after check looking clean while the underlying defect persists for an unrelated
   reason.
+- **A page's "fill remaining vertical space" strategy (Step 12, Round 5, 2026-09-05) is: give
+  `Layout.tsx`'s route wrapper and every page's own root element a real resolved height (`h-full` on a
+  plain block wrapper, `flex h-full min-h-0 flex-col` on the page root), then mark that page's own LAST
+  content section `flex-1 min-h-0` with `overflow-y-auto`/`overflow-auto` so it grows to fill the
+  remainder without ever making `main` itself scroll.** Any future page or panel added to this project
+  should follow this exact pattern rather than inventing a new one — three real CSS pitfalls were found
+  and fixed while establishing it, all worth avoiding in future work here:
+  1. **Don't make the route wrapper a `display: grid` (or `flex`) container just to stretch its single
+     child.** A grid/flex item is subject to the "automatic minimum size" rule — its content's intrinsic
+     min-width can force the item (and everything below it) wider than its parent, silently reintroducing
+     horizontal overflow that a plain block wrapper with `h-full` never has (block boxes don't have
+     content-based automatic minimum sizing). This actually happened mid-round: switching the wrapper to
+     `grid h-full` pushed Benchmark 268px past the mobile viewport via its Run History table.
+  2. **Any flex child that wraps a horizontally-scrollable table needs explicit `min-w-0`.** The
+     "automatic minimum size" rule applies within nested flex contexts too (a column flex container's
+     items can still be forced wider than intended by a table's `min-w-[...]`) — `LeadListPage.tsx`'s and
+     `BenchmarkPage.tsx`'s table wrappers both needed `min-w-0` added at every flex level between the
+     table and the page root once those wrappers became `flex-1` containers, even though the equivalent
+     plain block markup never needed it.
+  3. **`h-fit` on a grid item silently defeats CSS Grid's default stretch-to-row-height behavior.**
+     `LeadHistoryPage.tsx`'s right-column "Lead summary" card had `h-fit`, an explicit sizing keyword that
+     overrides the implicit `align-items: stretch` every other two-column page (`LeadDetailPage.tsx`,
+     `ReviewDetailPage.tsx`) relies on for the same fill-to-bottom effect — removing it (and wrapping the
+     left column's timeline list in its own `Card` so the fill reads as a designed panel rather than raw
+     page background) was what actually closed that page's gap; the metric alone had briefly looked
+     closed already due to a since-fixed measurement-script bug (see below), which is why this was caught
+     by a direct screenshot comparison, not the script's number alone.
+  Verification for any future page using this pattern: re-run
+  `.claude/skills/measure-page-whitespace.py` against fresh desktop screenshots AND look at the
+  screenshot directly — a `bg-white` card against this app's `bg-slate-50` page background differs by
+  only ~7 RGB values, real but nearly invisible to the eye at normal zoom, so the pixel-scan script can
+  correctly report "closed" on a page a quick visual skim might still misjudge either way.
+- **`.claude/skills/measure-page-whitespace.py` (Step 11 Round 5, reused Step 12 Round 5) must scan only
+  the main-content-area width (x ≥ 240px on a desktop 1920×1080 screenshot), never the full image width.**
+  `Layout.tsx`'s left sidebar (`w-60`, 240px) is present at every row regardless of page content, with its
+  own `bg-white` differing from the page's `bg-slate-50` — scanning the full width makes every row
+  register as "content" via the sidebar alone, which produced a false "0% empty everywhere" reading on
+  the very first run of this fix, including on `LeadHistoryPage.tsx`, which was still visibly broken.
+  Caught by cross-checking the script's numbers against a direct look at the actual screenshots before
+  trusting them — see `portfolio-evaluation.md`'s Round 5 Step 12 batch notes for the full account.

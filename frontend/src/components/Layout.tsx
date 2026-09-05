@@ -68,7 +68,7 @@ export function Layout() {
         </nav>
       </header>
       <main className="min-w-0 flex-1 overflow-auto p-4 sm:p-6">
-        <div key={location.pathname} className="page-transition">
+        <div key={location.pathname} className="page-transition h-full">
           <Outlet />
         </div>
       </main>

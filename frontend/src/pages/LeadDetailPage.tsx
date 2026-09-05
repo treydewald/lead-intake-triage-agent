@@ -100,7 +100,7 @@ export function LeadDetailPage() {
   const badgeClass = STATUS_BADGE_CLASSES[lead.status] ?? 'bg-slate-100 text-slate-700'
 
   return (
-    <div className="flex flex-col gap-4 sm:gap-5">
+    <div className="flex h-full min-h-0 flex-col gap-4 sm:gap-5">
       <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
         <div>
           <Link
@@ -137,8 +137,8 @@ export function LeadDetailPage() {
         </div>
       )}
 
-      <div className="grid grid-cols-1 gap-4 sm:gap-5 lg:grid-cols-3">
-        <div className="flex flex-col gap-1.5 sm:gap-2 lg:col-span-2">
+      <div className="grid flex-1 min-h-0 grid-cols-1 gap-4 sm:gap-5 lg:grid-cols-3">
+        <div className="flex min-h-0 flex-col gap-2.5 overflow-y-auto sm:gap-3 lg:col-span-2">
           <h2 className="text-xs font-semibold uppercase tracking-wider text-slate-500">Pipeline stages</h2>
           {STAGE_ORDER.map(({ key, label }) => {
             const stage = stagesByKey.get(key)
@@ -146,7 +146,7 @@ export function LeadDetailPage() {
             return (
               <div
                 key={key}
-                className={`rounded-xl border p-2.5 shadow-sm transition-shadow sm:p-3 ${stage?.decision ? 'hover:shadow-md' : ''} ${STAGE_STATUS_CLASSES[status]}`}
+                className={`rounded-xl border p-3.5 shadow-sm transition-shadow sm:p-4 ${stage?.decision ? 'hover:shadow-md' : ''} ${STAGE_STATUS_CLASSES[status]}`}
               >
                 <div className="flex items-center justify-between">
                   <h3 className="font-medium text-slate-900">{label}</h3>
@@ -170,10 +170,10 @@ export function LeadDetailPage() {
           })}
         </div>
 
-        <div className="flex flex-col gap-3 sm:gap-4">
-          <Card className="flex h-fit flex-col gap-3 p-4 sm:gap-4 sm:p-5">
+        <div className="flex min-h-0 flex-col gap-3 sm:gap-4">
+          <Card className="flex flex-col gap-3.5 p-5 sm:gap-4 sm:p-6">
             <h2 className="text-xs font-semibold uppercase tracking-wider text-slate-500">Lead summary</h2>
-            <dl className="grid grid-cols-2 gap-3 text-sm sm:gap-4">
+            <dl className="grid grid-cols-2 gap-4 text-sm sm:gap-5">
               <div>
                 <dt className="text-xs font-medium uppercase tracking-wide text-slate-500">Source</dt>
                 <dd className="mt-0.5 font-medium text-slate-900">{lead.source_channel ?? '—'}</dd>
@@ -198,7 +198,7 @@ export function LeadDetailPage() {
             </dl>
           </Card>
 
-          <Card className="flex h-fit flex-col gap-2.5 p-4 sm:gap-3 sm:p-5">
+          <Card className="flex flex-1 min-h-0 flex-col gap-3 overflow-y-auto p-5 sm:gap-3.5 sm:p-6">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-slate-500">
                 <History className="h-3.5 w-3.5" aria-hidden="true" />
@@ -206,9 +206,9 @@ export function LeadDetailPage() {
               </div>
             </div>
             {recentActivity && recentActivity.length > 0 ? (
-              <div className="flex flex-col gap-2">
+              <div className="flex flex-col gap-2.5">
                 {recentActivity
-                  .slice(-2)
+                  .slice(-4)
                   .reverse()
                   .map((entry, index) => (
                     <TimelineRow key={`${entry.run_id}-${entry.kind}-${index}`} entry={entry} />

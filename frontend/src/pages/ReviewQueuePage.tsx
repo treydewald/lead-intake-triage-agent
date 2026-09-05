@@ -42,9 +42,9 @@ export function ReviewQueuePage() {
 
   useEffect(() => {
     let cancelled = false
-    listLeads({ sort: 'created_desc', page_size: 8 })
+    listLeads({ sort: 'created_desc', page_size: 20 })
       .then((data) => {
-        if (!cancelled) setRecentlyResolved(data.items.filter((i) => i.status !== 'awaiting_review').slice(0, 3))
+        if (!cancelled) setRecentlyResolved(data.items.filter((i) => i.status !== 'awaiting_review').slice(0, 8))
       })
       .catch(() => {
         if (!cancelled) setRecentlyResolved([])
@@ -65,7 +65,7 @@ export function ReviewQueuePage() {
       : null
 
   return (
-    <div className="flex flex-col gap-4 sm:gap-5">
+    <div className="flex h-full min-h-0 flex-col gap-4 sm:gap-5">
       <PageHeader
         title="Review Queue"
         description="Leads paused for a human decision before they reach CRM."
@@ -111,10 +111,10 @@ export function ReviewQueuePage() {
             <table className="w-full min-w-140 text-left text-sm">
               <thead className="border-b border-slate-200 bg-slate-50 text-xs uppercase tracking-wide text-slate-500">
                 <tr>
-                  <th className="px-4 py-2.5 font-medium">Lead</th>
-                  <th className="px-4 py-2.5 font-medium">Draft classification</th>
-                  <th className="px-4 py-2.5 font-medium">Confidence</th>
-                  <th className="px-4 py-2.5 font-medium">Queued</th>
+                  <th className="px-4 py-3 font-medium">Lead</th>
+                  <th className="px-4 py-3 font-medium">Draft classification</th>
+                  <th className="px-4 py-3 font-medium">Confidence</th>
+                  <th className="px-4 py-3 font-medium">Queued</th>
                 </tr>
               </thead>
               <tbody>
@@ -123,7 +123,7 @@ export function ReviewQueuePage() {
                     key={item.run_id}
                     className="border-b border-slate-100 transition-colors last:border-0 hover:bg-slate-50"
                   >
-                    <td className="px-4 py-2.5">
+                    <td className="px-4 py-3.5">
                       <Link
                         to={`/reviews/${item.run_id}`}
                         className="font-medium text-teal-700 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-600 focus-visible:ring-offset-1"
@@ -131,11 +131,11 @@ export function ReviewQueuePage() {
                         {item.lead_id.slice(0, 8)}
                       </Link>
                     </td>
-                    <td className="px-4 py-2.5 text-slate-600">{item.draft_intent_label ?? '—'}</td>
-                    <td className="px-4 py-2.5 text-slate-600">
+                    <td className="px-4 py-3.5 text-slate-600">{item.draft_intent_label ?? '—'}</td>
+                    <td className="px-4 py-3.5 text-slate-600">
                       {item.confidence_score != null ? item.confidence_score.toFixed(2) : '—'}
                     </td>
-                    <td className="px-4 py-2.5 text-slate-600">{new Date(item.created_at).toLocaleString()}</td>
+                    <td className="px-4 py-3.5 text-slate-600">{new Date(item.created_at).toLocaleString()}</td>
                   </tr>
                 ))}
               </tbody>
@@ -163,14 +163,14 @@ export function ReviewQueuePage() {
       )}
 
       {recentlyResolved && recentlyResolved.length > 0 && (
-        <div className="flex flex-col gap-2">
+        <div className="flex flex-1 min-h-0 flex-col gap-2">
           <SectionLabel>Recently processed</SectionLabel>
-          <Card className="flex flex-col divide-y divide-slate-100">
+          <Card className="flex flex-1 min-h-0 flex-col divide-y divide-slate-100 overflow-y-auto">
             {recentlyResolved.map((lead) => (
               <Link
                 key={lead.lead_id}
                 to={`/leads/${lead.lead_id}`}
-                className="flex items-center justify-between gap-3 px-4 py-2.5 text-sm transition-colors hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-teal-600"
+                className="flex shrink-0 items-center justify-between gap-3 px-4 py-3 text-sm transition-colors hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-teal-600"
               >
                 <div className="flex min-w-0 items-center gap-2.5">
                   <span className="font-medium text-teal-700">{lead.lead_id.slice(0, 8)}</span>

@@ -116,6 +116,7 @@ P1 (Critical - High Impact):
   that distributes existing content across the viewport rather than anchoring it to the top. Re-measure
   with the same pixel-scan method after the fix (not a visual glance) to confirm the gap is actually
   closed, not just smaller. | Est. Effort: 4-5 hrs (touches all 7 pages)
+  **Status: Completed (Step 12, Round 5, 2026-09-05).** Implementation notes below.
 
 P2 (High Priority):
 - P2-01: Mobile (390px) Lead Detail and Benchmark residual scroll (303px/94px) — evaluate whether a
@@ -123,6 +124,8 @@ P2 (High Priority):
   losing real data, now that the other 5 pages read as fully adapted and these two are the visible
   outliers. Not urgent — both are legitimately data-dense pages, per the documented exception in
   `.claude/portfolio-reference.md`. | Est. Effort: 1-2 hrs
+  **Status: Completed (Step 12, Round 5, 2026-09-05) — closed as a side effect of P1-01, not a separate
+  implementation.** Implementation notes below.
 
 P3 (Nice-to-Have):
 - P3-01: Add a first-visit onboarding cue on Home (e.g., pointing at the one pending review item) | Est.
@@ -153,7 +156,107 @@ BATCH VERIFICATION (Round 5, Step 11 — evaluation only, no code changed):
   already-verified screenshots from Round 4's own batch, not live application state.
 
 Backlog Status:
-- Completed (carried in from Round 4, re-confirmed this round): P1-01 (chart labels), P1-02 (composition
-  panels — partially effective, see new P1-01 above), P2-02 (mobile reflow, 4 of 6 pages; 2 documented
-  exceptions)
-- Not Started: 1 P1 (new, supersedes prior composition framing), 1 P2, 3 P3
+- Completed (carried in from Round 4, re-confirmed Round 5): P1-01/Round-4 (chart labels), P1-02/Round-4
+  (composition panels — partially effective, see Round 5's own P1-01 below), P2-02/Round-4 (mobile
+  reflow, 4 of 6 pages; 2 documented exceptions)
+- Completed this batch (Step 12, Round 5): P1-01 (project-wide whitespace fix), P2-01 (mobile density
+  exceptions, closed as a side effect)
+- Not Started: 3 P3
+
+BATCH BACKLOG PROCESSOR REPORT (Round 5, Step 12 — 2026-09-05)
+================================================================
+
+Batch: 2026-09-05 (Round 5)
+Items Processed: 2 (1 P1, 1 P2 — the full "Not Started" backlog this round; fewer than the step's
+typical 3-5 since only 2 items remained after Round 4's batch)
+
+Item P1-01: Close the page-height/whitespace utilization gap (all 7 desktop pages)
+Status: Completed
+Tests: PASS (138/138 backend unchanged, 18/18 frontend unchanged, `tsc -b`/`vite build` clean)
+Screenshot: `./portfolio-screenshots/01-home.png` through `07-benchmark.png` (all 7 desktop pages
+re-captured)
+
+Implementation — one consistent strategy applied project-wide, not a per-page patch:
+1. **Page shell now establishes a real height context.** `Layout.tsx`'s route-transition wrapper
+   changed from a plain unconstrained `<div>` to `<div className="page-transition h-full">`; every
+   page's own root element gained `flex h-full min-h-0 flex-col` (previously just `flex flex-col`).
+   This is what makes "the last section fills remaining vertical space" possible at all — without a
+   resolved height flowing down from `main`, no child `flex-1` has anything to grow into.
+2. **The last content section on every page now genuinely grows to fill that space**, via `flex-1
+   min-h-0` (with `overflow-y-auto`/`overflow-auto` where the content could theoretically exceed the
+   available height, so `main` itself never has to scroll): Home's "Recent leads" panel, Lead List's
+   table, Lead Detail's "Recent activity" card, Lead History's timeline (now wrapped in its own `Card`
+   so the fill reads as a designed panel, not raw background — see Weaknesses below), Review Queue's
+   "Recently processed" panel, Review Detail's "Reviewer decision" card, Benchmark's "Run History &
+   Trend" card.
+3. **More real data, not filler, in every panel that was showing an artificially small slice of
+   already-available data** (same existing endpoints, zero backend changes): Home's recent-leads list
+   4→10 items, Review Queue's recently-processed list 3→8, Lead Detail/Review Detail's recent-activity
+   slice 2→4 entries.
+4. **Generous, consistent spacing** across every table row and card (row padding `py-2.5`→`py-3`/`3.5`,
+   card padding `p-4/p-5`→`p-5/p-6`, `TimelineRow` padding `p-3`→`p-4`) — a small, deliberate density
+   reduction applied everywhere the prior rounds' compact-panel approach had left the page correct but
+   cramped.
+
+Verification (methodology, not just a visual glance, per this item's own re-measure instruction):
+- Re-ran the same pixel-scan method Round 5's Step 11 introduced (background-color boundary detection
+  from the bottom of the screenshot up) as a new reusable script,
+  `.claude/skills/measure-page-whitespace.py` (registered in `.claude/skills/README.md`). **Result: all
+  7 primary desktop pages now measure 2.0-2.9% empty space, down from 30-57% before this batch** —
+  Home 44%→2.6%, Lead List 32%→2.9%, Lead Detail 43%→2.0%, Lead History 53%→2.0%, Review Queue
+  57%→2.0%, Review Detail 51%→2.0%, Benchmark 32%→2.0%.
+- **Real bug caught and fixed in the measurement script itself before trusting its output:** the first
+  version scanned the full screenshot width, which always intersects the persistent left sidebar
+  (`Layout.tsx`'s `aside`, `w-60`/240px, present at every row regardless of page content) — its own
+  white background differs from the page's `slate-50` background, so every row falsely registered as
+  "content," reporting 0% empty everywhere including pages that were still visibly broken. Fixed by
+  scanning only the main-content-area width (x ≥ 240px on desktop screenshots). Caught specifically
+  because this session cross-checked the corrected script's per-page numbers against a direct visual
+  read of the actual screenshots (see next bullet) rather than trusting a script that "looked done" —
+  the same "verify after a fix, don't trust that it looks clean" lesson `docs/ui-audit-refinement.md`
+  already names for a different defect class (Step 12 Round 4's chart-label fix).
+- **Cross-checked the corrected pixel-scan numbers against a direct visual read of the screenshots**,
+  not just the metric: `01-home.png` and `05-review-queue.png` show real content (10/8 real leads)
+  filling the stretched panel, confirming the fix is genuine added content, not merely a stretched empty
+  box. `04-lead-history.png` initially still showed a large visible gap despite the (buggy) script
+  reporting 0% — root-caused to the right-column "Lead summary" card using `h-fit` (an explicit
+  height override that defeats CSS Grid's default item-stretch behavior) while the left column had no
+  matching background to fill with; fixed by wrapping the timeline list in its own `Card` and removing
+  `h-fit`, then re-verified both by the corrected script (53%→2.0%) and a direct screenshot read.
+  Confirmed via direct pixel sampling (not just the compressed screenshot preview, where a `bg-white`
+  card against a `bg-slate-50` page is nearly imperceptible to the eye) that the stretched cards on
+  Lead List/Review Queue/Benchmark genuinely extend real card backgrounds down near the bottom of the
+  viewport, not a measurement artifact.
+- Re-ran the no-scroll invariant (`docs/ui-design-standards.md` §1) via a Playwright script measuring
+  `main.scrollWidth`/`scrollHeight` vs `clientWidth`/`clientHeight` across all 7 pages × 4 viewports
+  (1920×1080, 1440×900, 1366×768, 390×844 mobile) — **zero overflow at all three desktop widths across
+  every page**, both before and after this batch's changes (no regression). One real regression was
+  introduced mid-batch and caught by this same script before being missed: switching the page-shell
+  wrapper to `display: grid` (an earlier attempt) made every page-root a grid item subject to
+  CSS Grid's automatic-minimum-size-from-content rule, which pushed Benchmark 268px past the mobile
+  viewport width via its Run History table's intrinsic min-width. Fixed by keeping the wrapper as a
+  plain block (`h-full` only, no `grid`/`flex` display) and adding explicit `min-w-0` at each nested
+  flex boundary that wraps a horizontally-scrollable table (`LeadListPage.tsx`, `BenchmarkPage.tsx`) —
+  re-measured at 0px overflow after the fix.
+
+Item P2-01: Mobile (390px) Lead Detail/Benchmark residual scroll
+Status: Completed (side effect of P1-01, not independently implemented)
+Tests: PASS (same suite as above)
+Screenshot: `./portfolio-screenshots/08-mobile-home.png`, `09-mobile-lead-list.png` (the two captured
+mobile views; Lead Detail/Benchmark aren't part of the standard mobile capture set but were measured
+directly via the same Playwright script)
+
+Notes: the no-scroll re-measurement above found both of Round 4's documented mobile exceptions
+substantially improved without any mobile-specific change — **Benchmark's 94px vertical overflow closed
+to 0px** (the Run History card's `min-w-0` fix, added for the desktop no-scroll regression above, also
+resolved a pre-existing mobile constraint issue), and **Lead Detail's 303px vertical overflow reduced to
+15px** (the increased padding/spacing changes redistributed slightly within the mobile single-column
+stack, but did not add net height). The remaining 15px on Lead Detail is retained as a documented
+exception, same reasoning as before — this page genuinely renders 6 real pipeline-stage cards plus 2
+summary cards in one mobile column, and 15px is negligible next to the 303px prior figure. See
+`.claude/portfolio-reference.md`'s Key Decisions for the updated numbers.
+
+Backlog Status (after this batch):
+- Completed: P1-01 (Round 5), P2-01 (Round 5) — see above; all prior rounds' items (Round 3/4)
+- Not Started: 3 P3 (onboarding cue, dark mode, saved-view indicator) — unchanged, out of this batch's
+  scope

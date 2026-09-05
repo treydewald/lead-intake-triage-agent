@@ -98,7 +98,7 @@ export function BenchmarkPage() {
     }))
 
   return (
-    <div className="flex flex-col gap-2">
+    <div className="flex h-full min-h-0 flex-col gap-3">
       <PageHeader
         title="Classification Accuracy Benchmark"
         description="Accuracy and consistency measured against a fixed set of known cases."
@@ -150,11 +150,11 @@ export function BenchmarkPage() {
               <table className="w-full min-w-[640px] text-left text-sm">
                 <thead className="border-b border-slate-200 bg-slate-50 text-xs uppercase tracking-wide text-slate-500">
                   <tr>
-                    <th className="px-4 py-1.5 font-medium">Case</th>
-                    <th className="px-4 py-1.5 font-medium">Status</th>
-                    <th className="px-4 py-1.5 font-medium">Expected</th>
-                    <th className="px-4 py-1.5 font-medium">Predicted</th>
-                    <th className="px-4 py-1.5 font-medium">Confidence</th>
+                    <th className="px-4 py-2.5 font-medium">Case</th>
+                    <th className="px-4 py-2.5 font-medium">Status</th>
+                    <th className="px-4 py-2.5 font-medium">Expected</th>
+                    <th className="px-4 py-2.5 font-medium">Predicted</th>
+                    <th className="px-4 py-2.5 font-medium">Confidence</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -163,13 +163,13 @@ export function BenchmarkPage() {
                       key={item.case_id}
                       className="border-b border-slate-100 transition-colors last:border-0 hover:bg-slate-50"
                     >
-                      <td className="px-4 py-1.5 font-medium text-slate-800">{item.case_id}</td>
-                      <td className="px-4 py-1.5">
+                      <td className="px-4 py-2.5 font-medium text-slate-800">{item.case_id}</td>
+                      <td className="px-4 py-2.5">
                         <CaseStatusBadge item={item} />
                       </td>
-                      <td className="px-4 py-1.5 text-slate-600">{item.expected_label ?? '—'}</td>
-                      <td className="px-4 py-1.5 text-slate-600">{item.predicted_label ?? '—'}</td>
-                      <td className="px-4 py-1.5">
+                      <td className="px-4 py-2.5 text-slate-600">{item.expected_label ?? '—'}</td>
+                      <td className="px-4 py-2.5 text-slate-600">{item.predicted_label ?? '—'}</td>
+                      <td className="px-4 py-2.5">
                         <ConfidenceMeter value={item.confidence} />
                       </td>
                     </tr>
@@ -180,21 +180,21 @@ export function BenchmarkPage() {
           </Card>
 
           {runs.length > 0 && (
-            <>
+            <div className="flex min-w-0 flex-1 min-h-0 flex-col gap-2">
               <SectionLabel>Run History &amp; Trend</SectionLabel>
-              <Card>
-                <div className="p-3 pb-2">
+              <Card className="flex min-w-0 flex-1 min-h-0 flex-col overflow-hidden">
+                <div className="p-4 pb-3">
                   <TrendChart points={trendPoints} />
                 </div>
-                <div className="overflow-x-auto border-t border-slate-200">
+                <div className="min-w-0 flex-1 min-h-0 overflow-auto border-t border-slate-200">
                   <table aria-label="Run history" className="w-full min-w-[560px] text-left text-sm">
-                    <thead className="border-b border-slate-200 bg-slate-50 text-xs uppercase tracking-wide text-slate-500">
+                    <thead className="sticky top-0 border-b border-slate-200 bg-slate-50 text-xs uppercase tracking-wide text-slate-500">
                       <tr>
-                        <th className="px-4 py-1.5 font-medium">Run</th>
-                        <th className="px-4 py-1.5 font-medium">Model</th>
-                        <th className="px-4 py-1.5 font-medium">Accuracy</th>
-                        <th className="px-4 py-1.5 font-medium">Consistency</th>
-                        <th className="px-4 py-1.5 font-medium">Cases × Repeats</th>
+                        <th className="px-4 py-2.5 font-medium">Run</th>
+                        <th className="px-4 py-2.5 font-medium">Model</th>
+                        <th className="px-4 py-2.5 font-medium">Accuracy</th>
+                        <th className="px-4 py-2.5 font-medium">Consistency</th>
+                        <th className="px-4 py-2.5 font-medium">Cases × Repeats</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -209,14 +209,14 @@ export function BenchmarkPage() {
                               isSelected ? 'bg-teal-50 hover:bg-teal-50' : 'hover:bg-slate-50'
                             } ${switchingRunId === run.id ? 'opacity-50' : ''}`}
                           >
-                            <td className="px-4 py-1.5 font-medium text-slate-800">
+                            <td className="px-4 py-2.5 font-medium text-slate-800">
                               {new Date(run.created_at).toLocaleString()}
                               {isSelected && <span className="ml-2 text-xs font-normal text-teal-700">Viewing</span>}
                             </td>
-                            <td className="px-4 py-1.5 text-slate-600">{run.model_used}</td>
-                            <td className="px-4 py-1.5 text-slate-600">{formatPercent(run.accuracy)}</td>
-                            <td className="px-4 py-1.5 text-slate-600">{formatPercent(run.consistency)}</td>
-                            <td className="px-4 py-1.5 text-slate-600">
+                            <td className="px-4 py-2.5 text-slate-600">{run.model_used}</td>
+                            <td className="px-4 py-2.5 text-slate-600">{formatPercent(run.accuracy)}</td>
+                            <td className="px-4 py-2.5 text-slate-600">{formatPercent(run.consistency)}</td>
+                            <td className="px-4 py-2.5 text-slate-600">
                               {run.total_cases} × {run.repeats}
                             </td>
                           </tr>
@@ -226,7 +226,7 @@ export function BenchmarkPage() {
                   </table>
                 </div>
               </Card>
-            </>
+            </div>
           )}
         </>
       )}

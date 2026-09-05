@@ -10,7 +10,7 @@ export function TimelineRow({ entry }: { entry: TimelineEntry }) {
   const isReviewAction = entry.kind === 'review_action'
   return (
     <div
-      className={`rounded-xl border p-3 shadow-sm transition-shadow hover:shadow-md ${
+      className={`rounded-xl border p-4 shadow-sm transition-shadow hover:shadow-md ${
         isReviewAction ? 'border-teal-300 bg-teal-50' : 'border-slate-200 bg-white'
       }`}
     >
