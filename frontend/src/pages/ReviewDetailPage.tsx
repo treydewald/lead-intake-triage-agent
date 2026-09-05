@@ -129,7 +129,7 @@ export function ReviewDetailPage() {
   }
 
   return (
-    <div className="flex flex-col gap-5">
+    <div className="flex flex-col gap-4 sm:gap-5">
       <div>
         <Link
           to="/reviews"
@@ -163,9 +163,9 @@ export function ReviewDetailPage() {
         </div>
       )}
 
-      <div className="grid grid-cols-1 gap-5 lg:grid-cols-3">
-        <div className="flex flex-col gap-4 lg:col-span-2">
-          <Card className="p-5">
+      <div className="grid grid-cols-1 gap-4 sm:gap-5 lg:grid-cols-3">
+        <div className="flex flex-col gap-3 sm:gap-4 lg:col-span-2">
+          <Card className="p-4 sm:p-5">
             <div className="mb-3 flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-slate-500">
               <MessageSquare className="h-3.5 w-3.5" aria-hidden="true" />
               Lead message
@@ -176,7 +176,7 @@ export function ReviewDetailPage() {
           </Card>
 
           {recentActivity && recentActivity.length > 0 && (
-            <Card className="flex flex-col gap-3 p-5">
+            <Card className="flex flex-col gap-2.5 p-4 sm:gap-3 sm:p-5">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-slate-500">
                   <History className="h-3.5 w-3.5" aria-hidden="true" />
@@ -191,7 +191,7 @@ export function ReviewDetailPage() {
               </div>
               <div className="flex flex-col gap-2">
                 {recentActivity
-                  .slice(-3)
+                  .slice(-2)
                   .reverse()
                   .map((entry, index) => (
                     <TimelineRow key={`${entry.run_id}-${entry.kind}-${index}`} entry={entry} />
@@ -201,8 +201,8 @@ export function ReviewDetailPage() {
           )}
         </div>
 
-        <div className="flex flex-col gap-4">
-          <Card className="flex flex-col gap-3 p-5">
+        <div className="flex flex-col gap-3 sm:gap-4">
+          <Card className="flex flex-col gap-2.5 p-4 sm:gap-3 sm:p-5">
             <h2 className="text-xs font-semibold uppercase tracking-wider text-slate-500">Classification signal</h2>
             <div className="flex items-center justify-between gap-2">
               <span className="text-sm font-semibold text-slate-900">{item.draft_intent_label ?? 'Unclassified'}</span>
@@ -216,7 +216,7 @@ export function ReviewDetailPage() {
           </Card>
 
           {!result && !alreadyActioned && (
-          <Card className="flex h-fit flex-col gap-3.5 p-5">
+          <Card className="flex h-fit flex-col gap-2.5 p-4 sm:gap-3.5 sm:p-5">
             <h2 className="text-xs font-semibold uppercase tracking-wider text-slate-500">Reviewer decision</h2>
             <div role="radiogroup" aria-label="Reviewer decision" className="flex flex-wrap gap-2">
               {(['approve', 'reject', 'edit'] as ReviewAction[]).map((action) => (

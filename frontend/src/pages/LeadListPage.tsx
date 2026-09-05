@@ -120,7 +120,7 @@ export function LeadListPage() {
     <div className="flex flex-col gap-4">
       <PageHeader title="Leads" description="Every lead that has entered the intake pipeline." />
 
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+      <div className="grid grid-cols-3 gap-2 sm:gap-4">
         <StatCard label="Total leads" value={String(total)} icon={Activity} />
         <StatCard
           label="Awaiting review"
@@ -170,54 +170,76 @@ export function LeadListPage() {
 
       {error && <ErrorState message={error} />}
 
-      <Card className="overflow-x-auto">
-        {loading ? (
+      {loading ? (
+        <Card>
           <LoadingState label="Loading leads…" />
-        ) : items.length === 0 ? (
+        </Card>
+      ) : items.length === 0 ? (
+        <Card>
           <EmptyState
             icon={Inbox}
             title="No leads found"
             description="Try adjusting the status or channel filters, or check back once new leads arrive."
           />
-        ) : (
-          <table className="w-full min-w-[640px] text-left text-sm">
-            <thead className="border-b border-slate-200 bg-slate-50 text-xs uppercase tracking-wide text-slate-500">
-              <tr>
-                <th className="px-4 py-2.5 font-medium">Lead</th>
-                <th className="px-4 py-2.5 font-medium">Status</th>
-                <th className="px-4 py-2.5 font-medium">Source</th>
-                <th className="px-4 py-2.5 font-medium">Confidence</th>
-                <th className="px-4 py-2.5 font-medium">Created</th>
-              </tr>
-            </thead>
-            <tbody>
-              {items.map((item) => (
-                <tr
-                  key={item.lead_id}
-                  className="border-b border-slate-100 transition-colors last:border-0 hover:bg-slate-50"
-                >
-                  <td className="px-4 py-2.5">
-                    <Link
-                      to={`/leads/${item.lead_id}`}
-                      className="font-medium text-teal-700 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-600 focus-visible:ring-offset-1"
-                    >
-                      {item.lead_id.slice(0, 8)}
-                    </Link>
-                  </td>
-                  <td className="px-4 py-2.5">
-                    <StatusBadge status={item.status} />
-                  </td>
-                  <td className="px-4 py-2.5 text-slate-600">{item.source_channel ?? '—'}</td>
-                  <td className="px-4 py-2.5">
-                    <ConfidenceMeter value={item.confidence_score} />
-                  </td>
-                  <td className="px-4 py-2.5 text-slate-600">{new Date(item.created_at).toLocaleString()}</td>
+        </Card>
+      ) : (
+        <>
+          <Card className="hidden overflow-x-auto sm:block">
+            <table className="w-full min-w-160 text-left text-sm">
+              <thead className="border-b border-slate-200 bg-slate-50 text-xs uppercase tracking-wide text-slate-500">
+                <tr>
+                  <th className="px-4 py-2.5 font-medium">Lead</th>
+                  <th className="px-4 py-2.5 font-medium">Status</th>
+                  <th className="px-4 py-2.5 font-medium">Source</th>
+                  <th className="px-4 py-2.5 font-medium">Confidence</th>
+                  <th className="px-4 py-2.5 font-medium">Created</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        )}
-      </Card>
+              </thead>
+              <tbody>
+                {items.map((item) => (
+                  <tr
+                    key={item.lead_id}
+                    className="border-b border-slate-100 transition-colors last:border-0 hover:bg-slate-50"
+                  >
+                    <td className="px-4 py-2.5">
+                      <Link
+                        to={`/leads/${item.lead_id}`}
+                        className="font-medium text-teal-700 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-600 focus-visible:ring-offset-1"
+                      >
+                        {item.lead_id.slice(0, 8)}
+                      </Link>
+                    </td>
+                    <td className="px-4 py-2.5">
+                      <StatusBadge status={item.status} />
+                    </td>
+                    <td className="px-4 py-2.5 text-slate-600">{item.source_channel ?? '—'}</td>
+                    <td className="px-4 py-2.5">
+                      <ConfidenceMeter value={item.confidence_score} />
+                    </td>
+                    <td className="px-4 py-2.5 text-slate-600">{new Date(item.created_at).toLocaleString()}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </Card>
+
+          <Card className="flex flex-col divide-y divide-slate-100 sm:hidden">
+            {items.map((item) => (
+              <Link
+                key={item.lead_id}
+                to={`/leads/${item.lead_id}`}
+                className="flex items-center justify-between gap-3 px-4 py-2.5 text-sm transition-colors hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-teal-600"
+              >
+                <div className="flex min-w-0 items-center gap-2.5">
+                  <span className="font-medium text-teal-700">{item.lead_id.slice(0, 8)}</span>
+                  <StatusBadge status={item.status} />
+                </div>
+                <ConfidenceMeter value={item.confidence_score} showValue={false} />
+              </Link>
+            ))}
+          </Card>
+        </>
+      )}
 
       <div className="flex items-center justify-between text-sm text-slate-600">
         <span>

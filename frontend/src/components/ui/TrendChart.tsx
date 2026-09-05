@@ -50,7 +50,28 @@ export function TrendChart({ points }: TrendChartProps) {
 
   return (
     <div className="flex flex-col gap-2">
-      <div className="h-20 w-full">
+      {/* The axis percentage labels are plain HTML, not SVG <text>, on purpose: the chart's SVG
+          uses preserveAspectRatio="none" so it can fill a wide-but-short container without
+          letterboxing, but that non-uniform x/y scaling badly distorts any <text> glyph drawn
+          inside the same viewBox (verified via a cropped/enlarged screenshot — the digits render
+          as illegible squashed shapes, not just small text). Positioning real HTML text in an
+          overlay column, sized as a percentage of the same box, keeps it perfectly legible and
+          still aligned to each gridline's vertical position. */}
+      <div className="relative h-20 w-full">
+        <div
+          className="pointer-events-none absolute inset-y-0 left-0"
+          style={{ width: `${(PAD_LEFT / WIDTH) * 100}%` }}
+        >
+          {gridValues.map((g) => (
+            <span
+              key={g}
+              className="absolute right-1.5 -translate-y-1/2 text-[11px] font-medium text-slate-600"
+              style={{ top: `${(yFor(g) / HEIGHT) * 100}%` }}
+            >
+              {Math.round(g * 100)}%
+            </span>
+          ))}
+        </div>
         <svg
           viewBox={`0 0 ${WIDTH} ${HEIGHT}`}
           className="h-full w-full"
@@ -59,19 +80,15 @@ export function TrendChart({ points }: TrendChartProps) {
           preserveAspectRatio="none"
         >
           {gridValues.map((g) => (
-            <g key={g}>
-              <line
-                x1={PAD_LEFT}
-                x2={WIDTH - PAD_RIGHT}
-                y1={yFor(g)}
-                y2={yFor(g)}
-                stroke="#e2e8f0"
-                strokeWidth={1}
-              />
-              <text x={PAD_LEFT - 6} y={yFor(g)} textAnchor="end" dominantBaseline="middle" fontSize={9} fill="#94a3b8">
-                {Math.round(g * 100)}%
-              </text>
-            </g>
+            <line
+              key={g}
+              x1={PAD_LEFT}
+              x2={WIDTH - PAD_RIGHT}
+              y1={yFor(g)}
+              y2={yFor(g)}
+              stroke="#e2e8f0"
+              strokeWidth={1}
+            />
           ))}
           <path
             d={linePath('consistency')}

@@ -17,13 +17,17 @@ const TONE_CLASSES: Record<NonNullable<StatCardProps['tone']>, string> = {
 
 export function StatCard({ label, value, icon: Icon, hint, tone = 'neutral' }: StatCardProps) {
   return (
-    <div className="flex items-start gap-3 rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
-      <div className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg ${TONE_CLASSES[tone]}`}>
+    <div className="flex items-start gap-3 rounded-xl border border-slate-200 bg-white p-2.5 shadow-sm sm:p-4">
+      <div
+        className={`hidden h-9 w-9 shrink-0 items-center justify-center rounded-lg sm:flex ${TONE_CLASSES[tone]}`}
+      >
         <Icon className="h-5 w-5" aria-hidden="true" />
       </div>
       <div className="min-w-0">
-        <div className="text-xs font-medium uppercase tracking-wide text-slate-500">{label}</div>
-        <div className="mt-0.5 text-xl font-semibold tracking-tight text-slate-900">{value}</div>
+        <div className="text-[10px] font-medium uppercase leading-tight text-slate-500 sm:text-xs sm:tracking-wide">
+          {label}
+        </div>
+        <div className="mt-0.5 truncate text-lg font-semibold tracking-tight text-slate-900 sm:text-xl">{value}</div>
         {hint && <div className="mt-0.5 truncate text-xs text-slate-500">{hint}</div>}
       </div>
     </div>

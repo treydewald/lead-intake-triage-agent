@@ -29,7 +29,7 @@ describe('LeadListPage', () => {
       </MemoryRouter>,
     )
 
-    await waitFor(() => expect(screen.getByText('lead-abc')).toBeInTheDocument())
+    await waitFor(() => expect(screen.getAllByText('lead-abc').length).toBeGreaterThan(0))
     expect(screen.getAllByText('Auto-processed').length).toBeGreaterThan(0)
     expect(screen.getByText('web_form')).toBeInTheDocument()
   })

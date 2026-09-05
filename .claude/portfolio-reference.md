@@ -1,7 +1,14 @@
 # Portfolio Reference — Lead Intake Triage Agent
 
-**Last Updated:** 2026-09-05 (Step 12 — Batch Backlog Processor COMPLETED, portfolio backlog P1-01
-through P1-04. Added `ReviewQueueItemOut.message_body` (P1-01, backend) plus a shared
+**Last Updated:** 2026-09-05 (Step 12 — Batch Backlog Processor COMPLETED, Round 4: fixed
+`TrendChart.tsx`'s axis-label distortion at its real root cause (non-uniform SVG scaling, not
+font-size/contrast — see Key Decisions), added composition content to Home/Review Queue/
+`LeadHistoryPage.tsx`, and closed most of a mobile (390×844) overflow regression across 6 pages via a
+real mobile card-list for `LeadListPage.tsx`/`ReviewQueuePage.tsx`'s tables plus a `StatCard.tsx` fix —
+two pages (`LeadDetailPage.tsx`, `BenchmarkPage.tsx`) kept as documented exceptions, see Key Decisions.
+Routes to Step 11, Round 5. Prior update: Step 12, Round 1-3 — Batch Backlog Processor COMPLETED,
+portfolio backlog P1-01 through P1-04. Added `ReviewQueueItemOut.message_body` (P1-01, backend) plus a
+shared
 `frontend/src/components/ui/` kit — `PageHeader`/`Card`/`StatCard`/`States` — and `lucide-react`
 iconography applied across all 7 pages (P1-02/P1-03), and real-data stat rows plus two-column layouts
 on Home/Lead List/Review Queue/Lead Detail/Review Detail (P1-04). No-scroll constraint re-verified and
@@ -404,3 +411,29 @@ that doesn't exist yet.)*
   vs `clientHeight` (not just eyeballing screenshots) across all three desktop widths post-fix, all at
   zero overflow. Future composition additions to Lead List specifically have ~4px less headroom at
   1366×768 than other pages before needing the same treatment again.
+- **Two more documented no-scroll exceptions at the mobile viewport (Step 12, Round 4, 2026-09-05),
+  same allowance as `LeadHistoryPage.tsx`'s long-history exception above.** A real Playwright
+  measurement pass (`main.scrollWidth`/`scrollHeight` vs `clientWidth`/`clientHeight` at 390×844) found
+  and closed most of a mobile regression across 6 pages — Home 243px→14px, Lead List 257px→13px, Review
+  Queue held at 0px, Review Detail 222px→70px, via a genuine mobile card-list alternative to two tables
+  (`LeadListPage.tsx`/`ReviewQueuePage.tsx`) plus a `StatCard.tsx` fix (icon hidden, label untracked at
+  10px below `sm:`) that turned out to be the entire cause of a separate small horizontal overflow on
+  every page using it — a long label like "AWAITING REVIEW" was overflowing past its own card border at
+  a 3-column mobile width, confirmed via a cropped screenshot, not just the numeric measurement.
+  **`LeadDetailPage.tsx` (465px→303px) and `BenchmarkPage.tsx` (109px→94px) remain over budget and are
+  accepted as exceptions**, not further-compressed: Lead Detail genuinely renders 6 real pipeline-stage
+  cards plus 2 summary cards in one mobile column, and Benchmark genuinely renders two real data tables
+  plus a trend chart on one page — the same "genuinely data-heavy" reasoning `prompts/
+  08_viewport-first-refactor.md`'s Common Failure Modes already allows, not a fixable layout choice.
+- **A chart's axis-label legibility defect can survive a fontSize/fill fix untouched if the real cause
+  is non-uniform SVG scaling, not text styling (Step 12, Round 4, 2026-09-05).** `TrendChart.tsx`'s
+  `<svg preserveAspectRatio="none">` inside a fixed-height, full-width container stretches X and Y by
+  different factors to avoid letterboxing — fine for a `<path>` line, but it visibly distorts any
+  `<text>` glyph drawn in the same viewBox into an illegible squashed shape, independent of font size or
+  color contrast. The general fix: axis/label text that must stay legible inside a `preserveAspectRatio:
+  none` SVG should be rendered as an HTML overlay positioned by percentage of the same box, not as SVG
+  `<text>` — the grid lines and data paths can keep using the SVG's own coordinate system untouched.
+  Caught only because this session re-inspected a cropped/enlarged screenshot after the first (wrong)
+  fix instead of trusting the named cause — see `docs/ui-audit-refinement.md`'s general lesson about a
+  fix's own before/after check looking clean while the underlying defect persists for an unrelated
+  reason.
