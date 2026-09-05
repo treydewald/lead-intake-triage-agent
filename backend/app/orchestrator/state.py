@@ -84,6 +84,8 @@ class NotificationSlice(BaseModel):
 
     notified: bool = False
     outcome_type: str | None = None
+    message: str | None = None
+    detail_link: str | None = None
 
 
 class RunMetadata(BaseModel):
@@ -94,6 +96,20 @@ class RunMetadata(BaseModel):
     status: RunStatus = RunStatus.RUNNING
     failed_stage: str | None = None
     error: str | None = None
+
+
+class NotificationInput(BaseModel):
+    """Feature 07's read-time merge input: `OutcomeNotificationStage.input_slices` names
+    `("run", "intake", "crm_write")`, and `_make_node`/`persist_outcome_notification` build
+    this generically by matching field names to slice names — see
+    architecture-plan-feature-07.md. `run.status` at call time is what distinguishes the
+    outcome (RUNNING only ever reaches this stage via the crm_write-success path, since
+    every other terminal status is set before this stage is invoked — see
+    `.claude/portfolio-reference.md`'s Key Decisions)."""
+
+    run: RunMetadata
+    intake: IntakeSlice
+    crm_write: CrmWriteSlice
 
 
 class LeadPipelineState(BaseModel):

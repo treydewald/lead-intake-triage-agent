@@ -10,8 +10,10 @@ from sqlalchemy import update
 from app.database.session import SessionLocal
 from app.models.pipeline_run import PipelineRun
 from app.models.review_queue import ReviewQueueItem
-from app.orchestrator.graph import build_production_resume_graph, resume_pipeline
+from app.orchestrator.graph import build_production_resume_graph, persist_outcome_notification, resume_pipeline
+from app.orchestrator.stages.outcome_notification import OutcomeNotificationStage
 from app.orchestrator.state import LeadPipelineState, RunStatus
+from app.orchestrator.tool_scope import ToolRegistry
 from app.schemas.pipeline import PipelineRunOut
 from app.schemas.review import ReviewActionRequest, ReviewQueueItemOut
 
@@ -103,6 +105,17 @@ def action_review(
                 run_row.status = RunStatus.REJECTED.value
                 db.commit()
                 db.refresh(run_row)
+            try:
+                rejected_state = LeadPipelineState.model_validate_json(state_snapshot)
+                rejected_state.run = rejected_state.run.model_copy(update={"status": RunStatus.REJECTED})
+                persist_outcome_notification(
+                    rejected_state, OutcomeNotificationStage(), ToolRegistry(), session_factory
+                )
+            except Exception:
+                # Notification creation is a side effect of a reviewer decision, never
+                # a gating condition - it must not affect the REJECTED status already
+                # committed above.
+                pass
             return PipelineRunOut.model_validate(run_row)
     finally:
         db.close()

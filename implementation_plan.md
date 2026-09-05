@@ -133,8 +133,8 @@ GROUPS:
     # architecture-plan-feature-06.md (Step 5.5) sets Implementation Order — see that file
 
   Group_F07:
-    status: IN_PROGRESS
-    owner: Worker-1
+    status: COMPLETED
+    owner: null
     features: [Feature 07]
     owned_files: [backend/app/orchestrator/stages/outcome_notification.py (new),
       backend/app/models/notification.py (new),
@@ -720,7 +720,7 @@ Feature 07: Outcome Notification (In-App)
 Tier: Tier 1
 
 Execution Metadata (REQUIRED)
-status: NOT STARTED
+status: COMPLETED
 group: PIPELINE_STAGES
 locked: false
 assigned_worker: null

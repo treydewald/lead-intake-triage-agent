@@ -1,8 +1,8 @@
 # Portfolio Reference — Lead Intake Triage Agent
 
-**Last Updated:** 2026-09-04 (Architecture Map updated after Feature 06's Step 6 implementation —
-Group_F06 COMPLETED; Key Decisions were already updated by Feature 06's Step 5.5 plan, see
-`architecture-plan-feature-06.md`)
+**Last Updated:** 2026-09-04 (Architecture Map updated after Feature 07's Step 6 implementation —
+Group_F07 COMPLETED; Key Decisions were already updated by Feature 07's Step 5.5 plan, see
+`architecture-plan-feature-07.md`)
 
 Read this before opening source files. Only open the actual code when this doc doesn't answer the
 question.
@@ -44,18 +44,22 @@ portfolio gate (Mode: STANDARD).
 | `backend/app/orchestrator/state.py` | `LeadPipelineState` — one Pydantic slice per stage (intake, classification, enrichment, crm_write, review, notification) + run metadata |
 | `backend/app/orchestrator/tool_scope.py` | `ToolRegistry`/`ScopedToolProxy` — the enforced per-stage tool-access boundary; a stage only ever reaches a tool through its scoped proxy |
 | `backend/app/orchestrator/errors.py` | `OutOfScopeToolError`, `StageExecutionError`, `StateValidationError` |
-| `backend/app/orchestrator/graph.py` | LangGraph `StateGraph` wiring the 6 stages (stub bodies for Features 05-07 until each lands), `run_pipeline()` entry point |
+| `backend/app/orchestrator/graph.py` | LangGraph `StateGraph` wiring the 6 stages, `run_pipeline()`/`resume_pipeline()` entry points; `persist_outcome_notification()` fires the notification stage directly for the three terminal transitions (failure, awaiting-review, reject) that never reach the graph's own `notify_stage` node; `_mark_completed_if_still_running()` is the sole place `RunStatus.COMPLETED` is assigned |
 | `backend/app/orchestrator/stages/intent_classification.py` | Feature 03's `IntentClassificationStage` — calls `ollama_classify` via the scoped tool proxy, retry-once-then-fail-closed |
 | `backend/app/orchestrator/stages/data_enrichment.py` | Feature 04's `DataEnrichmentStage` — calls `hubspot_search_contact` via the scoped tool proxy; exact-key phone/email match or `difflib`-scored fuzzy name match, merges only fields Intake left null, never raises |
 | `backend/app/orchestrator/stages/hubspot_crm_write.py` | Feature 05's `HubSpotCrmWriteStage` — write-only (`hubspot_write` alone); reads both `intake` and `enrichment` via `input_slices`; calls `tools.call("hubspot_write", ...)` with no try/except so a write failure halts the run |
 | `backend/app/orchestrator/stages/human_review.py` | Feature 06's `HumanReviewStage` — pure gate, no tool access; unconditionally returns `ReviewSlice(queued=True, ...)` (the routing decision was already made by `_route_after_enrich`) |
+| `backend/app/orchestrator/stages/outcome_notification.py` | Feature 07's `OutcomeNotificationStage` — pure signaling, no tool access; maps `run.status` to one of `auto_processed`/`awaiting_review`/`rejected`/`failed` and builds `message`/`detail_link` |
 | `backend/app/orchestrator/tools/` | Real tool bindings for external systems, one module per system (`ollama_tools.py`, `hubspot_tools.py`), wired by `register_default_tools()`; `hubspot_tools.py` holds both `search_contact` (read-only) and `write_contact` (write-only, retry-with-backoff) |
 | `backend/app/models/pipeline_run.py` | `PipelineRun`/`StageTrace` SQLAlchemy models — every stage transition's persisted trace |
 | `backend/app/models/review_queue.py` | Feature 06's `ReviewQueueItem` — a reviewer's actionable task for one paused run, carrying its own full-state resume snapshot (`state_snapshot`), distinct from the `PipelineRun`/`StageTrace` execution log |
+| `backend/app/models/notification.py` | Feature 07's `Notification` — a persisted in-app notification per outcome event; `run_id` FK is not unique (a run can produce more than one over its lifetime); no addressee field (no `User`/auth model exists) |
 | `backend/app/schemas/pipeline.py` | Pydantic request/response schemas for triggering/querying a pipeline run |
 | `backend/app/schemas/review.py` | Feature 06's `ReviewActionRequest`/`ReviewQueueItemOut` — reviewer-facing request/response shapes |
-| `backend/app/routers/reviews.py` | Feature 06: `GET /reviews`, `GET /reviews/{run_id}`, `POST /reviews/{run_id}/action` — concurrency-safe claim via an atomic `UPDATE ... WHERE status='PENDING'`; approve/edit re-enter the orchestrator via `resume_pipeline()`, reject sets `RunStatus.REJECTED` directly |
-| `backend/alembic/` | DB migrations, wired to `app.database.session.Base` and `settings.database_url`; `245c694fed3d_*` creates `pipeline_run`/`stage_trace`; `68de6a50cacb_*` creates `review_queue_item` |
+| `backend/app/schemas/notification.py` | Feature 07's `NotificationOut` — response shape for `GET /notifications` |
+| `backend/app/routers/reviews.py` | Feature 06: `GET /reviews`, `GET /reviews/{run_id}`, `POST /reviews/{run_id}/action` — concurrency-safe claim via an atomic `UPDATE ... WHERE status='PENDING'`; approve/edit re-enter the orchestrator via `resume_pipeline()`, reject sets `RunStatus.REJECTED` directly and also calls `persist_outcome_notification()` |
+| `backend/app/routers/notifications.py` | Feature 07: `GET /notifications` (list, newest first) |
+| `backend/alembic/` | DB migrations, wired to `app.database.session.Base` and `settings.database_url`; `245c694fed3d_*` creates `pipeline_run`/`stage_trace`; `68de6a50cacb_*` creates `review_queue_item`; `5f3cbe979b96_*` creates `notification` |
 | `frontend/src/components/` | Shared UI (`BuildIndicator.tsx`, `Layout.tsx`); feature components added as their own Step 6 groups land |
 | `frontend/src/pages/` | Route-level pages (observability view, review queue — added as their own Step 6 groups land) |
 | `frontend/src/lib/` | API client and typed helpers (added as their own Step 6 groups land) |

@@ -7,6 +7,8 @@ from app.orchestrator.state import (
     IntakeSlice,
     LeadPipelineState,
     MergedIntakeEnrichment,
+    NotificationInput,
+    NotificationSlice,
     RunMetadata,
     RunStatus,
 )
@@ -85,3 +87,35 @@ def test_run_status_rejected_round_trips():
 
     assert round_tripped.run.status == RunStatus.REJECTED
     assert round_tripped.run.status != RunStatus.FAILED
+
+
+def test_run_status_completed_round_trips():
+    """`RunStatus.COMPLETED` is set only by `run_pipeline`/`resume_pipeline` when a run
+    reaches the end of the graph still `RUNNING` - a distinct terminal outcome from every
+    other status, per Feature 07's implementation plan."""
+    state = LeadPipelineState(run=RunMetadata(run_id="run-1", lead_id="lead-1", status=RunStatus.COMPLETED))
+
+    round_tripped = LeadPipelineState.model_validate_json(state.model_dump_json())
+
+    assert round_tripped.run.status == RunStatus.COMPLETED
+
+
+def test_notification_slice_defaults():
+    slice_ = NotificationSlice()
+
+    assert slice_.notified is False
+    assert slice_.outcome_type is None
+    assert slice_.message is None
+    assert slice_.detail_link is None
+
+
+def test_notification_input_constructs_from_three_slices():
+    merged = NotificationInput(
+        run=RunMetadata(run_id="run-1", lead_id="lead-1", status=RunStatus.RUNNING),
+        intake=IntakeSlice(source_channel="web_form", name="Jane Doe"),
+        crm_write=CrmWriteSlice(hubspot_record_id="hs-1", write_status="created"),
+    )
+
+    assert merged.run.status == RunStatus.RUNNING
+    assert merged.intake.name == "Jane Doe"
+    assert merged.crm_write.hubspot_record_id == "hs-1"

@@ -296,3 +296,73 @@ test files, 5 modified)
 resume-continuity and concurrency-safe-claim requirements the architecture plan specifically called
 out for Step 7 to check; `implementation_plan.md` marked Feature 06 `COMPLETED`, Group_F06
 `COMPLETED`
+
+---
+
+## 2026-09-04 — Step 6: Feature 07 (Outcome Notification — In-App), Group_F07
+
+Implemented per `architecture-plan-feature-07.md`'s Implementation Order (7 steps): `models/
+notification.py` + Alembic revision → `stages/outcome_notification.py` (`OutcomeNotificationStage`) →
+`persist_outcome_notification()` helper in `graph.py` → wired into the three direct call sites
+(`_make_node`'s except block, `_make_human_review_node`, `reviews.py`'s reject branch) →
+`RunStatus.COMPLETED` gap closed in `run_pipeline`/`resume_pipeline` → `default_stages()` swap →
+`schemas/notification.py` + `routers/notifications.py`.
+
+**Files modified:**
+- `backend/app/orchestrator/state.py` (modified) — `NotificationSlice` gains `message`/`detail_link`;
+  new `NotificationInput` merge schema (`run`+`intake`+`crm_write`), same pattern as
+  `MergedIntakeEnrichment`
+- `backend/app/orchestrator/stages/outcome_notification.py` (new) — `OutcomeNotificationStage`:
+  `input_slices = ("run", "intake", "crm_write")`, `allowed_tools = frozenset()`; maps `run.status` to
+  one of `auto_processed`/`awaiting_review`/`rejected`/`failed`, builds `message` (falling back
+  name→phone→email→lead_id when the lead has no name) and `detail_link` (`/leads/{lead_id}` or
+  `/reviews/{run_id}` per the new routing-convention Key Decision)
+- `backend/app/models/notification.py` (new) — `Notification`: `run_id` (FK → `pipeline_run.id`,
+  indexed, **not** unique — a run can produce more than one notification over its lifetime),
+  `lead_id`, `outcome_type`, `message`, `detail_link`, `created_at`. No addressee field — this is a
+  single-tenant app with no `User`/auth model anywhere in the codebase
+- `backend/app/models/__init__.py` (modified) — registers `Notification` for Alembic autogenerate
+- `backend/alembic/versions/5f3cbe979b96_add_notification_table.py` (new)
+- `backend/app/orchestrator/graph.py` (modified) — new `persist_outcome_notification()` helper (the
+  shared "resolve merged input, call stage, write trace, save Notification row" logic used outside the
+  normal per-node flow); `_make_node()` gains an optional `notification_stage` parameter, called from
+  its except block on a stage failure (wrapped in its own try/except — never masks the original
+  failure); `_make_human_review_node()` likewise fires the awaiting-review notification after queueing;
+  new `_mark_completed_if_still_running()` closes the pre-existing gap where `RunStatus.COMPLETED` was
+  never assigned anywhere — `run_pipeline()`/`resume_pipeline()` now apply it to `final_state` before
+  persisting; `default_stages()["notification"]` now returns a real `OutcomeNotificationStage()`. The
+  crm_write-success (`auto_processed`) outcome still fires through the existing, unmodified
+  `notify_stage` graph node — zero graph edges changed
+- `backend/app/routers/reviews.py` (modified) — the reject branch now parses `state_snapshot`, sets
+  `run.status = REJECTED`, and calls `persist_outcome_notification()` directly (wrapped in try/except)
+  — reject never touched the orchestrator at all before this
+- `backend/app/schemas/notification.py` (new) — `NotificationOut`
+- `backend/app/routers/notifications.py` (new) — `GET /notifications` (list, newest first; no
+  read/unread state — not in the spec)
+- `backend/main.py` (modified) — registered `notifications.router`
+- `backend/app/tests/test_stage_outcome_notification.py` (new) — 6 tests: all four outcome types, the
+  name→phone→email→lead_id message fallback, no-tool-access
+- `backend/app/tests/test_router_notifications.py` (new) — 2 tests: newest-first listing, empty list
+- `backend/app/tests/test_orchestrator_state.py` (modified) — 3 new tests: `RunStatus.COMPLETED`
+  round-trips, `NotificationSlice` defaults, `NotificationInput` construction
+- `backend/app/tests/test_orchestrator_graph.py` (modified) — updated 5 existing tests whose
+  assertions encoded the pre-fix behavior (`RunStatus.RUNNING` after success → `COMPLETED`; `"notify"
+  not in calls` on the failure/awaiting-review paths → now present; trace lists gain an
+  `outcome_notification` entry on those paths)
+- `backend/app/tests/test_router_reviews.py` (modified) — the `_paused_stages` notification fake now
+  returns a realistic `NotificationSlice` instead of an all-`None` one (the all-`None` version silently
+  failed the `Notification` table's `NOT NULL outcome_type` on every test using it — harmless since
+  notification errors are swallowed by design, but noisy); updated the approve test's expected status
+  to `COMPLETED`; renamed/rewrote the reject test (`test_reject_sets_rejected_status_and_creates_a_
+  rejected_notification`) to assert the two `outcome_notification` traces (pause + reject) and the two
+  `Notification` rows (`awaiting_review` then `rejected`) now produced
+
+**Diff size:** ~470 lines added/changed across 14 files (6 new source modules incl. migration, 2 new
+test files, 6 modified)
+**Validation:** PASS — see `.claude/validation-results.md` (102/102 tests passing; grep-verified
+`OutcomeNotificationStage.allowed_tools` stays empty; manually traced all four outcome paths to confirm
+no code path can invoke `persist_outcome_notification` and the `notify_stage` graph node for the same
+transition)
+**Status:** approved — all of Feature 07's Acceptance Criteria verified by test, including the
+pre-existing `RunStatus.COMPLETED` gap this feature's own outcome-typing requirement exposed and fixed;
+`implementation_plan.md` marked Feature 07 `COMPLETED`, Group_F07 `COMPLETED`

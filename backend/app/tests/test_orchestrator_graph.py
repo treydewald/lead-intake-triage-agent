@@ -116,9 +116,10 @@ def test_low_confidence_lead_routes_to_human_review_instead_of_crm_write(db_sess
 
     final = run_pipeline("lead-low", _initial_state(), graph=graph, session_factory=db_session_factory)
 
-    assert calls == ["intake", "classify", "enrich", "human_review"]
+    # "notify" fires directly (Feature 07's persist_outcome_notification helper, not
+    # the graph's own notify_stage node - human_review_stage -> END never visits it).
+    assert calls == ["intake", "classify", "enrich", "human_review", "notify"]
     assert "crm_write" not in calls
-    assert "notify" not in calls
     assert final.crm_write.write_status is None
     assert final.review.queued is True
     assert final.run.status == RunStatus.AWAITING_REVIEW
@@ -143,7 +144,9 @@ def test_stage_exception_halts_only_that_leads_run(db_session_factory):
     assert final_a.run.status == RunStatus.FAILED
     assert final_a.run.failed_stage == "hubspot_crm_write"
     assert "boom" in (final_a.run.error or "")
-    assert "notify" not in calls_a
+    # "notify" now fires directly on failure too (Feature 07's persist_outcome_notification
+    # helper, called from _make_node's except block - not the graph's notify_stage node).
+    assert calls_a == ["intake", "classify", "enrich", "crm_write", "notify"]
 
     # A second, independently-run lead must be unaffected by the first's failure - no
     # shared mutable state across leads (separate state, separate graph invocation).
@@ -153,7 +156,7 @@ def test_stage_exception_halts_only_that_leads_run(db_session_factory):
 
     final_b = run_pipeline("lead-ok", _initial_state(), graph=graph_b, session_factory=db_session_factory)
 
-    assert final_b.run.status == RunStatus.RUNNING
+    assert final_b.run.status == RunStatus.COMPLETED
     assert final_b.crm_write.write_status == "created"
 
 
@@ -295,9 +298,17 @@ def test_failed_stage_transition_is_traced_with_error(db_session_factory):
             .order_by(StageTrace.created_at)
             .all()
         )
-        assert [t.stage_name for t in traces] == ["intake_parsing", "intent_classification", "data_enrichment"]
-        assert traces[-1].status == "FAILED"
-        assert "boom" in (traces[-1].error or "")
+        # Feature 07: the failed stage's own trace, plus a second trace for the
+        # notification stage firing directly off that failure (persist_outcome_notification).
+        assert [t.stage_name for t in traces] == [
+            "intake_parsing",
+            "intent_classification",
+            "data_enrichment",
+            "outcome_notification",
+        ]
+        assert traces[-2].status == "FAILED"
+        assert "boom" in (traces[-2].error or "")
+        assert traces[-1].status == "COMPLETED"
     finally:
         db.close()
 
@@ -365,7 +376,7 @@ def test_default_stages_high_confidence_lead_reaches_notify_via_real_crm_write_s
     )
     final = run_pipeline("lead-crm-write-success", initial_state, graph=graph, session_factory=db_session_factory)
 
-    assert final.run.status == RunStatus.RUNNING
+    assert final.run.status == RunStatus.COMPLETED
     assert final.crm_write.hubspot_record_id == "hs-1"
     assert final.crm_write.write_status == "created"
     assert final.notification.notified is True
@@ -422,7 +433,7 @@ def test_resume_pipeline_continues_paused_run_through_crm_write_and_notify(db_se
     assert resume_calls == ["crm_write", "notify"]
     assert final.crm_write.write_status == "created"
     assert final.notification.notified is True
-    assert final.run.status == RunStatus.RUNNING
+    assert final.run.status == RunStatus.COMPLETED
 
     db = db_session_factory()
     try:
@@ -432,16 +443,20 @@ def test_resume_pipeline_continues_paused_run_through_crm_write_and_notify(db_se
             .order_by(StageTrace.created_at)
             .all()
         )
+        # Feature 07: the original pause produced its own "outcome_notification" trace
+        # (awaiting_review, via _make_human_review_node) before human_review; the resume
+        # leg produces a second one (auto_processed, via the graph's notify_stage node).
         assert [t.stage_name for t in traces] == [
             "intake_parsing",
             "intent_classification",
             "data_enrichment",
             "human_review",
+            "outcome_notification",
             "hubspot_crm_write",
             "outcome_notification",
         ]
         run_row = db.get(PipelineRun, paused.run.run_id)
-        assert run_row.status == RunStatus.RUNNING.value
+        assert run_row.status == RunStatus.COMPLETED.value
         assert db.query(PipelineRun).filter(PipelineRun.lead_id == "lead-resume").count() == 1
     finally:
         db.close()

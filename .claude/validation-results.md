@@ -222,3 +222,46 @@ the single resume mechanism; only which compiled graph the router hands it is no
 8. `HumanReviewStage.allowed_tools` stays empty (pure gate, no tool creep) → `test_stage_human_review.py::test_human_review_stage_declares_no_tool_access` + grep check above
 9. `RunStatus.REJECTED` round-trips distinctly from `FAILED` → `test_orchestrator_state.py::test_run_status_rejected_round_trips`
 10. `alembic upgrade head` creates `review_queue_item` cleanly on the existing dev DB → verified manually above
+
+---
+
+## 2026-09-04 — Feature 07 (Outcome Notification — In-App)
+
+**Checks run:** `pytest app/tests/` (full backend suite, 102 tests) + `npm test -- --run` (frontend,
+unaffected — Feature 07 is backend-only, 1 test) + `alembic upgrade head` on the dev SQLite DB (created
+`notification` cleanly via autogenerate) + grep check that `OutcomeNotificationStage.allowed_tools`
+stays `frozenset()` (per `architecture-plan-feature-07.md`'s Validation Requirements #3 — confirmed,
+only the class body itself matches) + manual trace of all four outcome paths (RUNNING/FAILED/
+AWAITING_REVIEW/REJECTED) confirming no code path can reach both `persist_outcome_notification` and
+the generic `notify_stage` graph node for the same transition (Validation Requirements #1).
+
+No ruff/mypy installed in this project's `.venv` (same note as prior features) — pytest is the
+available validation signal this run.
+
+**Result:** PASS — `pytest app/tests/` 102 passed (91 pre-existing + 11 new: 6 in
+`test_stage_outcome_notification.py`, 2 in `test_router_notifications.py`, 3 in
+`test_orchestrator_state.py`), 0 failed. No fix cycle needed after implementation — one design gap was
+caught and corrected before running tests: `RunStatus.COMPLETED` had zero assignment sites anywhere in
+the codebase (grep-confirmed) before this feature; `run_pipeline`/`resume_pipeline` now apply
+`_mark_completed_if_still_running()` to `final_state` before persisting, per Validation Requirements #2.
+
+**Pre-existing test updates required (per the architecture plan's own Risk #2):** 5 existing
+assertions in `test_orchestrator_graph.py` and 1 in `test_router_reviews.py` encoded the pre-fix
+behavior (`RunStatus.RUNNING` after a successful run, `"notify" not in calls` on the failure/
+awaiting-review paths, trace lists missing the new `outcome_notification` entry on those paths) — all
+updated to reflect the fixed/completed behavior, not left describing the bug. The
+`test_router_reviews.py` reject test was also renamed
+(`test_reject_sets_rejected_status_and_creates_a_rejected_notification`) since its old name
+("...with_no_further_stage_trace") became factually wrong once a rejection legitimately produces one.
+
+**Acceptance criteria coverage (architecture-plan-feature-07.md):**
+1. Auto-processed lead produces exactly one `Notification` (`auto_processed`, `/leads/{lead_id}`) → `test_stage_outcome_notification.py::test_running_status_produces_auto_processed_outcome_linking_to_lead_detail` (stage level) + `test_orchestrator_graph.py::test_default_stages_high_confidence_lead_reaches_notify_via_real_crm_write_stage` (graph level, `RunStatus.COMPLETED` now asserted)
+2. Human-Review-routed lead produces exactly one `Notification` (`awaiting_review`, `/reviews/{run_id}`) at queue time → `test_stage_outcome_notification.py::test_awaiting_review_status_produces_awaiting_review_outcome_linking_to_review_queue` + `test_orchestrator_graph.py::test_low_confidence_lead_routes_to_human_review_instead_of_crm_write` (asserts `"notify"` now fires)
+3. A pipeline run that raises produces exactly one `Notification` (`failed`, describing `failed_stage`/`error`) → `test_stage_outcome_notification.py::test_failed_status_produces_failed_outcome_describing_the_failure` + `test_orchestrator_graph.py::test_stage_exception_halts_only_that_leads_run` (`calls_a` now includes `"notify"`) + `test_failed_stage_transition_is_traced_with_error` (trace list gains `outcome_notification`)
+4. Reject produces a second, distinct `Notification` (`rejected`), the original `awaiting_review` one still present → `test_router_reviews.py::test_reject_sets_rejected_status_and_creates_a_rejected_notification` (asserts both rows in order)
+5. Approve/edit resuming through crm_write produces a second, distinct `Notification` (`auto_processed`/`failed`) → `test_orchestrator_graph.py::test_resume_pipeline_continues_paused_run_through_crm_write_and_notify` (two `outcome_notification` traces: pause + resume)
+6. `PipelineRun.status` reads `COMPLETED`, not `RUNNING`, after a successful run → `test_orchestrator_graph.py::test_stage_exception_halts_only_that_leads_run` (`final_b`) + `test_default_stages_high_confidence_lead_reaches_notify_via_real_crm_write_stage` + `test_router_reviews.py::test_approve_resumes_with_original_label`
+7. `GET /notifications` returns created notifications, newest first → `test_router_notifications.py::test_list_notifications_returns_newest_first`
+8. `OutcomeNotificationStage.allowed_tools` stays empty (pure signaling, no tool creep) → `test_stage_outcome_notification.py::test_outcome_notification_stage_declares_no_tool_access` + grep check above
+9. Null-name lead still produces a usable message (name→phone→email→lead_id fallback) → `test_stage_outcome_notification.py::test_null_name_falls_back_to_phone_then_email_then_lead_id`
+10. `alembic upgrade head` creates `notification` cleanly on the existing dev DB → verified manually above

@@ -265,6 +265,16 @@ models/migrations, new notifications router, `.claude/portfolio-reference.md` Ke
 
 --- filled in later, by Step 7, once implementation is verified ---
 Actual Footprint
-Files actually changed: [pending Step 7]
-Deviations from plan: [pending Step 7]
-Rework required: [pending Step 7]
+Files actually changed: 14 (6 new: `outcome_notification.py`, `models/notification.py`,
+`schemas/notification.py`, `routers/notifications.py`, `5f3cbe979b96_add_notification_table.py`,
+`test_stage_outcome_notification.py`; 1 new test file also added beyond prediction:
+`test_router_notifications.py`; modified: `graph.py`, `reviews.py`, `state.py`, `main.py`,
+`models/__init__.py`, `test_orchestrator_graph.py`, `test_orchestrator_state.py`,
+`test_router_reviews.py`)
+Deviations from plan: none architecturally — every predicted file was touched as planned, plus the
+predicted test files split into 2 (stage tests + router tests, vs. 1 predicted line item) and 5
+pre-existing test assertions across `test_orchestrator_graph.py`/`test_router_reviews.py` needed
+updating because they encoded the pre-fix `RunStatus.RUNNING`/no-notification-on-failure behavior —
+this was explicitly anticipated by the plan's own Risk section, not a surprise.
+Rework required: none — all 102 backend tests (91 pre-existing + 11 new) passed on the first full run
+after implementation; no fix cycle needed.

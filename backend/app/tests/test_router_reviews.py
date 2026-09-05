@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import pytest
 
+from app.models.notification import Notification
 from app.models.pipeline_run import PipelineRun, StageTrace
 from app.models.review_queue import ReviewQueueItem
 from app.orchestrator.contracts import Stage
@@ -63,7 +64,12 @@ def _paused_stages(confidence: float) -> dict[str, Stage]:
         "crm_write": _FakeStage("hubspot_crm_write", "crm_write", CrmWriteSlice, lambda data, tools: CrmWriteSlice()),
         "review": HumanReviewStage(),
         "notification": _FakeStage(
-            "outcome_notification", "notification", NotificationSlice, lambda data, tools: NotificationSlice()
+            "outcome_notification",
+            "notification",
+            NotificationSlice,
+            lambda data, tools: NotificationSlice(
+                notified=True, outcome_type="awaiting_review", message="test", detail_link="/reviews/test"
+            ),
         ),
     }
 
@@ -160,7 +166,7 @@ def test_approve_resumes_with_original_label(client, db_session_factory):
     response = client.post(f"/reviews/{paused.run.run_id}/action", json={"action": "approve"})
 
     assert response.status_code == 200
-    assert response.json()["status"] == RunStatus.RUNNING.value
+    assert response.json()["status"] == RunStatus.COMPLETED.value
     assert capturing.received_labels == ["browser"]
 
     db = db_session_factory()
@@ -201,7 +207,7 @@ def test_edit_requires_corrected_intent_label(client, db_session_factory):
     assert response.status_code == 422
 
 
-def test_reject_sets_rejected_status_with_no_further_stage_trace(client, db_session_factory):
+def test_reject_sets_rejected_status_and_creates_a_rejected_notification(client, db_session_factory):
     paused = _create_paused_run(db_session_factory)
 
     response = client.post(f"/reviews/{paused.run.run_id}/action", json={"action": "reject"})
@@ -217,15 +223,29 @@ def test_reject_sets_rejected_status_with_no_further_stage_trace(client, db_sess
             .order_by(StageTrace.created_at)
             .all()
         )
+        # Feature 07: pausing for review already produces one "outcome_notification"
+        # trace (awaiting_review, via _make_human_review_node); reject calls
+        # persist_outcome_notification directly (no graph invocation for reject),
+        # appending a second, distinct one.
         assert [t.stage_name for t in traces] == [
             "intake_parsing",
             "intent_classification",
             "data_enrichment",
             "human_review",
+            "outcome_notification",
+            "outcome_notification",
         ]
 
         run_row = db.get(PipelineRun, paused.run.run_id)
         assert run_row.status == RunStatus.REJECTED.value
+
+        notifications = (
+            db.query(Notification)
+            .filter(Notification.run_id == paused.run.run_id)
+            .order_by(Notification.created_at)
+            .all()
+        )
+        assert [n.outcome_type for n in notifications] == ["awaiting_review", "rejected"]
     finally:
         db.close()
 

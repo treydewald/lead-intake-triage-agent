@@ -18,13 +18,22 @@ copying facts already being decided or already recorded elsewhere (see `docs/int
 ## Log
 
 [Append-only, chronological. Never delete or edit a past entry — outcomes get filled in as a follow-up
-edit to that same entry once the round they belong to is scored, not a new entry. Example entry shape
-below — replace with real entries as operations run; delete the example once the first real one is
-added.]
+edit to that same entry once the round they belong to is scored, not a new entry.]
 
-### 2026-01-01 — scope_expansion
-- Trigger: [one line — why this ran]
-- Expected effect: [copied from the operation's own registry entry / canonical spec]
-- Outcome: [filled in once this round's result is recorded elsewhere — copy it here too]
-- Surprise: [optional — only if the outcome clearly diverged from the expected effect]
-- Agent: [optional — the execution agent/environment that ran this, e.g. "claude/claude_code"]
+### 2026-09-04 — implementation_planning_deep
+- Trigger: Feature 07 (Outcome Notification — In-App) reached Step 5.5 before its Step 6 build; spec
+  classified as a Deep-tier plan since it touches shared orchestrator plumbing at multiple call sites,
+  not one isolated module.
+- Expected effect (Predicted Footprint, `architecture-plan-feature-07.md`): ~10 files across new
+  stage/model/schema/router/migration modules plus `graph.py`/`reviews.py`/`state.py`/
+  `routers/__init__.py`/`models/__init__.py` modifications.
+- Outcome (Actual Footprint, same file): 14 files changed — architecturally identical to the plan; the
+  only differences were the test footprint splitting into 2 files instead of 1 predicted line item, and
+  5 pre-existing test assertions needing updates because they encoded the pre-fix
+  `RunStatus.RUNNING`/no-notification-on-failure behavior (already anticipated by the plan's own Risk
+  section). 102/102 backend tests passed on the first full run; no rework cycle needed.
+- Surprise: the plan's own Existing Systems Analysis surfaced a genuine pre-existing gap unrelated to
+  Feature 07's literal scope — `RunStatus.COMPLETED` had zero assignment sites anywhere in the
+  codebase before this round — and fixed it as part of this feature rather than deferring it, since
+  Feature 07's own auto-processed/in-progress distinction is what exposed it.
+- Agent: claude/claude_code
