@@ -34,7 +34,7 @@ function StatusBadge({ status }: { status: string }) {
   )
 }
 
-const PAGE_SIZE = 20
+const PAGE_SIZE = 10
 
 export function LeadListPage() {
   const [items, setItems] = useState<LeadListItem[]>([])
@@ -79,9 +79,9 @@ export function LeadListPage() {
     <div className="flex flex-col gap-4">
       <h1 className="text-xl font-semibold">Leads</h1>
 
-      <div className="flex flex-wrap gap-3">
+      <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap">
         <select
-          className="rounded-md border border-slate-300 bg-white px-3 py-1.5 text-sm"
+          className="w-full rounded-md border border-slate-300 bg-white px-3 py-1.5 text-sm sm:w-auto"
           value={status}
           onChange={(e) => {
             setPage(1)
@@ -96,7 +96,7 @@ export function LeadListPage() {
         </select>
 
         <select
-          className="rounded-md border border-slate-300 bg-white px-3 py-1.5 text-sm"
+          className="w-full rounded-md border border-slate-300 bg-white px-3 py-1.5 text-sm sm:w-auto"
           value={sourceChannel}
           onChange={(e) => {
             setPage(1)
@@ -111,7 +111,7 @@ export function LeadListPage() {
         </select>
 
         <select
-          className="rounded-md border border-slate-300 bg-white px-3 py-1.5 text-sm"
+          className="w-full rounded-md border border-slate-300 bg-white px-3 py-1.5 text-sm sm:w-auto"
           value={sort}
           onChange={(e) => setSort(e.target.value as ListLeadsParams['sort'])}
         >
