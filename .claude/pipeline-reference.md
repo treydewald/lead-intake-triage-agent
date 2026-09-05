@@ -1,7 +1,7 @@
 # Pipeline Reference — Lead Intake Triage Agent
 
-**Last Updated:** 2026-09-05 (Step 15, Description Refiner — COMPLETED. Next: Step 16, LinkedIn
-Generator.)
+**Last Updated:** 2026-09-05 (Step 16, LinkedIn Generator — COMPLETED. This is the pipeline's final
+numbered stage; only manual publication remains.)
 
 How *this project* is using the Upwork Portfolio Project Pipeline. Distinct from
 `portfolio-reference.md`, which is about the product — this file is about pipeline state.
@@ -10,7 +10,44 @@ How *this project* is using the Upwork Portfolio Project Pipeline. Distinct from
 
 ## Current Step
 
-**This session (2026-09-05, twenty-third session same day):** Ran Step 15 (Description Refiner).
+**This session (2026-09-05, twenty-fourth session same day):** Ran Step 16 (LinkedIn Generator).
+
+No Suggestion was given, and `.claude/refinement-backlog.md` has no `OPEN`/`IN_PROGRESS` entries (all
+five, RB-001 through RB-005, are `COMPLETED`) — since Step 16 was the next mandatory foundational step
+per Step 15's own routing, this session proceeded directly rather than entering the idle-branch Dynamic
+Next-Action Selection (which only applies once Steps 1-16 are actually done).
+
+Synthesized `linkedin-entry.md` from `README.md` (Step 14) and `portfolio-description.md` (Step 15) —
+no other source. Title: "Lead Intake Triage Agent — Multi-Stage LangGraph AI Pipeline with HubSpot CRM
+Integration & Human-in-the-Loop Review" (116/255 chars). Date range inferred from git history (first
+commit 2026-09-04, most recent 2026-09-05): Sep 2026 – Sep 2026. Nine bullets covering architecture/tool
+scoping, the confidence-gated human review workflow, idempotent CRM writes, resumable runs, the FastAPI
+backend surface, the benchmark harness, the frontend, observability/notifications, and test/QA
+verification — each traced to a specific README or portfolio-description claim, none invented. Skills:
+Full-Stack Development, Python, FastAPI, React, TypeScript, Large Language Models (LLM), API Integration
+(7 items, within the 5-8 range, standard LinkedIn skill names rather than micro-skills).
+
+Per Step 6.5 (Cross-Check Sibling Facts, v13.0): checked every number this entry repeats against the
+*current* text of README.md and portfolio-description.md (both read fresh this session, not from
+memory) — 156 total tests (138 backend/18 frontend), 0 axe-core violations, 22-item benchmark dataset,
+and the dedupe-key/idProperty upsert mechanism all matched across all three files with no drift found.
+Description block measured programmatically at 1957/2000 chars (not estimated) after two bullets were
+tightened for margin — the first draft measured 1994/2000, uncomfortably close to the limit given
+possible counting-method differences from LinkedIn's own counter, so two bullets (pipeline-stage
+description, resumable-runs description) were reworded to shed verbose phrasing without cutting any
+verified claim.
+
+**Routing per `prompts/16_linkedin-generator.md`'s Next Steps: this is the pipeline's final numbered
+stage — no further numbered prompt follows.** Publication (copying `linkedin-entry.md`'s content into
+LinkedIn's Projects section, plus Upwork/GitHub) is a manual, out-of-pipeline action per that prompt's
+own Publication Instructions.
+
+Pipeline-level friction check: none found this session — Step 16's instructions were clear and
+sufficient as written.
+
+---
+
+**Prior session (2026-09-05, twenty-third session same day):** Ran Step 15 (Description Refiner).
 
 No prior formatted Upwork title/description/skills listing existed for this project —
 `project-definition.md` (Step 1) is a strategy report, not an Upwork-format listing — so this was a
@@ -922,7 +959,17 @@ Tier section, STANDARD mode with Tier 2/3 features present falls back to full ti
 
 ## Next Step
 
-**This session (2026-09-05, eighteenth session same day):** Step 12 (Batch Backlog Processor), Round 4
+**This session (2026-09-05, twenty-fourth session same day):** Step 16 (LinkedIn Generator) COMPLETED —
+`linkedin-entry.md` written and committed. **This was the pipeline's final numbered stage.** No further
+step follows; what remains is manual publication only (copy `linkedin-entry.md`'s content to LinkedIn's
+Projects section, plus Upwork/GitHub — see that prompt's own Publication Instructions). Since no
+Suggestion is queued and `.claude/refinement-backlog.md` is fully `COMPLETED` with no `OPEN` entries, the
+project is now genuinely idle per `docs/scope-expansion.md` §4's definition for the first time — a
+future session with no Suggestion/backlog work should run `docs/next-action-selection.md`'s Dynamic
+Next-Action Selection (Scope Expansion, Continual Project Refinement, UI Audit & Refinement, or In-App
+Cohesion Audit) rather than assuming there's nothing to do.
+
+**Prior session (2026-09-05, eighteenth session same day):** Step 12 (Batch Backlog Processor), Round 4
 batch, COMPLETED — P1-01 (chart axis labels, real root cause fixed) and P1-02 (composition on Home/
 Review Queue/Lead History) both Completed; P2-02 (mobile regression) Completed for 4 of 6 affected
 pages, with a documented exception for the other 2 (Lead Detail, Benchmark — see Current Step). **Next
