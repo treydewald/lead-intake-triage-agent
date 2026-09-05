@@ -1,7 +1,7 @@
 # Pipeline Reference — Lead Intake Triage Agent
 
-**Last Updated:** 2026-09-05 (Step 5.5 — Implementation Planner — completed for Feature 10, External
-Notification Delivery)
+**Last Updated:** 2026-09-05 (Backlog consumption — RB-003 COMPLETED, documentation-only Architecture
+Map backfill; no pipeline step advanced this session)
 
 How *this project* is using the Upwork Portfolio Project Pipeline. Distinct from
 `portfolio-reference.md`, which is about the product — this file is about pipeline state.
@@ -9,6 +9,16 @@ How *this project* is using the Upwork Portfolio Project Pipeline. Distinct from
 ---
 
 ## Current Step
+
+**This session (2026-09-05, second session same day):** No Suggestion was given and
+`.claude/refinement-backlog.md` had an OPEN entry (RB-003), so per the Master Prompt's Step 2 routing
+this session consumed that backlog entry directly rather than advancing the foundational pipeline.
+RB-003 (backfill `.claude/portfolio-reference.md`'s Architecture Map for Features 02-08's files) is
+now COMPLETED — see that file's own entry for the full list of rows added. Documentation-only, no code
+touched, no tests run, nothing to commit-and-verify beyond the `.claude/` files themselves. Surfaced
+one new finding while verifying (`HomePage.tsx`'s stale index-route placeholder), logged as RB-004
+(OPEN, P3). **Step 6 claiming Group_F10 (Feature 10) remains the actual next foundational step,
+unchanged from before this session** — see "Next Step" below.
 
 **Project Mode:** STANDARD (Intent: PORTFOLIO, Lifetime: MEDIUM, Scale: MEDIUM, Optimization
 Objective: PORTFOLIO_SIGNAL — see `docs/project-strategy.md`). Steps 10-16 are MANDATORY this cycle.
@@ -137,10 +147,11 @@ Other paths still available after Group_F10 lands:
   own CD-4 verification recorded in `architecture-plan-feature-15.md` and does not need a separate
   Gate 2 pass.
 
-RB-001 and RB-002 are both COMPLETED — no longer outstanding. **`.claude/refinement-backlog.md`'s
-RB-003 remains OPEN** (P3, documentation-only: backfill the Architecture Map for Features 02-08's own
-files) — a scoped documentation pass, pick up as a Suggestion or fold into a future Continual
-Refinement round's Documentation dimension.
+RB-001, RB-002, and RB-003 are all COMPLETED — no longer outstanding. **`.claude/refinement-
+backlog.md`'s RB-004 is now OPEN** (P3, In-App Cohesion: `HomePage.tsx`'s index route still shows
+Step 4's stale bootstrap placeholder instead of linking to Feature 08's real observability view at
+`/leads`) — a small, contained single-file fix (redirect or copy rewrite), pick up as a Suggestion or
+the next idle-session Dynamic Next-Action Selection/In-App Cohesion Audit.
 
 Step 5 (Workspace Recovery) does not apply — this is a fresh bootstrap, not a recovery.
 

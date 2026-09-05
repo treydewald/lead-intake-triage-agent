@@ -95,7 +95,7 @@ renumber.]
   real page for the first time.
 
 ### RB-003 — `.claude/portfolio-reference.md`'s Architecture Map was never backfilled for Features 02-08
-- **Status:** OPEN
+- **Status:** COMPLETED
 - **Dimension:** Documentation / Onboarding Accuracy (not one of `docs/continual-refinement.md`'s
   Eight Dimensions directly, but affects every future session's Step 0 orientation read)
 - **Priority:** P3
@@ -122,4 +122,46 @@ renumber.]
   02-08 (7 features' worth) — no code change, so it doesn't need a fresh Step 5.5 plan. Could be done
   as part of a future Continual Refinement round (Documentation dimension) or picked up directly as a
   Suggestion, whichever comes first.
+- **Implementation notes:** Resolved 2026-09-05 — picked up per the Master Prompt's Step 2 routing
+  (no Suggestion given this session, backlog had an OPEN entry). Added the 7 missing rows to
+  `.claude/portfolio-reference.md`'s Architecture Map: `backend/app/routers/leads.py`,
+  `frontend/src/pages/LeadListPage.tsx`, `frontend/src/pages/LeadDetailPage.tsx`,
+  `frontend/src/pages/HomePage.tsx`, `frontend/src/lib/api.ts`, `frontend/src/lib/stageOrder.ts`, and
+  the two previously-uncited migrations (`9217c457cc82`, `b86e4d4ef367`) folded into the existing
+  alembic row. Also rewrote the three stale directory-level placeholder rows
+  (`frontend/src/components/`, `frontend/src/pages/`, `frontend/src/lib/`) from future-tense
+  ("added as their own Step 6 groups land") to present-tense, since all cited groups have already
+  landed. Cross-checked every row against the actual filesystem (`ls` on `routers/`, `models/`,
+  `schemas/`, `pages/`, `components/`, `lib/`, `alembic/versions/`), not just the finding's own list —
+  no other gaps found. **New finding surfaced while verifying:** `frontend/src/pages/HomePage.tsx`
+  (the "/" index route, per `App.tsx`) still shows its Step-4-bootstrap placeholder text
+  ("Observability view — implemented in Step 6 (Feature 08)") with no link, even though Feature 08's
+  real observability view landed at `/leads`, not "/" — logged separately as RB-004 rather than fixed
+  here, since this ticket's own scope is documentation-only.
+
+### RB-004 — Index route ("/") shows a stale Step-4 bootstrap placeholder, not a real landing page
+- **Status:** OPEN
+- **Dimension:** In-App Cohesion (`docs/in-app-cohesion.md`) / Feature Signaling
+- **Priority:** P3
+- **Discovered:** RB-003's documentation backfill pass, 2026-09-05 — while cross-checking
+  `frontend/src/pages/` against `App.tsx`'s actual routes, not a Continual Refinement round; logged
+  here per the same backlog mechanism as RB-001/002/003.
+- **Finding:** `frontend/src/pages/HomePage.tsx` (bound to the index route `/` in `App.tsx`) still
+  reads exactly as Step 4's bootstrap scaffold left it: `"Observability view — implemented in Step 6
+  (Feature 08)."`, with no link anywhere on the page. Feature 08's real observability view was built
+  at `/leads` (`LeadListPage.tsx`), not at `/` — `HomePage.tsx` was never updated to either redirect
+  there or link to it. The persistent sidebar (`Layout.tsx`) does provide a working "Leads"/
+  "Observability" nav link, so this is not a true dead end the way RB-002's blank `/review` page was —
+  but the landing page itself is a stale, self-referential placeholder a first-time visitor or client
+  demo would see before clicking anywhere.
+- **Rationale / Evidence:** Confirmed via `App.tsx` (`<Route index element={<HomePage />} />` at line
+  15, `<Route path="leads" element={<LeadListPage />} />` at line 16) and `HomePage.tsx`'s full
+  contents (6 lines, unchanged since bootstrap — no feature's `architecture-plan-*.md` Actual Footprint
+  section lists `HomePage.tsx` as a modified file).
+- **Routes to:** A small, contained fix — either (a) redirect `/` to `/leads` (`<Navigate to="leads"
+  replace />`), or (b) rewrite `HomePage.tsx`'s copy into a real landing summary with a link to
+  `/leads`. Per `docs/continual-refinement.md`'s routing table this is a contained, single-file
+  UI-copy/routing fix scoped small enough for a direct Step 6-style edit — doesn't need a fresh Step
+  5.5 plan. Surface at the next idle-session Dynamic Next-Action Selection or the next In-App Cohesion
+  Audit, whichever comes first, per the same pattern RB-002 used.
 - **Implementation notes:** _(pending)_
