@@ -12,26 +12,26 @@ How *this project* is using the Upwork Portfolio Project Pipeline. Distinct from
 **Project Mode:** STANDARD (Intent: PORTFOLIO, Lifetime: MEDIUM, Scale: MEDIUM, Optimization
 Objective: PORTFOLIO_SIGNAL — see `docs/project-strategy.md`). Steps 10-16 are MANDATORY this cycle.
 
-**Step:** Step 6: Worker Pool Orchestrator — Group_F07 (Feature 07: Outcome Notification — In-App)
-completed this session, per `architecture-plan-feature-07.md`'s 7-step Implementation Order.
-`OutcomeNotificationStage` added (pure signaling, no tool access, maps `run.status` to one of
-`auto_processed`/`awaiting_review`/`rejected`/`failed`); `Notification` model + Alembic migration
-(`5f3cbe979b96_add_notification_table`) created; new `persist_outcome_notification()` helper in
-`graph.py` fires the notification stage directly for the three terminal transitions
-(failure/awaiting-review/reject) that never reach the graph's own `notify_stage` node — the
-crm_write-success path still fires through that existing, unmodified node; `routers/notifications.py`
-added (`GET /notifications`). One pre-existing gap surfaced (not introduced) by this feature's own
-outcome-typing requirement: `RunStatus.COMPLETED` had zero assignment sites anywhere in the codebase
-before this round — fixed via a new `_mark_completed_if_still_running()` applied in
-`run_pipeline`/`resume_pipeline`; see `architecture-plan-feature-07.md`'s now-filled-in Actual
-Footprint, `.claude/validation-results.md`, and `.claude/intervention-log.md` for the full account.
-All 102 backend tests pass (91 pre-existing + 11 new); frontend's 1 test unaffected (Feature 07 is
-backend-only).
+**Step:** Step 5.5: Implementation Planner — Feature 08 (Observability / Monitoring View) completed
+this session. Produced `architecture-plan-feature-08.md` (Standard depth) with an 8-step
+Implementation Order: 2 new denormalized `PipelineRun` columns (`source_channel`, `confidence_score`)
++ migration, a `_STAGE_ORDER`→`STAGE_ORDER` export rename in `graph.py`, new backend schemas
+(`LeadListItemOut`/`LeadListOut`/`StageDetailOut`/`LeadDetailOut`), `GET /leads` +
+`GET /leads/{lead_id}` in `routers/leads.py`, and the frontend's first real pages
+(`LeadListPage.tsx`/`LeadDetailPage.tsx`) beyond the Step 4 bootstrap scaffold. Two new Architecture
+Rule Changes applied to `.claude/portfolio-reference.md`'s Key Decisions (a post-persistence
+status-mapping distinct from Feature 07's notification-time one; the denormalized-columns
+read-optimization pattern). `implementation_plan.md`'s Group_F08 `owned_files` finalized. **Gap
+surfaced, not fixed this round:** no feature anywhere in the 14-feature roadmap builds a frontend for
+the existing `GET /reviews`/`POST /reviews/{run_id}/action` routes — flagged as a future Scope
+Expansion/CD candidate; Feature 08's lead detail view deliberately does not link to `/reviews/{run_id}`
+yet since that destination renders nothing (see `architecture-plan-feature-08.md`'s Risks / Navigation
+Relationships Flagged). Step 6 has not yet run against this plan.
 
 **Completed steps:** 1 (Project Advisor), 2 (Roadmap Architect), 3 (Feature Specification Engine), 4
-(Environment Bootstrap), 5.5 (Implementation Planner — Feature 01 through Feature 07; re-entered per
+(Environment Bootstrap), 5.5 (Implementation Planner — Feature 01 through Feature 08; re-entered per
 feature group, see `docs/implementation-planning.md` §16), 6 (Worker Pool Orchestrator — Group_F01
-through Group_F07 all COMPLETED).
+through Group_F07 COMPLETED; Group_F08 UNCLAIMED, plan ready).
 
 **Gates passed:** None yet — Gate 2 (Step 7, implementation verification) and Gate 1 (Step 13,
 portfolio score ≥9.0/10) are both ahead. Step 7 has not yet run against any completed feature.
@@ -47,15 +47,13 @@ Tier section, STANDARD mode with Tier 2/3 features present falls back to full ti
 
 ## Next Step
 
-**Step 5.5: Implementation Planner — Feature 08 (Observability / Monitoring View), then Step 6:
-Worker Pool Orchestrator — Group_F08.** Group_F08 (`dependency_groups: [Group_F01, Group_F07]`) is now
-dependency-satisfiable — both are COMPLETED — but its `owned_files` is still `TBD — pending Step 5.5
-architecture plan for Feature 08`, so Step 5.5 must run first to produce
-`architecture-plan-feature-08.md` and finalize Group_F08's `owned_files`/`FILE_OWNERSHIP_MAP` entries
-before Step 6 claims it. This is the last Tier 1 feature — once it lands, all 8 Tier 1 features are
-COMPLETED and the project's success criteria's "all Tier 1 features working end-to-end" condition is
-met. Feature 08 has a frontend component (group: FRONTEND) — the first Step 5.5 round with real UI
-surface, since Features 02-07 were all backend/pipeline-stage work.
+**Step 6: Worker Pool Orchestrator — Group_F08.** `architecture-plan-feature-08.md` is now complete
+and `implementation_plan.md`'s Group_F08 `owned_files` is finalized (this session) — Step 6 claims
+Group_F08 next and builds against that plan's 8-step Implementation Order. This is the last Tier 1
+feature — once it lands, all 8 Tier 1 features are COMPLETED and the project's success criteria's "all
+Tier 1 features working end-to-end" condition is met. Feature 08 has a frontend component (group:
+FRONTEND) — the first Step 6 round with real UI surface, since Features 02-07 were all
+backend/pipeline-stage work.
 
 **Dependency-satisfied but out of scope this round:** Group_F09 (Feature 09, Classification Accuracy
 Benchmark Report) is dependency-satisfiable (`depends_on: [Group_F03]`, completed), but it's a Tier 2

@@ -161,9 +161,24 @@ GROUPS:
     status: UNCLAIMED
     owner: null
     features: [Feature 08]
-    owned_files: [TBD — pending Step 5.5 architecture plan for Feature 08]
+    owned_files: [
+      backend/app/models/pipeline_run.py (modify — source_channel, confidence_score columns),
+      backend/alembic/versions/<new>_add_pipeline_run_list_columns.py (new),
+      backend/app/orchestrator/graph.py (modify — _STAGE_ORDER -> STAGE_ORDER rename/export,
+        run_pipeline() denormalization write),
+      backend/app/schemas/pipeline.py (modify — LeadListItemOut, LeadListOut, StageDetailOut,
+        LeadDetailOut),
+      backend/app/routers/leads.py (modify — GET /leads, GET /leads/{lead_id}),
+      backend/app/tests/test_router_leads_list.py (new),
+      frontend/src/pages/LeadListPage.tsx (new),
+      frontend/src/pages/LeadDetailPage.tsx (new),
+      frontend/src/lib/stageOrder.ts (new),
+      frontend/src/lib/api.ts (modify — listLeads(), getLeadDetail()),
+      frontend/src/App.tsx (modify — /leads, /leads/:leadId routes),
+      frontend/src/components/Layout.tsx (modify — nav link)]
     dependency_groups: [Group_F01, Group_F07]
     isolation_level: HIGH
+    # architecture-plan-feature-08.md (Step 5.5) sets Implementation Order — see that file
 
   Group_F09:
     status: UNCLAIMED

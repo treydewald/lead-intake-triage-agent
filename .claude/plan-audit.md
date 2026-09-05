@@ -396,3 +396,61 @@ test updates).
 
 **Next:** Step 6 (Worker Pool Orchestrator) claims Group_F07 using this plan's Implementation Order and
 reuse instructions, and finalizes `implementation_plan.md`'s `owned_files` for that group.
+
+---
+
+## 2026-09-04 — Step 5.5: Implementation Planner — Feature 08 (Observability / Monitoring View)
+
+Produced `architecture-plan-feature-08.md`. Planning Depth: Standard — a genuine cross-system feature
+(backend read endpoints + a new React surface, this project's first real frontend page beyond the
+Step 4 bootstrap scaffold), but reuses the entire existing persistence layer end-to-end; no new
+architectural primitive introduced.
+
+**Existing Systems Analysis:** No new pipeline-side persistence needed — `PipelineRun`/`StageTrace`
+(written by every stage since Feature 01) is Feature 08's entire data source. **Duplication risk
+flagged:** Feature 07's `_OUTCOME_TYPE_BY_STATUS` looked reusable for a status→label mapping but isn't
+— it's evaluated before `RunStatus.COMPLETED` is ever assigned and has no entry for it, so reusing it
+unchanged would mislabel an in-progress lead as auto-processed. Feature 08 defines its own
+post-persistence mapping instead of importing or modifying Feature 07's. **Navigation gap surfaced,
+not introduced, out of scope for this feature:** no feature anywhere in `implementation_plan.md`
+(any tier) builds a frontend for the existing `GET /reviews`/`POST /reviews/{run_id}/action` routes —
+a human reviewer has no UI to actually action a queued lead. Feature 08 does not add one (out of its
+own spec's scope) and deliberately does not link an awaiting-review/rejected lead's detail view to
+`/reviews/{run_id}` yet, since that destination renders nothing today — flagged as a future Scope
+Expansion/CD candidate rather than silently absorbed or silently linked to a dead route.
+
+**Architecture Rule Changes approved (2, both conflict-checked against existing Key Decisions, none
+found):**
+1. A `PipelineRun`'s post-persistence display status (`COMPLETED`→`auto_processed`, `RUNNING`→
+   `in_progress`, etc.) is computed by its own mapping, kept separate from Feature 07's
+   notification-time `_OUTCOME_TYPE_BY_STATUS` — the two answer different questions at different
+   points in a run's lifecycle and must never be unified.
+2. `PipelineRun` gains two denormalized, read-optimized columns (`source_channel`, `confidence_score`),
+   set once at `run_pipeline()`'s existing final-commit point, so list/query views can filter and sort
+   without parsing `StageTrace` JSON per request — `StageTrace` remains the sole authoritative trace
+   record; this is a read-path optimization, not a second source of truth.
+
+Both applied to `.claude/portfolio-reference.md`'s Key Decisions this session.
+
+**Implementation Order set (8 steps):** `PipelineRun` columns + Alembic migration → rename
+`_STAGE_ORDER`→`STAGE_ORDER` (export) + `run_pipeline()` denormalization write → backend schemas
+(`LeadListItemOut`/`LeadListOut`/`StageDetailOut`/`LeadDetailOut`) → `GET /leads` +
+`GET /leads/{lead_id}` (iterates `STAGE_ORDER`, marks missing stages `NOT_YET_RUN`) → backend tests →
+frontend API client + `stageOrder.ts` mirror → `LeadListPage`/`LeadDetailPage` + routing + nav link →
+frontend smoke test.
+
+**Notable design resolution:** deliberately did *not* build a review-action link from the lead detail
+view to `/reviews/{run_id}`, even though the existing `detail_link` convention implies one — no
+frontend destination exists there yet, and linking to a route that renders nothing violates
+`docs/in-app-cohesion.md` §4 (avoid linking to a dead destination). Shows the awaiting-review/rejected
+outcome as an inline status badge instead; the link itself is deferred to whenever a Review Queue
+frontend is eventually built.
+
+**Approved by:** auto (Auto Mode + master prompt's "EXECUTE NOW" applied — same standing note as prior
+entries: worth a human look before Step 6 starts writing code, particularly the `_STAGE_ORDER`→
+`STAGE_ORDER` rename, since it changes a name several existing internal references use, and the
+`run_pipeline()` denormalization write).
+
+**Next:** Step 6 (Worker Pool Orchestrator) claims Group_F08 using this plan's Implementation Order and
+reuse instructions; `implementation_plan.md`'s `owned_files` for Group_F08 already finalized this
+session.

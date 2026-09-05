@@ -1,8 +1,8 @@
 # Portfolio Reference — Lead Intake Triage Agent
 
-**Last Updated:** 2026-09-04 (Architecture Map updated after Feature 07's Step 6 implementation —
-Group_F07 COMPLETED; Key Decisions were already updated by Feature 07's Step 5.5 plan, see
-`architecture-plan-feature-07.md`)
+**Last Updated:** 2026-09-04 (Key Decisions updated by Feature 08's Step 5.5 plan, see
+`architecture-plan-feature-08.md`; Architecture Map still reflects Feature 07's Step 6 implementation —
+Group_F08 not yet built)
 
 Read this before opening source files. Only open the actual code when this doc doesn't answer the
 question.
@@ -258,3 +258,24 @@ that doesn't exist yet.)*
   (Feature 08's lead detail page; the existing review queue) must match these exact paths rather than
   the notification layer adapting to whatever route the frontend happens to choose. Set by Feature 07's
   implementation plan (`architecture-plan-feature-07.md`).
+- **A `PipelineRun`'s post-persistence display status — used by any read-only view built after a run
+  has terminated or paused (e.g. Feature 08's monitoring view) — is computed by its own mapping
+  (`COMPLETED`->`auto_processed`, `FAILED`->`failed`, `AWAITING_REVIEW`->`awaiting_review`,
+  `REJECTED`->`rejected`, `RUNNING`->`in_progress`), kept separate from Feature 07's
+  `_OUTCOME_TYPE_BY_STATUS`.** That map is evaluated only at `notify_stage`/
+  `persist_outcome_notification()` call time, before `RunStatus.COMPLETED` is ever assigned, so it has
+  no `COMPLETED` entry and treats `RUNNING` as the success case — correct only at that specific call
+  point. A post-persistence reader asking "what happened to this run" needs the opposite: `COMPLETED`
+  means done-successfully, `RUNNING` means still in progress. These two mappings answer different
+  questions at different points in a run's lifecycle and must never be unified into one shared
+  function. Set by Feature 08's implementation plan (`architecture-plan-feature-08.md`).
+- **`PipelineRun` carries denormalized, read-optimized columns (`source_channel`, `confidence_score`)
+  set exactly once, at the same final-commit point in `run_pipeline()` that already persists
+  `.status`, purely so a list/query view can filter and sort without parsing `StageTrace.
+  output_snapshot` JSON per request.** `StageTrace`'s own snapshots remain the sole authoritative
+  record of what each stage actually produced — this does not compete with the existing "execution
+  data persists via PipelineRun/StageTrace" Key Decision above, it's a read-path optimization derived
+  from data `StageTrace` already owns. Any future feature needing to filter/sort a lead list by a value
+  a specific stage produces should add a similarly-scoped denormalized column here, set at the same
+  commit point, rather than parsing trace JSON at query time or inventing a second query-optimized
+  store. Set by Feature 08's implementation plan (`architecture-plan-feature-08.md`).

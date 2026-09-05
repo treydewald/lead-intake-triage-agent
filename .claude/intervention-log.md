@@ -37,3 +37,20 @@ edit to that same entry once the round they belong to is scored, not a new entry
   codebase before this round — and fixed it as part of this feature rather than deferring it, since
   Feature 07's own auto-processed/in-progress distinction is what exposed it.
 - Agent: claude/claude_code
+
+### 2026-09-04 — implementation_planning_standard
+- Trigger: Feature 08 (Observability / Monitoring View) reached Step 5.5 before its Step 6 build; spec
+  classified as a Standard-tier plan — cross-system (backend + this project's first real frontend
+  surface) but reuses the entire existing persistence layer end-to-end, no new architectural primitive.
+- Expected effect (Predicted Footprint, `architecture-plan-feature-08.md`): ~11 files across 1 new
+  Alembic migration, 2 new frontend pages, 1 new frontend lib file, and modifications to
+  `models/pipeline_run.py`, `orchestrator/graph.py`, `schemas/pipeline.py`, `routers/leads.py`,
+  `lib/api.ts`, `App.tsx`, `components/Layout.tsx`.
+- Outcome: pending Step 6/7 — not yet built this session.
+- Surprise: the plan's own Existing Systems Analysis surfaced a genuine gap unrelated to Feature 08's
+  literal scope — no feature anywhere in the 14-feature `implementation_plan.md` roadmap builds a
+  frontend for the existing `GET /reviews`/`POST /reviews/{run_id}/action` routes, so a human reviewer
+  has no UI to actually action a queued lead. Not fixed this round (out of Feature 08's own spec scope)
+  — flagged as a future Scope Expansion/CD candidate instead, and the plan deliberately withholds a
+  `/reviews/{run_id}` link from the lead detail view until that destination actually exists.
+- Agent: claude/claude_code
