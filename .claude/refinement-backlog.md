@@ -140,7 +140,7 @@ renumber.]
   here, since this ticket's own scope is documentation-only.
 
 ### RB-004 — Index route ("/") shows a stale Step-4 bootstrap placeholder, not a real landing page
-- **Status:** OPEN
+- **Status:** COMPLETED
 - **Dimension:** In-App Cohesion (`docs/in-app-cohesion.md`) / Feature Signaling
 - **Priority:** P3
 - **Discovered:** RB-003's documentation backfill pass, 2026-09-05 — while cross-checking
@@ -164,4 +164,17 @@ renumber.]
   UI-copy/routing fix scoped small enough for a direct Step 6-style edit — doesn't need a fresh Step
   5.5 plan. Surface at the next idle-session Dynamic Next-Action Selection or the next In-App Cohesion
   Audit, whichever comes first, per the same pattern RB-002 used.
-- **Implementation notes:** _(pending)_
+- **Implementation notes:** Resolved 2026-09-05 — picked up directly following RB-003 in the same
+  session (no Suggestion given; this was the only remaining OPEN backlog entry). Chose option (b) from
+  this entry's own "Routes to" (rewrite `HomePage.tsx`'s copy) over option (a) (a bare redirect to
+  `/leads`) — a redirect would have hidden `/reviews` and `/benchmark` behind the sidebar with no
+  landing-page signal that they exist, which is the same "reachability" concern
+  `docs/in-app-cohesion.md` is meant to catch. `frontend/src/pages/HomePage.tsx` now renders a title,
+  one-line product summary, and three linked cards (Observability → `/leads`, Review Queue →
+  `/reviews`, Benchmark → `/benchmark`), styled consistent with `BenchmarkPage.tsx`'s existing
+  `rounded-lg border border-slate-200 bg-white p-4` card convention and `Layout.tsx`'s teal-700 accent.
+  Verified: `npm run build` (`tsc -b && vite build`) passed clean, no type errors. No existing test
+  file covered `HomePage.tsx` (`BenchmarkPage.test.tsx`/`LeadListPage.test.tsx`/
+  `ReviewDetailPage.test.tsx`/`ReviewQueuePage.test.tsx` exist, no `HomePage.test.tsx`), so none needed
+  updating. No backend or routing changes — `App.tsx`'s `<Route index element={<HomePage />} />` is
+  unchanged, only the component's rendered content changed.

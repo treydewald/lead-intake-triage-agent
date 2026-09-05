@@ -1,12 +1,12 @@
 # Portfolio Reference — Lead Intake Triage Agent
 
-**Last Updated:** 2026-09-05 (`.claude/refinement-backlog.md`'s RB-003 — Architecture Map backfilled
-with the remaining Feature 08 rows [`routers/leads.py`, `LeadListPage.tsx`, `LeadDetailPage.tsx`,
+**Last Updated:** 2026-09-05 (`.claude/refinement-backlog.md`'s RB-004 — `HomePage.tsx` rewritten from
+Step 4's bootstrap placeholder into a real landing page linking to `/leads`, `/reviews`, and
+`/benchmark`. RB-004 is now COMPLETED. Prior update: RB-003 — Architecture Map backfilled with the
+remaining Feature 08 rows [`routers/leads.py`, `LeadListPage.tsx`, `LeadDetailPage.tsx`,
 `HomePage.tsx`, `lib/api.ts`, `lib/stageOrder.ts`] and the two previously-uncited migrations, plus
-rewording the three stale directory-level placeholder rows to present tense. RB-003 is now COMPLETED.
-Surfaced one new finding while verifying — `HomePage.tsx`'s stale placeholder content — logged as
-RB-004 [OPEN], not fixed here since this was a documentation-only pass. Prior update: Step 5.5 for
-Feature 10, External Notification Delivery — two new Key Decisions added, see
+rewording the three stale directory-level placeholder rows to present tense. Prior to that: Step 5.5
+for Feature 10, External Notification Delivery — two new Key Decisions added, see
 `architecture-plan-feature-10.md`.)
 
 Read this before opening source files. Only open the actual code when this doc doesn't answer the
@@ -68,7 +68,7 @@ portfolio gate (Mode: STANDARD).
 | `backend/alembic/` | DB migrations, wired to `app.database.session.Base` and `settings.database_url`; `245c694fed3d_*` creates `pipeline_run`/`stage_trace`; `68de6a50cacb_*` creates `review_queue_item`; `5f3cbe979b96_*` creates `notification`; `9217c457cc82_*` (Feature 08) adds `pipeline_run.source_channel`/`.confidence_score`; `b86e4d4ef367_*` (Feature 09) creates `benchmark_run`/`benchmark_case` |
 | `frontend/src/components/` | Shared UI: `BuildIndicator.tsx`, `Layout.tsx` (persistent sidebar nav — Leads/Reviews/Benchmark) |
 | `frontend/src/pages/` | Route-level pages — each has its own row below: `HomePage.tsx`, `LeadListPage.tsx`/`LeadDetailPage.tsx` (Feature 08), `BenchmarkPage.tsx` (Feature 09), `ReviewQueuePage.tsx`/`ReviewDetailPage.tsx` (Feature 15) |
-| `frontend/src/pages/HomePage.tsx` | Index route (`/`) — still Step 4's bootstrap placeholder text, never updated when Feature 08 landed the real observability view at `/leads` instead; tracked as `.claude/refinement-backlog.md`'s RB-004 (OPEN) |
+| `frontend/src/pages/HomePage.tsx` | Index route (`/`) — landing page linking to Observability (`/leads`), Review Queue (`/reviews`), and Benchmark (`/benchmark`); replaced Step 4's bootstrap placeholder per `.claude/refinement-backlog.md`'s RB-004 (COMPLETED) |
 | `frontend/src/pages/LeadListPage.tsx` | Feature 08: paginated lead list against `GET /leads`, filterable by status/channel |
 | `frontend/src/pages/LeadDetailPage.tsx` | Feature 08: per-lead detail + full stage-trace timeline against `GET /leads/{lead_id}` |
 | `frontend/src/lib/` | API client and typed helpers — `api.ts` (fetch wrappers for every backend endpoint: leads/reviews/notifications/benchmark) and `stageOrder.ts` (see below) |
