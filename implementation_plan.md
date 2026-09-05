@@ -201,8 +201,8 @@ GROUPS:
     # architecture-plan-feature-09.md (Step 5.5) sets Implementation Order — see that file
 
   Group_F10:
-    status: UNCLAIMED
-    owner: null
+    status: IN_PROGRESS
+    owner: Worker-1
     features: [Feature 10]
     owned_files: [
       backend/app/models/notification.py (modify — external_delivery_status/_error columns),
