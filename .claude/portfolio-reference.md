@@ -1,9 +1,12 @@
 # Portfolio Reference — Lead Intake Triage Agent
 
-**Last Updated:** 2026-09-05 (Architecture Map updated with Feature 15's Continued Development round,
-see `architecture-plan-feature-15.md`. Note: this table was never backfilled for Features 02-08's own
-files despite each landing via its own Step 6 group — logged as `.claude/refinement-backlog.md`'s
-RB-003 rather than fixed here, since backfilling 7 features' worth of rows is out of scope for any one
+**Last Updated:** 2026-09-05 (Step 5.5 for Feature 10, External Notification Delivery — two new Key
+Decisions added, see `architecture-plan-feature-10.md`. Architecture Map not touched this round — those
+rows are added once Step 6 actually lands Feature 10's files, per this doc's existing convention. Prior
+update: Architecture Map updated with Feature 15's Continued Development round, see
+`architecture-plan-feature-15.md`. Note: this table was never backfilled for Features 02-08's own files
+despite each landing via its own Step 6 group — logged as `.claude/refinement-backlog.md`'s RB-003
+rather than fixed here, since backfilling 7 features' worth of rows is out of scope for any one
 feature's own round.)
 
 Read this before opening source files. Only open the actual code when this doc doesn't answer the
@@ -300,3 +303,20 @@ that doesn't exist yet.)*
   stage standalone (a different benchmark, a manual replay/debug tool) should follow this same
   construction rather than inventing a new one. Set by Feature 09's implementation plan
   (`architecture-plan-feature-09.md`).
+- **A `tools/` binding invoked by non-Stage orchestrator plumbing (e.g.
+  `persist_outcome_notification()`) is called directly by that plumbing, not through
+  `ToolRegistry`/`ScopedToolProxy`** — the scoped-proxy boundary exists specifically to enforce a
+  *Stage's* declared `allowed_tools`, which doesn't apply to code that isn't a Stage's own `run()`. This
+  is a clarification of the existing "stage module ... only ever reaches [a tool] through its
+  `ScopedToolProxy`" rule's scope (Feature 03), not a new exception to it — `persist_outcome_notification`
+  already bypassed the scoped-proxy pattern for its direct `Notification` DB write before this rule was
+  ever stated explicitly. Set by Feature 10's implementation plan (`architecture-plan-feature-10.md`).
+- **A side-channel delivery invoked from `persist_outcome_notification()` (or any future
+  outcome-consuming extension) must be internally exception-safe — return a status, never raise — so a
+  downstream delivery failure can never affect already-decided pipeline or in-app-notification state.
+  Its result is recorded as data on the owning `Notification` row, never a separate log table.** This is
+  adjacent to, not a restatement of, the existing "a stage's own external-system failure is encoded as
+  data, never raised" Key Decision (Features 03-05) — that rule governs a *Stage's* `run()` deciding
+  whether to halt *this lead's run*; this rule governs plumbing invoked strictly *after* a stage has
+  already completed, where halting was never an option. Set by Feature 10's implementation plan
+  (`architecture-plan-feature-10.md`).

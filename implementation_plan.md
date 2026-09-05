@@ -204,9 +204,17 @@ GROUPS:
     status: UNCLAIMED
     owner: null
     features: [Feature 10]
-    owned_files: [TBD — pending Step 5.5 architecture plan for Feature 10]
+    owned_files: [
+      backend/app/models/notification.py (modify — external_delivery_status/_error columns),
+      backend/alembic/versions/<new>_add_notification_delivery_columns.py (new),
+      backend/app/core/config.py (modify — notification_webhook_url),
+      backend/.env.example (modify — NOTIFICATION_WEBHOOK_URL),
+      backend/app/orchestrator/tools/webhook_tools.py (new — deliver_webhook_notification()),
+      backend/app/orchestrator/graph.py (modify — persist_outcome_notification() delivery hook),
+      backend/app/schemas/notification.py (modify — NotificationOut + 2 fields)]
     dependency_groups: [Group_F07]
     isolation_level: HIGH
+    # architecture-plan-feature-10.md (Step 5.5) sets Implementation Order — see that file
 
   Group_F11:
     status: UNCLAIMED

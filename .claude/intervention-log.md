@@ -79,3 +79,24 @@ edit to that same entry once the round they belong to is scored, not a new entry
   (Feature 08's Implementation Planning) had already correctly predicted and flagged, closing that loop
   rather than opening a new one.
 - Agent: claude/claude_code
+
+### 2026-09-05 — implementation_planning_standard
+- Trigger: user chose Feature 10 (External Notification Delivery) as this session's next step, from a
+  short list of undecided Tier 2 options (`.claude/pipeline-reference.md`'s prior Next Step: Group_F10,
+  Group_F11, or a Gate 2 re-pass for Feature 09). Feature 10 reached Step 5.5 before its Step 6 build;
+  classified Standard-tier — one new external system (a Slack-compatible webhook) and a small schema
+  change, but the extension point (`persist_outcome_notification()`) already exists and was named in
+  advance by Feature 07's own Key Decision.
+- Expected effect (Predicted Footprint, `architecture-plan-feature-10.md`): 7 files —
+  `models/notification.py`, one new Alembic migration, `core/config.py`, `backend/.env.example`, new
+  `tools/webhook_tools.py`, `orchestrator/graph.py`, `schemas/notification.py`. Two new Architecture
+  Rule Changes applied to `.claude/portfolio-reference.md`'s Key Decisions (non-Stage plumbing may call
+  `tools/` bindings directly, bypassing `ScopedToolProxy`; a side-channel delivery invoked from that
+  plumbing must be internally exception-safe, never raising).
+- Outcome: pending Step 6/7 — not yet built this session; `Group_F10.status` remains `UNCLAIMED`.
+- Surprise: none — this is the first Implementation Planning round to explicitly separate
+  "Stage-scoped" tool access (`ScopedToolProxy`) from "plumbing-scoped" direct calls, a distinction the
+  codebase had already practiced implicitly (via `persist_outcome_notification`'s own direct DB write)
+  since Feature 07, but had never stated as its own rule until this feature's spec required a second
+  instance of the same pattern.
+- Agent: claude/claude_code

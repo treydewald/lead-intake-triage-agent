@@ -1,7 +1,7 @@
 # Pipeline Reference — Lead Intake Triage Agent
 
-**Last Updated:** 2026-09-05 (Continued Development round — Feature 15, Review Queue Frontend UI,
-CD-1 through CD-4 complete)
+**Last Updated:** 2026-09-05 (Step 5.5 — Implementation Planner — completed for Feature 10, External
+Notification Delivery)
 
 How *this project* is using the Upwork Portfolio Project Pipeline. Distinct from
 `portfolio-reference.md`, which is about the product — this file is about pipeline state.
@@ -13,7 +13,19 @@ How *this project* is using the Upwork Portfolio Project Pipeline. Distinct from
 **Project Mode:** STANDARD (Intent: PORTFOLIO, Lifetime: MEDIUM, Scale: MEDIUM, Optimization
 Objective: PORTFOLIO_SIGNAL — see `docs/project-strategy.md`). Steps 10-16 are MANDATORY this cycle.
 
-**Step:** Continued Development — Round 1, CD-1 through CD-4 COMPLETED this session (Feature 15,
+**Step:** Step 5.5 (Implementation Planner) COMPLETED this session for Feature 10 (External
+Notification Delivery, Tier 2) — produced `architecture-plan-feature-10.md`. Planning Depth: Standard.
+Extends `persist_outcome_notification()` (Feature 07's own Key Decision named this in advance as the
+extension point) with a best-effort, never-raising external webhook delivery gated to the
+`awaiting_review` outcome only; new `app/orchestrator/tools/webhook_tools.py`, two new nullable
+`Notification` columns (`external_delivery_status`/`_error`), one new `notification_webhook_url`
+setting (unset by default). Two new Architecture Rule Changes applied to `.claude/portfolio-
+reference.md`'s Key Decisions (non-Stage plumbing may call `tools/` bindings directly, bypassing
+`ScopedToolProxy`; a side-channel delivery invoked from that plumbing must be internally
+exception-safe). `implementation_plan.md`'s Group_F10 `owned_files` finalized (7 files). Not yet
+claimed by Step 6 — `Group_F10.status` remains `UNCLAIMED`.
+
+Prior to this: Continued Development — Round 1, CD-1 through CD-4 COMPLETED (Feature 15,
 Review Queue Frontend UI — see `docs/continued-development.md`). Resolves `.claude/refinement-
 backlog.md`'s RB-002 (dead "Review Queue" nav link) by building the real frontend against Feature 06's
 already-working backend, per the user's explicit choice between RB-002's two named options.
@@ -87,12 +99,12 @@ renders nothing (see `architecture-plan-feature-08.md`'s Risks). Step 7 (Impleme
 has not yet run against any completed feature, including this one.
 
 **Completed steps:** 1 (Project Advisor), 2 (Roadmap Architect), 3 (Feature Specification Engine), 4
-(Environment Bootstrap), 5.5 (Implementation Planner — Feature 01 through Feature 09, plus Feature 15's
+(Environment Bootstrap), 5.5 (Implementation Planner — Feature 01 through Feature 10, plus Feature 15's
 CD-2.5; re-entered per feature group, see `docs/implementation-planning.md` §16), 6 (Worker Pool
 Orchestrator — Group_F01 through Group_F09 all COMPLETED — all 8 Tier 1 features plus Feature 09
-[Tier 2] implemented end-to-end), 7 (Implementation Verification — Gate 2 — PASSED, against Tier 1
-only; Feature 09 not yet covered by a Gate 2 pass), Continued Development Round 1 (CD-1 through CD-4 —
-Feature 15, Review Queue Frontend UI, COMPLETED and verified).
+[Tier 2] implemented end-to-end; Group_F10 planned but not yet claimed), 7 (Implementation Verification
+— Gate 2 — PASSED, against Tier 1 only; Feature 09 not yet covered by a Gate 2 pass), Continued
+Development Round 1 (CD-1 through CD-4 — Feature 15, Review Queue Frontend UI, COMPLETED and verified).
 
 **Gates passed:** Gate 2 (Step 7, implementation verification) — PASSED, 2026-09-04. Gate 1 (Step 13,
 portfolio score ≥9.0/10, per `docs/premium-ui-standard.md`) is still ahead.
@@ -108,13 +120,16 @@ Tier section, STANDARD mode with Tier 2/3 features present falls back to full ti
 
 ## Next Step
 
-**Feature 15 (Continued Development Round 1) is COMPLETED.** Same two Tier 2 paths forward as before
-remain undecided:
-- **Step 5.5 for Group_F10** (Feature 10, External Notification Delivery, `depends_on: [Group_F07]`,
-  now COMPLETED) or **Group_F11** (Feature 11, Per-Lead Audit/History Trail UI,
-  `depends_on: [Group_F08, Group_F06]`, both now COMPLETED) — both dependency-satisfiable, neither has
-  an `architecture-plan-*.md` yet. Group_F13 (Feature 13, Tier 3) is also dependency-satisfiable but
-  lower priority; Group_F14 (Feature 14) remains CLAIMABLE-but-deferred (Tier 3, visibility only).
+**Step 5.5 for Feature 10 is COMPLETED this session** — `architecture-plan-feature-10.md` exists with a
+full Implementation Order; `Group_F10.owned_files` is finalized in `implementation_plan.md`.
+**Immediate next step: Step 6 (Worker Pool Orchestrator) claims Group_F10** and builds Feature 10
+against that plan.
+
+Other paths still available after Group_F10 lands:
+- **Step 5.5 for Group_F11** (Feature 11, Per-Lead Audit/History Trail UI,
+  `depends_on: [Group_F08, Group_F06]`, both COMPLETED) — dependency-satisfiable, no
+  `architecture-plan-*.md` yet. Group_F13 (Feature 13, Tier 3) is also dependency-satisfiable but lower
+  priority; Group_F14 (Feature 14) remains CLAIMABLE-but-deferred (Tier 3, visibility only).
 - **A Gate 2 (Step 7) re-pass covering Feature 09** specifically — the last full Gate 2 run only
   verified Tier 1; Feature 09 (Tier 2) has its own full validation loop already recorded in
   `.claude/execution-log.md`/`validation-results.md` but has not been through a dedicated

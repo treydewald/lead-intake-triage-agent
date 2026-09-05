@@ -508,3 +508,57 @@ metric definitions, since Step 7 will validate implementation against exactly th
 
 **Next:** Step 6 (Worker Pool Orchestrator) claims Group_F09 using this plan's Implementation Order and
 reuse instructions; `implementation_plan.md`'s `owned_files` for Group_F09 finalized this session.
+
+---
+
+## 2026-09-05 — Step 5.5: Implementation Planner — Feature 10 (External Notification Delivery)
+
+Produced `architecture-plan-feature-10.md`. Planning Depth: Standard — one new external system (a
+generic Slack-compatible webhook) and a small schema change, but the extension point
+(`persist_outcome_notification()`) already exists and was named explicitly by Feature 07's own Key
+Decision in advance; no new Stage, no graph/routing change, no new frontend surface.
+
+**Existing Systems Analysis:** No duplication risk found — grep-confirmed no email/webhook/delivery
+code, and no logging framework (`import logging` matches zero files), exists anywhere in the codebase
+yet. **Key finding:** all three existing `persist_outcome_notification()` call sites
+(`_make_node`'s except block, `_make_human_review_node`, `reviews.py`'s reject branch) already wrap the
+whole call in `try/except: pass`, so extending the helper itself needs zero call-site signature changes
+— the safety net Feature 10 needs already exists from Feature 07. Reuses `Notification` (Feature 07) as
+the row delivery status attaches to, rather than a new log table.
+
+**Architecture Rule Changes approved (2, both conflict-checked against existing Key Decisions, none
+found — both adjacent generalizations, not restatements):**
+1. A `tools/` binding invoked by non-Stage orchestrator plumbing (e.g.
+   `persist_outcome_notification()`) is called directly by that plumbing, not through
+   `ToolRegistry`/`ScopedToolProxy` — clarifies that Feature 03's existing scoped-proxy rule was always
+   scoped to *stage modules*, not all code; `persist_outcome_notification` already practiced this
+   implicitly for its DB write.
+2. A side-channel delivery invoked from `persist_outcome_notification()` must be internally
+   exception-safe (return a status, never raise) so a downstream delivery failure can never affect
+   already-decided pipeline/notification state; its result is recorded as data on the owning
+   `Notification` row. Adjacent to, not a restatement of, the existing Stage-level "recoverable failure
+   encoded as data" rule (Features 03-05) — that one governs a Stage's own `run()`, this one governs
+   plumbing invoked after a stage has already completed.
+
+Both applied to `.claude/portfolio-reference.md`'s Key Decisions this session.
+
+**Implementation Order set (6 steps):** `models/notification.py` (two new nullable columns) → Alembic
+migration → `core/config.py` + `.env.example` (`notification_webhook_url`, unset by default,
+free-by-default per project constraints) → `tools/webhook_tools.py` (new — single-attempt, 5s timeout,
+never raises) → `graph.py`'s `persist_outcome_notification()` (delivery hook, gated to
+`outcome_type == "awaiting_review"` only) → `schemas/notification.py` (`NotificationOut` + 2 fields, no
+new endpoint).
+
+**Notable design resolution:** external delivery is deliberately *not* wired as a `ToolRegistry`
+binding reached through `OutcomeNotificationStage.allowed_tools` — that Stage stays pure-signaling, no
+tool access, per Feature 06/07's own Key Decision, which this plan does not touch. Delivery is plumbing
+invoked by `persist_outcome_notification()` itself, the same non-Stage-scoped pattern that function
+already uses for its direct `Notification` DB write.
+
+**Approved by:** auto (Auto Mode + master prompt's "EXECUTE NOW" applied — same standing note as prior
+entries: worth a human look before Step 6 starts writing code, particularly the two new Architecture
+Rule Changes since they're the first to explicitly separate "Stage-scoped" from "plumbing-scoped" tool
+access).
+
+**Next:** Step 6 (Worker Pool Orchestrator) claims Group_F10 using this plan's Implementation Order and
+reuse instructions; `implementation_plan.md`'s `owned_files` for Group_F10 finalized this session.
