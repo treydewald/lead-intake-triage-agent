@@ -100,3 +100,23 @@ edit to that same entry once the round they belong to is scored, not a new entry
   since Feature 07, but had never stated as its own rule until this feature's spec required a second
   instance of the same pattern.
 - Agent: claude/claude_code
+
+### 2026-09-05 — portfolio_evaluation
+- Trigger: Step 10 (Screenshot Capture) completed unconditionally per this cycle's mandatory
+  Steps 10-16; Step 11 (Portfolio Evaluator) ran next against the 9 captured screenshots plus a direct
+  read of the frontend source for empty/loading/error-state and cohesion-link verification (per
+  `docs/premium-ui-standard.md`'s hard-gate rule, a claim about a missing state or link is checked
+  against the actual component, not inferred from the screenshot alone).
+- Expected effect: an anchored 0-10 score per `QUALITY_RUBRIC.md`'s four dimensions plus a prioritized
+  P1/P2/P3 backlog, gating routing to either Step 13 (≥9.0, Visual & UI/UX ≥9.0) or Step 12 (below
+  gate).
+- Outcome: OVERALL SCORE 5/10 (Visual & UI/UX 5, Feature Signaling 5, Professional Readiness 5, Client
+  Impact 5) — below the 9.0 gate on every dimension, so this routes to Step 12 (Batch Backlog
+  Processor), then loops back to Step 11 to re-evaluate. `portfolio-evaluation.md` (project root)
+  records 4 P1, 4 P2, and 3 P3 items. `.claude/project-metrics.md`'s `PROJECT_COMPLETED` entry appended
+  with matching numbers.
+- Surprise: a real functional gap, not just a polish item — Review Detail (the one screen where a
+  human makes a judgment call) shows neither the lead's message content nor a link to that lead's full
+  Detail/History view, even though the API response it already receives (`ReviewQueueItemOut`) carries
+  `lead_id` needed for that link at zero backend cost. Logged as P1-01, the top-priority item.
+- Agent: claude/claude_code

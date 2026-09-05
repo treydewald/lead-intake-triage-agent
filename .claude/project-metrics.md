@@ -33,3 +33,16 @@ re-score.
   commonly-cited 2026 example use case (tutorial-shape risk); the differentiator is execution rigor
   (real sandbox, idempotency, measured benchmark, genuinely real agent boundaries), not novel
   problem framing.
+
+## PROJECT_COMPLETED — 2026-09-05
+
+Source: `portfolio-evaluation.md` (Step 11, Portfolio Evaluator), copied verbatim — not a re-score.
+`evaluation_version: metrics_rubric_v1`.
+
+- **portfolio_value:** 5/10, confidence: HIGH — OVERALL SCORE from this run. Real working
+  end-to-end pipeline with honest data and consistent entity linking, but no visual identity, thin
+  data presentation, and a functional cohesion gap on the one human-judgment screen (Review Detail)
+  keep it well below the 9.0 gate.
+- **professional_readiness:** 5/10, confidence: HIGH — real seed data and genuine accessibility
+  fundamentals (0 axe-core violations) are real strengths, but empty/loading/error states are plain
+  text only, undesigned.

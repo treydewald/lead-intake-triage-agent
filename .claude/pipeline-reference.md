@@ -1,7 +1,7 @@
 # Pipeline Reference — Lead Intake Triage Agent
 
-**Last Updated:** 2026-09-05 (Step 10, Screenshot Capture, COMPLETED — see Current Step. Prior:
-Step 9 Unified QA & Repair COMPLETED — see below)
+**Last Updated:** 2026-09-05 (Step 11, Portfolio Evaluator, COMPLETED — OVERALL SCORE 5/10, below the
+9.0 gate — see Current Step. Prior: Step 10 Screenshot Capture COMPLETED — see below)
 
 How *this project* is using the Upwork Portfolio Project Pipeline. Distinct from
 `portfolio-reference.md`, which is about the product — this file is about pipeline state.
@@ -10,7 +10,41 @@ How *this project* is using the Upwork Portfolio Project Pipeline. Distinct from
 
 ## Current Step
 
-**This session (2026-09-05, tenth session same day):** Ran Step 10 (Screenshot Capture) —
+**This session (2026-09-05, eleventh session same day):** Ran Step 11 (Portfolio Evaluator) against
+the 9 screenshots Step 10 captured, plus a direct read of the frontend source (per
+`docs/premium-ui-standard.md`'s hard-gate rule, a claimed missing state/link is verified against the
+actual component, not guessed from the screenshot alone). **OVERALL SCORE: 5/10** — all four dimensions
+(Visual & UI/UX, Feature Signaling, Professional Readiness, Client Impact) scored 5/10, well below the
+9.0 gate (`docs/premium-ui-standard.md`'s ≥9.0/target-9.5 threshold, Visual & UI/UX as a hard gate).
+
+**Real strengths found:** honest real seed data throughout with an explained (not hidden) `failed`
+status skew; consistent lead-ID links from every list/table to their detail view; genuine
+accessibility fundamentals (Step 9's axe-core pass, 0 violations); a genuinely adapted mobile
+breakpoint (not just a shrunk desktop layout).
+
+**Real weaknesses found:** no visual identity beyond one teal accent — flat cards, no depth, no
+typographic scale, unstyled native form controls next to Tailwind-styled ones; every desktop
+screenshot anchors its single content block top-left with ~70% of a 1920×1080 viewport left empty;
+plain-text-only empty/loading/error states; no data visualization beyond raw tables and 3 flat stat
+tiles on Benchmark. **One genuine functional gap, not just polish:** Review Detail — the screen where
+a human actually approves/rejects a classification — shows neither the lead's message content nor a
+link to that lead's full Detail/History view, even though the API response it already receives
+(`ReviewQueueItemOut`) carries `lead_id` needed for that link at zero backend cost. Verified directly
+in `frontend/src/pages/ReviewDetailPage.tsx` and `backend/app/schemas/review.py`, not inferred from the
+screenshot.
+
+Backlog: 4 P1, 4 P2, 3 P3 items, full detail in `portfolio-evaluation.md` (project root). Top P1 is the
+Review Detail cohesion/content gap (cheap, ~1-2 hrs); the rest are visual-identity, designed-states, and
+composition passes (`docs/premium-ui-standard.md` §4's catalog). `.claude/project-metrics.md`'s
+`PROJECT_COMPLETED` entry appended (portfolio_value 5/10, professional_readiness 5/10, both HIGH
+confidence). `.claude/intervention-log.md`'s 2026-09-05 `portfolio_evaluation` entry records trigger/
+expected effect/outcome/surprise.
+
+**Routing per `prompts/11_portfolio-evaluator.md`'s Next Steps: Score < 9.0 → Step 12 (Batch Backlog
+Processor), then loop back to Step 11 to re-evaluate.** Both dev servers (frontend :5173, backend
+:8000) remain running from prior sessions.
+
+Prior to this (tenth session same day): Ran Step 10 (Screenshot Capture) —
 unconditional per the prior session's own Next Step note, Steps 10-16 MANDATORY this cycle.
 Both dev servers (frontend :5173, backend :8000) were already running from the prior session.
 
@@ -324,11 +358,13 @@ Feature 10, and Feature 11 [Tier 2] implemented end-to-end), 7 (Implementation V
 PASSED twice: 2026-09-04 against Tier 1, 2026-09-05 against Features 09/10/11), Continued Development
 Round 1 (CD-1 through CD-4 — Feature 15, Review Queue Frontend UI, COMPLETED and verified), 8
 (Viewport-First Refactor, COMPLETED 2026-09-05), 9 (Unified QA & Repair, COMPLETED 2026-09-05), 10
-(Screenshot Capture, COMPLETED 2026-09-05 — see Current Step).
+(Screenshot Capture, COMPLETED 2026-09-05), 11 (Portfolio Evaluator, COMPLETED 2026-09-05 — OVERALL
+SCORE 5/10, below gate — see Current Step).
 
 **Gates passed:** Gate 2 (Step 7, implementation verification) — PASSED, 2026-09-04 (Tier 1) and
 2026-09-05 (Features 09/10/11 batch). Gate 1 (Step 13, portfolio score ≥9.0/10, per
-`docs/premium-ui-standard.md`) is still ahead.
+`docs/premium-ui-standard.md`) is still ahead — Step 11's first pass scored 5/10; routes to Step 12
+(Batch Backlog Processor) before a re-evaluation attempt.
 
 **`.claude/` scaffold status:** Current — full-tier scaffold copied from pipeline templates on
 2026-09-04. See `PIPELINE-SYNC.md`.
@@ -341,13 +377,18 @@ Tier section, STANDARD mode with Tier 2/3 features present falls back to full ti
 
 ## Next Step
 
-**This session (2026-09-05, tenth session same day):** Step 10 (Screenshot Capture) COMPLETED — see
-Current Step above for full detail. **Next Step is Step 11 (Portfolio Evaluator)**, unconditional per
-`prompts/10_screenshot-capture.md`'s own Next Steps section — Step 11 evaluates portfolio quality
-directly from `./portfolio-screenshots/`'s 9 PNGs this stage produced. Note for that session: per
-`docs/premium-ui-standard.md` (v37.0), the gate is now ≥9.0/10 (target 9.5) with Visual & UI/UX as a
-hard gate — check the interface against the Premium UI Feature Catalog and the product-class visual
-profile for an internal ops/analytics tool, not just score an average.
+**This session (2026-09-05, eleventh session same day):** Step 11 (Portfolio Evaluator) COMPLETED —
+see Current Step above for full detail. **OVERALL SCORE 5/10, below the 9.0 gate. Next Step is Step 12
+(Batch Backlog Processor)**, per `prompts/11_portfolio-evaluator.md`'s own Next Steps section — process
+`portfolio-evaluation.md`'s 4 P1 / 4 P2 / 3 P3 backlog items (start with P1-01, the Review Detail
+content/cohesion gap — cheapest and highest-value), then loop back to Step 11 to re-evaluate against
+fresh screenshots. Note for that session: this is a real visual-identity and composition problem across
+every page, not a handful of isolated tweaks — `docs/premium-ui-standard.md` §4's catalog and §9's
+Analytics/Enterprise-admin product-class rows are the closest fit for this project and should anchor
+the design choices, not a generic pass.
+
+Prior to this (tenth session same day): Step 10 (Screenshot Capture) COMPLETED — see Current Step
+above for full detail.
 
 Prior to this (ninth session same day): Step 9 (Unified QA & Repair) COMPLETED — see
 Current Step above for full detail.
