@@ -217,8 +217,8 @@ GROUPS:
     # architecture-plan-feature-10.md (Step 5.5) sets Implementation Order — see that file
 
   Group_F11:
-    status: UNCLAIMED
-    owner: null
+    status: IN_PROGRESS
+    owner: Worker-1
     features: [Feature 11]
     owned_files: [
       backend/app/models/review_queue.py (modify — reviewer_name column),
