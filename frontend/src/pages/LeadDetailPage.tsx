@@ -1,10 +1,11 @@
 import { useEffect, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { AlertTriangle, ArrowLeft, Clock3, History } from 'lucide-react'
-import { getLeadDetail, type LeadDetail } from '../lib/api'
+import { getLeadDetail, getLeadHistory, type LeadDetail, type TimelineEntry } from '../lib/api'
 import { STAGE_ORDER } from '../lib/stageOrder'
 import { Card } from '../components/ui/Card'
 import { ErrorState, LoadingState } from '../components/ui/States'
+import { TimelineRow } from '../components/ui/TimelineRow'
 
 const STAGE_STATUS_CLASSES: Record<string, string> = {
   COMPLETED: 'border-emerald-300 bg-emerald-50',
@@ -32,6 +33,7 @@ export function LeadDetailPage() {
   const [notFound, setNotFound] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
+  const [recentActivity, setRecentActivity] = useState<TimelineEntry[] | null>(null)
 
   useEffect(() => {
     if (!leadId) return
@@ -53,6 +55,21 @@ export function LeadDetailPage() {
       })
       .finally(() => {
         if (!cancelled) setLoading(false)
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [leadId])
+
+  useEffect(() => {
+    if (!leadId) return
+    let cancelled = false
+    getLeadHistory(leadId)
+      .then((data) => {
+        if (!cancelled) setRecentActivity(data.entries)
+      })
+      .catch(() => {
+        if (!cancelled) setRecentActivity(null)
       })
     return () => {
       cancelled = true
@@ -126,7 +143,10 @@ export function LeadDetailPage() {
             const stage = stagesByKey.get(key)
             const status = stage?.status ?? 'NOT_YET_RUN'
             return (
-              <div key={key} className={`rounded-xl border p-3 shadow-sm ${STAGE_STATUS_CLASSES[status]}`}>
+              <div
+                key={key}
+                className={`rounded-xl border p-3 shadow-sm transition-shadow ${stage?.decision ? 'hover:shadow-md' : ''} ${STAGE_STATUS_CLASSES[status]}`}
+              >
                 <div className="flex items-center justify-between">
                   <h3 className="font-medium text-slate-900">{label}</h3>
                   <span className="text-xs font-medium uppercase tracking-wide text-slate-600">
@@ -149,39 +169,61 @@ export function LeadDetailPage() {
           })}
         </div>
 
-        <Card className="flex h-fit flex-col gap-4 p-5">
-          <h2 className="text-xs font-semibold uppercase tracking-wider text-slate-500">Lead summary</h2>
-          <dl className="grid grid-cols-2 gap-4 text-sm">
-            <div>
-              <dt className="text-xs font-medium uppercase tracking-wide text-slate-500">Source</dt>
-              <dd className="mt-0.5 font-medium text-slate-900">{lead.source_channel ?? '—'}</dd>
+        <div className="flex flex-col gap-4">
+          <Card className="flex h-fit flex-col gap-4 p-5">
+            <h2 className="text-xs font-semibold uppercase tracking-wider text-slate-500">Lead summary</h2>
+            <dl className="grid grid-cols-2 gap-4 text-sm">
+              <div>
+                <dt className="text-xs font-medium uppercase tracking-wide text-slate-500">Source</dt>
+                <dd className="mt-0.5 font-medium text-slate-900">{lead.source_channel ?? '—'}</dd>
+              </div>
+              <div>
+                <dt className="text-xs font-medium uppercase tracking-wide text-slate-500">Confidence</dt>
+                <dd className="mt-0.5 font-medium text-slate-900">
+                  {lead.confidence_score != null ? lead.confidence_score.toFixed(2) : '—'}
+                </dd>
+              </div>
+              <div className="col-span-2">
+                <dt className="flex items-center gap-1 text-xs font-medium uppercase tracking-wide text-slate-500">
+                  <Clock3 className="h-3 w-3" aria-hidden="true" />
+                  Created
+                </dt>
+                <dd className="mt-0.5 font-medium text-slate-900">{new Date(lead.created_at).toLocaleString()}</dd>
+              </div>
+              <div className="col-span-2">
+                <dt className="text-xs font-medium uppercase tracking-wide text-slate-500">Updated</dt>
+                <dd className="mt-0.5 font-medium text-slate-900">{new Date(lead.updated_at).toLocaleString()}</dd>
+              </div>
+            </dl>
+          </Card>
+
+          <Card className="flex h-fit flex-col gap-3 p-5">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-slate-500">
+                <History className="h-3.5 w-3.5" aria-hidden="true" />
+                Recent activity
+              </div>
             </div>
-            <div>
-              <dt className="text-xs font-medium uppercase tracking-wide text-slate-500">Confidence</dt>
-              <dd className="mt-0.5 font-medium text-slate-900">
-                {lead.confidence_score != null ? lead.confidence_score.toFixed(2) : '—'}
-              </dd>
-            </div>
-            <div className="col-span-2">
-              <dt className="flex items-center gap-1 text-xs font-medium uppercase tracking-wide text-slate-500">
-                <Clock3 className="h-3 w-3" aria-hidden="true" />
-                Created
-              </dt>
-              <dd className="mt-0.5 font-medium text-slate-900">{new Date(lead.created_at).toLocaleString()}</dd>
-            </div>
-            <div className="col-span-2">
-              <dt className="text-xs font-medium uppercase tracking-wide text-slate-500">Updated</dt>
-              <dd className="mt-0.5 font-medium text-slate-900">{new Date(lead.updated_at).toLocaleString()}</dd>
-            </div>
-          </dl>
-          <Link
-            to={`/leads/${lead.lead_id}/history`}
-            className="mt-1 inline-flex w-fit items-center gap-1.5 rounded-lg border border-slate-300 px-3 py-1.5 text-sm font-medium text-slate-700 shadow-sm transition-colors hover:border-teal-300 hover:text-teal-700"
-          >
-            <History className="h-3.5 w-3.5" aria-hidden="true" />
-            View full history
-          </Link>
-        </Card>
+            {recentActivity && recentActivity.length > 0 ? (
+              <div className="flex flex-col gap-2">
+                {recentActivity
+                  .slice(-3)
+                  .reverse()
+                  .map((entry, index) => (
+                    <TimelineRow key={`${entry.run_id}-${entry.kind}-${index}`} entry={entry} />
+                  ))}
+              </div>
+            ) : (
+              <p className="text-sm text-slate-500">No activity recorded yet.</p>
+            )}
+            <Link
+              to={`/leads/${lead.lead_id}/history`}
+              className="mt-1 inline-flex w-fit items-center gap-1.5 rounded-lg border border-slate-300 px-3 py-1.5 text-sm font-medium text-slate-700 shadow-sm transition-all hover:border-teal-300 hover:text-teal-700 hover:shadow-md active:scale-[0.98]"
+            >
+              View full history
+            </Link>
+          </Card>
+        </div>
       </div>
     </div>
   )

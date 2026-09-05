@@ -97,13 +97,62 @@ P1 (Critical - High Impact — all three target the still-gating Visual & UI/UX 
   group to match the existing Tailwind design system (custom-styled select/radio components, or a
   lightweight headless-UI pattern consistent with the shared `ui/` kit) | Est. Effort: 1-2 hours — the
   single highest-ROI item left: cheap, and the most visually conspicuous remaining inconsistency
+  **Status: Completed.** New `components/ui/Select.tsx` (native `<select appearance-none>` + a
+  `lucide-react` `ChevronDown` overlay icon, hover/focus states matching the existing design system) —
+  `LeadListPage.tsx`'s three filters now use it, replacing the old bare `SelectField`. Review Detail's
+  Approve/Reject/Edit radios rebuilt as an accessible segmented-pill control: the native
+  `<input type="radio">` is visually hidden (`sr-only`, not `display:none`, so it keeps its `role`,
+  accessible name, and keyboard/focus behavior) inside a styled `<label>` pill that shows selection via
+  background/border and a `has-focus-visible:ring-2` for keyboard users. Verified live via Playwright
+  (screenshot + a script asserting the select's computed `appearance` is `none` and the selected pill's
+  class list includes `bg-teal-700`) and via the existing `ReviewDetailPage.test.tsx` "blocks an edit
+  submission" test, which still passes unchanged — confirming `getByRole('radio', { name: 'Edit' })`
+  and its accessible name survived the restyle.
 - P1-02: Close the remaining composition gap on Review Detail, Lead Detail, and Benchmark with genuinely
   useful secondary content rather than more stat tiles — e.g., a "related activity" panel, contextual
   tips, or expanded detail in the currently-empty lower two-thirds of each viewport | Est. Effort: 3-4
   hours
+  **Status: Completed.** Extracted `LeadHistoryPage.tsx`'s per-entry rendering into a shared
+  `components/ui/TimelineRow.tsx` (existing `GET /leads/{lead_id}/history` endpoint, no new backend
+  route) and reused it in two new "Recent activity" panels: Lead Detail's right sidebar (a new card
+  below Lead Summary, replacing where the "View full history" link used to sit alone) and Review
+  Detail's left column (a new card below the classification card, also linking to
+  `/leads/{lead_id}/history` for the first time — Review Detail previously had no path to a lead's full
+  history at all, an in-app-cohesion improvement as a side effect). Benchmark gained a real "Run
+  History" table below Failure & Ambiguous Cases, using data the page already fetched
+  (`listBenchmarkRuns()`) but had been discarding after grabbing only the first run's id — clicking any
+  row now loads and displays that run via the existing `getBenchmarkRun(id)` endpoint, with the
+  currently-viewed run highlighted. No new backend endpoints or models anywhere in this item.
 - P1-03: Add depth and interaction feedback — hover/focus elevation on cards, table rows, and buttons —
   so the interface signals interactivity before a click, not just via a static `shadow-sm` | Est.
   Effort: 1-2 hours
+  **Status: Completed.** Systemic sweep: all primary/secondary buttons (Submit, Run Benchmark,
+  pagination Previous/Next) gained `hover:shadow-md` plus `active:scale-[0.98]` tactile press feedback;
+  all data-table rows (Lead List, Review Queue, Benchmark's failure table) gained `transition-colors`
+  where it was missing so the existing hover background fades instead of snapping; Lead Detail's
+  expandable stage cards gained `hover:shadow-md` only when they actually have a `<details>` disclosure
+  to expand (cards with nothing to expand were left static, so the cue stays honest); the new Benchmark
+  Run History rows are clickable with hover/selected states. Home's existing linked cards and the
+  sidebar nav already had this pattern from Round 1 — this item brought the rest of the app in line with
+  it rather than inventing a new pattern.
+
+BATCH VERIFICATION (2026-09-05, Step 12 Round 2 batch):
+Full backend suite 138/138 passed (unchanged, no backend files touched). Full frontend suite 18/18
+passed (16 pre-existing + 2 new: a Benchmark test for Run History listing/switching, a Review Detail
+test for the Recent Activity panel), `tsc -b`/`vite build` clean. Live-verified against the real dev
+backend/DB and real seed data (not mocked) via an ad hoc Playwright script: select `appearance: none`
+confirmed, radiogroup renders 3 options with the selected pill visually distinguished
+(`bg-teal-700`/`text-white`), Recent Activity panels render on both Lead Detail and Review Detail,
+Benchmark's Run History table renders both existing runs and switching rows correctly calls
+`getBenchmarkRun` with the clicked run's id. Re-verified the no-scroll invariant
+(`docs/ui-design-standards.md` §1) at 1920×1080/1440×900/1366×768 across Lead List, Lead Detail,
+Review Detail, and Benchmark — Benchmark's new Run History section initially pushed it 13px over at
+1366×768 (same failure mode as Round 1's Lead List finding); fixed the same way, tightening the page's
+root gap (`gap-5` → `gap-4`). All pages fit with zero overflow at all three widths after the fix; also
+spot-checked mobile (390×844) for horizontal overflow on all four touched pages — none found. All 9
+portfolio screenshots re-captured against the fixed code and visually reviewed directly (not just
+captured): restyled selects/radios, both new Recent Activity panels, and the Benchmark Run History
+table with its "Viewing" indicator all render as intended.
 
 P2 (High Priority):
 - P2-01: Add a trend/comparison view to the Benchmark page (accuracy/consistency across runs over time)

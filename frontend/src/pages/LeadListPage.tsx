@@ -5,6 +5,7 @@ import { listLeads, type LeadListItem, type ListLeadsParams } from '../lib/api'
 import { PageHeader } from '../components/ui/PageHeader'
 import { StatCard } from '../components/ui/StatCard'
 import { Card } from '../components/ui/Card'
+import { Select } from '../components/ui/Select'
 import { EmptyState, ErrorState, LoadingState } from '../components/ui/States'
 
 const STATUS_OPTIONS = [
@@ -36,19 +37,6 @@ function StatusBadge({ status }: { status: string }) {
   const label = STATUS_OPTIONS.find((o) => o.value === status)?.label ?? status
   return (
     <span className={`inline-flex rounded-full px-2.5 py-0.5 text-xs font-medium ${classes}`}>{label}</span>
-  )
-}
-
-function SelectField({
-  label,
-  ...props
-}: { label: string } & React.SelectHTMLAttributes<HTMLSelectElement>) {
-  return (
-    <select
-      aria-label={label}
-      className="w-full rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-sm shadow-sm focus:border-teal-600 focus:outline-none focus:ring-1 focus:ring-teal-600 sm:w-auto"
-      {...props}
-    />
   )
 }
 
@@ -148,7 +136,7 @@ export function LeadListPage() {
       </div>
 
       <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap">
-        <SelectField
+        <Select
           label="Filter by status"
           value={status}
           onChange={(e) => updateParams({ status: e.target.value || undefined, page: undefined })}
@@ -158,9 +146,9 @@ export function LeadListPage() {
               {o.label}
             </option>
           ))}
-        </SelectField>
+        </Select>
 
-        <SelectField
+        <Select
           label="Filter by channel"
           value={sourceChannel}
           onChange={(e) => updateParams({ channel: e.target.value || undefined, page: undefined })}
@@ -170,13 +158,13 @@ export function LeadListPage() {
               {o.label}
             </option>
           ))}
-        </SelectField>
+        </Select>
 
-        <SelectField label="Sort by" value={sort} onChange={(e) => updateParams({ sort: e.target.value })}>
+        <Select label="Sort by" value={sort} onChange={(e) => updateParams({ sort: e.target.value })}>
           <option value="created_desc">Newest first</option>
           <option value="confidence_desc">Confidence: high to low</option>
           <option value="confidence_asc">Confidence: low to high</option>
-        </SelectField>
+        </Select>
       </div>
 
       {error && <ErrorState message={error} />}
@@ -203,7 +191,10 @@ export function LeadListPage() {
             </thead>
             <tbody>
               {items.map((item) => (
-                <tr key={item.lead_id} className="border-b border-slate-100 last:border-0 hover:bg-slate-50">
+                <tr
+                  key={item.lead_id}
+                  className="border-b border-slate-100 transition-colors last:border-0 hover:bg-slate-50"
+                >
                   <td className="px-4 py-2.5">
                     <Link
                       to={`/leads/${item.lead_id}`}
@@ -234,7 +225,7 @@ export function LeadListPage() {
         <div className="flex gap-2">
           <button
             type="button"
-            className="rounded-lg border border-slate-300 bg-white px-3 py-1 shadow-sm transition-colors hover:bg-slate-50 disabled:opacity-40"
+            className="rounded-lg border border-slate-300 bg-white px-3 py-1 shadow-sm transition-all hover:bg-slate-50 hover:shadow-md active:scale-[0.98] disabled:opacity-40 disabled:active:scale-100"
             disabled={page <= 1}
             onClick={() => {
               const next = Math.max(1, page - 1)
@@ -245,7 +236,7 @@ export function LeadListPage() {
           </button>
           <button
             type="button"
-            className="rounded-lg border border-slate-300 bg-white px-3 py-1 shadow-sm transition-colors hover:bg-slate-50 disabled:opacity-40"
+            className="rounded-lg border border-slate-300 bg-white px-3 py-1 shadow-sm transition-all hover:bg-slate-50 hover:shadow-md active:scale-[0.98] disabled:opacity-40 disabled:active:scale-100"
             disabled={page >= totalPages}
             onClick={() => {
               const next = Math.min(totalPages, page + 1)

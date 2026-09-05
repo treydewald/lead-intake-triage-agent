@@ -130,4 +130,34 @@ describe('ReviewDetailPage', () => {
 
     await waitFor(() => expect(screen.getByText(/No review item found/)).toBeInTheDocument())
   })
+
+  it('shows recent activity for the lead and links to its full history', async () => {
+    vi.spyOn(api, 'getReview').mockResolvedValue(ITEM)
+    vi.spyOn(api, 'getLeadHistory').mockResolvedValue({
+      lead_id: 'lead-abc12345',
+      entries: [
+        {
+          kind: 'stage',
+          run_id: 'run-abc12345',
+          created_at: '2026-09-04T11:00:00Z',
+          stage_key: 'intake_parsing',
+          stage_label: 'Intake Parsing',
+          status: 'COMPLETED',
+          error: null,
+          reviewer_action: null,
+          corrected_intent_label: null,
+          reviewer_name: null,
+        },
+      ],
+    })
+
+    renderDetail()
+
+    await waitFor(() => expect(screen.getByText('Recent activity')).toBeInTheDocument())
+    expect(screen.getByText('Intake Parsing')).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: 'View full history' })).toHaveAttribute(
+      'href',
+      '/leads/lead-abc12345/history',
+    )
+  })
 })

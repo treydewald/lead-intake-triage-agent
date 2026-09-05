@@ -1,9 +1,24 @@
 import { useEffect, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
-import { ArrowLeft, ArrowUpRight, CheckCircle2, MessageSquare } from 'lucide-react'
-import { actionReview, getReview, type ReviewAction, type ReviewActionResult, type ReviewQueueItem } from '../lib/api'
+import { ArrowLeft, ArrowUpRight, CheckCircle2, History, MessageSquare } from 'lucide-react'
+import {
+  actionReview,
+  getLeadHistory,
+  getReview,
+  type ReviewAction,
+  type ReviewActionResult,
+  type ReviewQueueItem,
+  type TimelineEntry,
+} from '../lib/api'
 import { Card } from '../components/ui/Card'
 import { ErrorState, LoadingState } from '../components/ui/States'
+import { TimelineRow } from '../components/ui/TimelineRow'
+
+const ACTION_LABELS: Record<ReviewAction, string> = {
+  approve: 'Approve',
+  reject: 'Reject',
+  edit: 'Edit',
+}
 
 export function ReviewDetailPage() {
   const { runId } = useParams<{ runId: string }>()
@@ -20,6 +35,7 @@ export function ReviewDetailPage() {
   const [alreadyActioned, setAlreadyActioned] = useState(false)
   const [result, setResult] = useState<ReviewActionResult | null>(null)
   const [submitError, setSubmitError] = useState<string | null>(null)
+  const [recentActivity, setRecentActivity] = useState<TimelineEntry[] | null>(null)
 
   useEffect(() => {
     if (!runId) return
@@ -46,6 +62,21 @@ export function ReviewDetailPage() {
       cancelled = true
     }
   }, [runId])
+
+  useEffect(() => {
+    if (!item) return
+    let cancelled = false
+    getLeadHistory(item.lead_id)
+      .then((data) => {
+        if (!cancelled) setRecentActivity(data.entries)
+      })
+      .catch(() => {
+        if (!cancelled) setRecentActivity(null)
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [item])
 
   async function handleSubmit() {
     if (!runId) return
@@ -161,23 +192,55 @@ export function ReviewDetailPage() {
               </div>
             </dl>
           </Card>
+
+          {recentActivity && recentActivity.length > 0 && (
+            <Card className="flex flex-col gap-3 p-5">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-slate-500">
+                  <History className="h-3.5 w-3.5" aria-hidden="true" />
+                  Recent activity
+                </div>
+                <Link
+                  to={`/leads/${item.lead_id}/history`}
+                  className="text-xs font-medium text-teal-700 hover:underline"
+                >
+                  View full history
+                </Link>
+              </div>
+              <div className="flex flex-col gap-2">
+                {recentActivity
+                  .slice(-3)
+                  .reverse()
+                  .map((entry, index) => (
+                    <TimelineRow key={`${entry.run_id}-${entry.kind}-${index}`} entry={entry} />
+                  ))}
+              </div>
+            </Card>
+          )}
         </div>
 
         {!result && !alreadyActioned && (
           <Card className="flex h-fit flex-col gap-3.5 p-5">
             <h2 className="text-xs font-semibold uppercase tracking-wider text-slate-500">Reviewer decision</h2>
-            <div className="flex flex-wrap gap-3">
+            <div role="radiogroup" aria-label="Reviewer decision" className="flex flex-wrap gap-2">
               {(['approve', 'reject', 'edit'] as ReviewAction[]).map((action) => (
-                <label key={action} className="flex items-center gap-2 text-sm text-slate-700">
+                <label
+                  key={action}
+                  className={`cursor-pointer rounded-lg border px-3.5 py-1.5 text-sm font-medium transition-all has-focus-visible:ring-2 has-focus-visible:ring-teal-600 has-focus-visible:ring-offset-1 ${
+                    selectedAction === action
+                      ? 'border-teal-700 bg-teal-700 text-white shadow-sm'
+                      : 'border-slate-300 bg-white text-slate-700 hover:border-slate-400 hover:shadow-sm'
+                  }`}
+                >
                   <input
                     type="radio"
                     name="review-action"
                     value={action}
                     checked={selectedAction === action}
                     onChange={() => setSelectedAction(action)}
-                    className="h-4 w-4 accent-teal-700"
+                    className="sr-only"
                   />
-                  {action[0].toUpperCase() + action.slice(1)}
+                  {ACTION_LABELS[action]}
                 </label>
               ))}
             </div>
@@ -205,7 +268,7 @@ export function ReviewDetailPage() {
 
             <button
               type="button"
-              className="w-fit rounded-lg bg-teal-700 px-4 py-1.5 text-sm font-medium text-white shadow-sm transition-colors hover:bg-teal-800 disabled:opacity-50"
+              className="w-fit rounded-lg bg-teal-700 px-4 py-1.5 text-sm font-medium text-white shadow-sm transition-all hover:bg-teal-800 hover:shadow-md active:scale-[0.98] disabled:opacity-50 disabled:active:scale-100"
               disabled={submitting}
               onClick={handleSubmit}
             >

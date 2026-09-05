@@ -1,6 +1,13 @@
 import { useEffect, useState } from 'react'
 import { Cpu, Gauge, Repeat, Sparkles } from 'lucide-react'
-import { getBenchmarkRun, listBenchmarkRuns, runBenchmark, type BenchmarkCase, type BenchmarkRun } from '../lib/api'
+import {
+  getBenchmarkRun,
+  listBenchmarkRuns,
+  runBenchmark,
+  type BenchmarkCase,
+  type BenchmarkRun,
+  type BenchmarkRunSummary,
+} from '../lib/api'
 import { PageHeader } from '../components/ui/PageHeader'
 import { StatCard } from '../components/ui/StatCard'
 import { Card, SectionLabel } from '../components/ui/Card'
@@ -21,17 +28,21 @@ function CaseStatusBadge({ item }: { item: BenchmarkCase }) {
 }
 
 export function BenchmarkPage() {
+  const [runs, setRuns] = useState<BenchmarkRunSummary[]>([])
   const [latestRun, setLatestRun] = useState<BenchmarkRun | null>(null)
   const [loading, setLoading] = useState(true)
   const [running, setRunning] = useState(false)
+  const [switchingRunId, setSwitchingRunId] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
     let cancelled = false
     listBenchmarkRuns()
-      .then((runs) => {
-        if (cancelled || runs.length === 0) return
-        return getBenchmarkRun(runs[0].id).then((run) => {
+      .then((allRuns) => {
+        if (cancelled) return
+        setRuns(allRuns)
+        if (allRuns.length === 0) return
+        return getBenchmarkRun(allRuns[0].id).then((run) => {
           if (!cancelled) setLatestRun(run)
         })
       })
@@ -50,15 +61,28 @@ export function BenchmarkPage() {
     setRunning(true)
     setError(null)
     runBenchmark()
-      .then((run) => setLatestRun(run))
+      .then((run) => {
+        setLatestRun(run)
+        setRuns((prev) => [run, ...prev])
+      })
       .catch(() => setError('Benchmark run failed.'))
       .finally(() => setRunning(false))
+  }
+
+  const handleSelectRun = (runId: string) => {
+    if (runId === latestRun?.id) return
+    setSwitchingRunId(runId)
+    setError(null)
+    getBenchmarkRun(runId)
+      .then((run) => setLatestRun(run))
+      .catch(() => setError('Failed to load that benchmark run.'))
+      .finally(() => setSwitchingRunId(null))
   }
 
   const misclassifiedAndAmbiguous = latestRun?.cases.filter((c) => c.is_ambiguous || !c.correct) ?? []
 
   return (
-    <div className="flex flex-col gap-5">
+    <div className="flex flex-col gap-4">
       <PageHeader
         title="Classification Accuracy Benchmark"
         description="Accuracy and consistency measured against a fixed set of known cases."
@@ -67,7 +91,7 @@ export function BenchmarkPage() {
             type="button"
             onClick={handleRunBenchmark}
             disabled={running}
-            className="inline-flex w-fit items-center gap-1.5 rounded-lg bg-teal-700 px-4 py-2 text-sm font-medium text-white shadow-sm transition-colors hover:bg-teal-800 disabled:opacity-50"
+            className="inline-flex w-fit items-center gap-1.5 rounded-lg bg-teal-700 px-4 py-2 text-sm font-medium text-white shadow-sm transition-all hover:bg-teal-800 hover:shadow-md active:scale-[0.98] disabled:opacity-50 disabled:active:scale-100"
           >
             <Sparkles className="h-4 w-4" aria-hidden="true" />
             {running ? 'Running…' : 'Run Benchmark'}
@@ -119,7 +143,10 @@ export function BenchmarkPage() {
                 </thead>
                 <tbody>
                   {misclassifiedAndAmbiguous.map((item) => (
-                    <tr key={item.case_id} className="border-b border-slate-100 last:border-0 hover:bg-slate-50">
+                    <tr
+                      key={item.case_id}
+                      className="border-b border-slate-100 transition-colors last:border-0 hover:bg-slate-50"
+                    >
                       <td className="px-4 py-2.5 font-medium text-slate-800">{item.case_id}</td>
                       <td className="px-4 py-2.5">
                         <CaseStatusBadge item={item} />
@@ -135,6 +162,51 @@ export function BenchmarkPage() {
               </table>
             )}
           </Card>
+
+          {runs.length > 0 && (
+            <>
+              <SectionLabel>Run History</SectionLabel>
+              <Card className="overflow-x-auto">
+                <table aria-label="Run history" className="w-full min-w-[560px] text-left text-sm">
+                  <thead className="border-b border-slate-200 bg-slate-50 text-xs uppercase tracking-wide text-slate-500">
+                    <tr>
+                      <th className="px-4 py-2.5 font-medium">Run</th>
+                      <th className="px-4 py-2.5 font-medium">Model</th>
+                      <th className="px-4 py-2.5 font-medium">Accuracy</th>
+                      <th className="px-4 py-2.5 font-medium">Consistency</th>
+                      <th className="px-4 py-2.5 font-medium">Cases × Repeats</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {runs.map((run) => {
+                      const isSelected = run.id === latestRun.id
+                      return (
+                        <tr
+                          key={run.id}
+                          onClick={() => handleSelectRun(run.id)}
+                          aria-current={isSelected ? 'true' : undefined}
+                          className={`cursor-pointer border-b border-slate-100 transition-colors last:border-0 ${
+                            isSelected ? 'bg-teal-50 hover:bg-teal-50' : 'hover:bg-slate-50'
+                          } ${switchingRunId === run.id ? 'opacity-50' : ''}`}
+                        >
+                          <td className="px-4 py-2.5 font-medium text-slate-800">
+                            {new Date(run.created_at).toLocaleString()}
+                            {isSelected && <span className="ml-2 text-xs font-normal text-teal-700">Viewing</span>}
+                          </td>
+                          <td className="px-4 py-2.5 text-slate-600">{run.model_used}</td>
+                          <td className="px-4 py-2.5 text-slate-600">{formatPercent(run.accuracy)}</td>
+                          <td className="px-4 py-2.5 text-slate-600">{formatPercent(run.consistency)}</td>
+                          <td className="px-4 py-2.5 text-slate-600">
+                            {run.total_cases} × {run.repeats}
+                          </td>
+                        </tr>
+                      )
+                    })}
+                  </tbody>
+                </table>
+              </Card>
+            </>
+          )}
         </>
       )}
     </div>

@@ -1,8 +1,8 @@
 # Pipeline Reference — Lead Intake Triage Agent
 
-**Last Updated:** 2026-09-05 (Step 11, Portfolio Evaluator, Round 2 — RE-EVALUATED after Step 12's
-P1-01 through P1-04 batch. OVERALL SCORE 6/10 (up from 5/10), still below the 9.0 gate — routes to
-another Step 12 batch. Prior: Step 12 Batch Backlog Processor COMPLETED — see Current Step)
+**Last Updated:** 2026-09-05 (Step 12, Batch Backlog Processor — Round 2's P1-01 through P1-03 all
+COMPLETED, routes back to Step 11 for a Round 3 re-evaluation. Prior: Step 11 Round 2 scored 6/10 — see
+Current Step)
 
 How *this project* is using the Upwork Portfolio Project Pipeline. Distinct from
 `portfolio-reference.md`, which is about the product — this file is about pipeline state.
@@ -11,7 +11,64 @@ How *this project* is using the Upwork Portfolio Project Pipeline. Distinct from
 
 ## Current Step
 
-**This session (2026-09-05, thirteenth session same day):** Ran Step 11 (Portfolio Evaluator), Round 2
+**This session (2026-09-05, fourteenth session same day):** Ran Step 12 (Batch Backlog Processor)
+against Round 2's fresh 3 P1 items from `portfolio-evaluation.md` (all three processed, within the
+step's 3-5 item range). Both dev servers (frontend, backend) were found already running from a prior
+session; the frontend one turned out to be a stale process bound to `[::1]:5173` only (IPv6 loopback),
+unreachable via `127.0.0.1` — same class of problem the prior Step 12 round hit with a stale backend —
+so it and a duplicate newly-started instance were both stopped and a single fresh `npm run dev` instance
+started clean before any verification.
+
+- **P1-01 (native-control restyling):** New `frontend/src/components/ui/Select.tsx` — a shared
+  `<select appearance-none>` with a `lucide-react` `ChevronDown` overlay, matching the existing design
+  system's border/focus states. `LeadListPage.tsx`'s three filters now use it, replacing the old bare
+  `SelectField`. Review Detail's Approve/Reject/Edit radios rebuilt as an accessible segmented-pill
+  control — the native radio input is visually hidden (`sr-only`, not `display:none`, preserving its
+  `role`, accessible name, and keyboard focus) inside a styled `<label>` pill; selection shown via
+  background/border, keyboard focus via `has-focus-visible:ring-2`. Verified live via Playwright
+  (computed `appearance: none` on the select; selected pill's class list includes `bg-teal-700`) and via
+  the pre-existing `ReviewDetailPage.test.tsx` "blocks an edit submission" test, which passed unchanged —
+  confirming `getByRole('radio', { name: 'Edit' })` survived the restyle.
+- **P1-02 (composition fill via genuinely useful content, not more stat tiles):** Extracted
+  `LeadHistoryPage.tsx`'s per-entry rendering into a new shared `components/ui/TimelineRow.tsx` and
+  reused it in two new "Recent activity" panels — Lead Detail's right sidebar and Review Detail's left
+  column (both using the existing `GET /leads/{lead_id}/history` endpoint; no new backend route). Review
+  Detail previously had no path to a lead's full history at all — this also closes an in-app-cohesion
+  gap as a side effect. Benchmark gained a real "Run History" table below Failure & Ambiguous Cases,
+  using data the page already fetched (`listBenchmarkRuns()`) but had been discarding after reading only
+  the first run's id; clicking a row now loads and displays that run via the existing
+  `getBenchmarkRun(id)` endpoint, with the currently-viewed run highlighted. No new backend endpoints or
+  models anywhere in this item.
+- **P1-03 (depth/interaction feedback):** Systemic sweep — all primary/secondary buttons (Submit, Run
+  Benchmark, pagination) gained `hover:shadow-md` plus `active:scale-[0.98]`; all data-table rows (Lead
+  List, Review Queue, Benchmark's failure table) gained `transition-colors` where missing; Lead Detail's
+  expandable stage cards gained `hover:shadow-md` only when they actually have a `<details>` disclosure
+  to expand, so the cue stays honest; the new Benchmark Run History rows are clickable with hover/
+  selected states.
+
+**Real defect found and fixed during this batch (not part of any single P1 item's own scope):**
+Benchmark's new Run History section pushed the page 13px over the no-scroll invariant
+(`docs/ui-design-standards.md` §1) at 1366×768 — the same failure mode Round 1's Lead List stat row hit
+and the same fix applied: tightened the page's root `flex flex-col` gap (`gap-5` → `gap-4`). Re-measured
+after the fix: zero overflow at 1920×1080/1440×900/1366×768 across all four touched pages (Lead List,
+Lead Detail, Review Detail, Benchmark), plus a mobile (390×844) horizontal-overflow spot-check on the
+same four pages (none found).
+
+Verification: full backend suite 138/138 passed (unchanged, no backend files touched), full frontend
+suite 18/18 passed (16 pre-existing + 2 new — a Benchmark test for Run History listing/switching, a
+Review Detail test for the new Recent Activity panel), `tsc -b`/`vite build` clean. All 9 portfolio
+screenshots re-captured against the fixed code and visually reviewed directly (not just captured) —
+restyled selects/radios, both new Recent Activity panels, and the Benchmark Run History table with its
+"Viewing" indicator all render as intended.
+
+`portfolio-evaluation.md` updated in place: all 3 P1 items marked Completed with implementation notes,
+plus a new "Batch Verification" block recording the test/build/live-verification summary above. P2/P3
+items remain Not Started (out of this batch's scope, per this step's own boundary) — a fresh Step 11
+pass is the correct next step, not continuing straight into P2.
+
+---
+
+**Prior session (2026-09-05, thirteenth session same day):** Ran Step 11 (Portfolio Evaluator), Round 2
 — re-evaluated against the 9 screenshots this session's own predecessor (Step 12) had already
 re-captured after its P1-01 through P1-04 batch, plus a direct visual read of all 9 PNGs (not inferred
 from code alone). **OVERALL SCORE: 6/10** (up from 5/10) — Visual & UI/UX 6, Feature Signaling 7,
@@ -453,15 +510,17 @@ Round 1 (CD-1 through CD-4 — Feature 15, Review Queue Frontend UI, COMPLETED a
 (Viewport-First Refactor, COMPLETED 2026-09-05), 9 (Unified QA & Repair, COMPLETED 2026-09-05), 10
 (Screenshot Capture, COMPLETED 2026-09-05), 11 (Portfolio Evaluator, COMPLETED 2026-09-05, run twice —
 Round 1 OVERALL SCORE 5/10, Round 2 OVERALL SCORE 6/10, both below gate — see Current Step), 12 (Batch
-Backlog Processor, COMPLETED 2026-09-05 — Round 1's P1-01 through P1-04 all Completed, routed back to
-Step 11 for Round 2 re-evaluation).
+Backlog Processor, run twice — Round 1's P1-01 through P1-04 COMPLETED 2026-09-05 routing to Step 11
+Round 2; Round 2's P1-01 through P1-03 COMPLETED 2026-09-05 — see Current Step — routing to Step 11
+Round 3).
 
 **Gates passed:** Gate 2 (Step 7, implementation verification) — PASSED, 2026-09-04 (Tier 1) and
 2026-09-05 (Features 09/10/11 batch). Gate 1 (Step 13, portfolio score ≥9.0/10, per
-`docs/premium-ui-standard.md`) is still ahead — Step 11 Round 2 scored 6/10 (up from 5/10), still below
-gate on Visual & UI/UX (6) and Client Impact (6). Next action is another Step 12 batch against this
-round's 3 P1 items (native-control restyling, composition fill, depth/interaction feedback), then loop
-back to Step 11 for a Round 3 re-evaluation.
+`docs/premium-ui-standard.md`) is still ahead — Step 11 last scored 6/10 (Round 2), below gate on
+Visual & UI/UX (6) and Client Impact (6); Round 2's 3 P1 items are now all Completed (this session's
+Step 12 batch — see Current Step). Next action is Step 11 Round 3 to re-evaluate against the fresh
+screenshots and determine whether the gate clears or another Step 12 batch (against P2: Benchmark trend
+visualization, motion) is needed.
 
 **`.claude/` scaffold status:** Current — full-tier scaffold copied from pipeline templates on
 2026-09-04. See `PIPELINE-SYNC.md`.
@@ -474,19 +533,23 @@ Tier section, STANDARD mode with Tier 2/3 features present falls back to full ti
 
 ## Next Step
 
-**This session (2026-09-05, thirteenth session same day):** Step 11 (Portfolio Evaluator), Round 2,
-COMPLETED — see Current Step above for full detail. **OVERALL SCORE 6/10 (up from 5/10), still below
-the 9.0 gate. Next Step is another Step 12 (Batch Backlog Processor) round**, per
-`prompts/11_portfolio-evaluator.md`'s own Next Steps section — process `portfolio-evaluation.md`'s
-fresh 3 P1 / 2 P2 / 3 P3 backlog (all superseding the Round 1 backlog, which is fully consumed), start
-with P1-01 (native-control restyling — cheapest, highest remaining visual-inconsistency ROI), then
-P1-02 (composition fill) and P1-03 (depth/interaction feedback), then loop back to Step 11 for a Round
-3 re-evaluation. Note for that session: this round's Surprise finding matters directly here — Round 1's
-composition fix (stat rows, two-column layouts) only filled the *top* of each page, not the whole
-viewport, so P1-02 this round should aim for content that fills remaining vertical space, not another
-stat row at the top.
+**This session (2026-09-05, fourteenth session same day):** Step 12 (Batch Backlog Processor), Round 2
+batch, COMPLETED — see Current Step above for full detail. **All 3 P1 items Completed. Next Step is
+Step 11 (Portfolio Evaluator), Round 3**, per `prompts/12_batch-backlog-processor.md`'s own Next Steps
+section (unconditional loop back to re-evaluate) — re-capture screenshots are already in place (this
+session captured them as part of its own verification), so Round 3 can proceed directly to scoring
+against the current `./portfolio-screenshots/`. Note for that session: P2 (Benchmark trend
+visualization, motion/transitions) and P3 (onboarding cue, dark mode, saved-view indicator) remain
+Not Started in `portfolio-evaluation.md` — if Round 3 still scores below the 9.0 gate, P2-01 (the
+trend/comparison view) is the most promising remaining lever per this round's own "Score Path to
+10/10" note, since Benchmark's Run History table (added this session) already surfaces the raw
+per-run data a trend chart would visualize.
 
-**Prior session (2026-09-05, twelfth session same day):** Step 12 (Batch Backlog Processor) COMPLETED
+**Prior session (2026-09-05, thirteenth session same day):** Step 11 (Portfolio Evaluator), Round 2,
+COMPLETED — see "Prior session" below for full detail. OVERALL SCORE 6/10 (up from 5/10), still below
+the 9.0 gate — routed to this session's Step 12 batch.
+
+**Prior to this (2026-09-05, twelfth session same day):** Step 12 (Batch Backlog Processor) COMPLETED
 — Round 1's P1-01 through P1-04 all Completed; see Current Step above for full detail.
 
 **Prior to this (2026-09-05, eleventh session same day):** Step 11 (Portfolio Evaluator), Round 1,

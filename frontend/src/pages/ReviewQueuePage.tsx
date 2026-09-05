@@ -91,7 +91,10 @@ export function ReviewQueuePage() {
             </thead>
             <tbody>
               {items.map((item) => (
-                <tr key={item.run_id} className="border-b border-slate-100 last:border-0 hover:bg-slate-50">
+                <tr
+                  key={item.run_id}
+                  className="border-b border-slate-100 transition-colors last:border-0 hover:bg-slate-50"
+                >
                   <td className="px-4 py-2.5">
                     <Link
                       to={`/reviews/${item.run_id}`}
