@@ -2,7 +2,7 @@ import { NavLink, Outlet } from 'react-router-dom'
 import { BuildIndicator } from './BuildIndicator'
 
 const navItems = [
-  { to: '/', label: 'Observability' },
+  { to: '/leads', label: 'Observability' },
   { to: '/review', label: 'Review Queue' },
 ]
 

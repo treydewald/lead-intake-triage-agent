@@ -33,7 +33,10 @@ SessionFactory = Callable[[], object]
 
 # The six pipeline stages in graph-node order. Keys match `LeadPipelineState`'s slice
 # field names; values are the (node name, owning feature) this stage belongs to.
-_STAGE_ORDER: list[tuple[str, str, str]] = [
+# Exported (not module-private) — Feature 08's leads router iterates this to build a
+# per-lead stage timeline, matching StageTrace.stage_name against each node_name; a
+# new stage must be added here, not to a second, separately-maintained order list.
+STAGE_ORDER: list[tuple[str, str, str]] = [
     ("intake", "intake_parsing", "Feature 02"),
     ("classification", "intent_classification", "Feature 03"),
     ("enrichment", "data_enrichment", "Feature 04"),
@@ -78,7 +81,7 @@ def default_stages() -> dict[str, Stage]:
     }
     stages: dict[str, Stage] = {
         slice_name: _StubStage(node_name, slice_name, feature_id, schemas[slice_name])
-        for slice_name, node_name, feature_id in _STAGE_ORDER
+        for slice_name, node_name, feature_id in STAGE_ORDER
     }
     stages["intake"] = IntakeStage()
     stages["classification"] = IntentClassificationStage()
@@ -427,6 +430,8 @@ def run_pipeline(
         run_row = db.get(PipelineRun, run_id)
         if run_row is not None:
             run_row.status = final_state.run.status.value
+            run_row.source_channel = final_state.intake.source_channel
+            run_row.confidence_score = final_state.classification.confidence_score
             db.commit()
     finally:
         db.close()

@@ -3,7 +3,7 @@ from __future__ import annotations
 import uuid
 from datetime import datetime, timezone
 
-from sqlalchemy import DateTime, ForeignKey, String, Text
+from sqlalchemy import DateTime, Float, ForeignKey, String, Text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.database.session import Base
@@ -23,6 +23,15 @@ class PipelineRun(Base):
     Stage execution/transition data persists here and in `StageTrace` — any future
     stage's execution record belongs to this pair of tables, not a bespoke per-feature
     log table (see `.claude/portfolio-reference.md`'s Key Decisions).
+
+    `source_channel`/`confidence_score` (Feature 08) are denormalized, read-optimized
+    columns set exactly once, at the same final-commit point in `run_pipeline()` that
+    already persists `.status` — they exist purely so a list/query view can filter and
+    sort without parsing `StageTrace.output_snapshot` JSON per request. `StageTrace`'s
+    own snapshots remain the sole authoritative record of what each stage produced; a
+    future feature needing to filter/sort by another stage's value should add a
+    similarly-scoped column here, not parse trace JSON at query time (see
+    `.claude/portfolio-reference.md`'s Key Decisions, architecture-plan-feature-08.md).
     """
 
     __tablename__ = "pipeline_run"
@@ -30,6 +39,8 @@ class PipelineRun(Base):
     id: Mapped[str] = mapped_column(String(36), primary_key=True, default=_new_uuid)
     lead_id: Mapped[str] = mapped_column(String(36), index=True)
     status: Mapped[str] = mapped_column(String(32), default="RUNNING")
+    source_channel: Mapped[str | None] = mapped_column(String(32), nullable=True)
+    confidence_score: Mapped[float | None] = mapped_column(Float, nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_utcnow)
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_utcnow, onupdate=_utcnow)
 

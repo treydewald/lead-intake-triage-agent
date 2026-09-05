@@ -1,6 +1,6 @@
 # Pipeline Reference — Lead Intake Triage Agent
 
-**Last Updated:** 2026-09-04
+**Last Updated:** 2026-09-04 (Step 6, Group_F08 session)
 
 How *this project* is using the Upwork Portfolio Project Pipeline. Distinct from
 `portfolio-reference.md`, which is about the product — this file is about pipeline state.
@@ -12,26 +12,30 @@ How *this project* is using the Upwork Portfolio Project Pipeline. Distinct from
 **Project Mode:** STANDARD (Intent: PORTFOLIO, Lifetime: MEDIUM, Scale: MEDIUM, Optimization
 Objective: PORTFOLIO_SIGNAL — see `docs/project-strategy.md`). Steps 10-16 are MANDATORY this cycle.
 
-**Step:** Step 5.5: Implementation Planner — Feature 08 (Observability / Monitoring View) completed
-this session. Produced `architecture-plan-feature-08.md` (Standard depth) with an 8-step
-Implementation Order: 2 new denormalized `PipelineRun` columns (`source_channel`, `confidence_score`)
-+ migration, a `_STAGE_ORDER`→`STAGE_ORDER` export rename in `graph.py`, new backend schemas
-(`LeadListItemOut`/`LeadListOut`/`StageDetailOut`/`LeadDetailOut`), `GET /leads` +
-`GET /leads/{lead_id}` in `routers/leads.py`, and the frontend's first real pages
-(`LeadListPage.tsx`/`LeadDetailPage.tsx`) beyond the Step 4 bootstrap scaffold. Two new Architecture
-Rule Changes applied to `.claude/portfolio-reference.md`'s Key Decisions (a post-persistence
-status-mapping distinct from Feature 07's notification-time one; the denormalized-columns
-read-optimization pattern). `implementation_plan.md`'s Group_F08 `owned_files` finalized. **Gap
-surfaced, not fixed this round:** no feature anywhere in the 14-feature roadmap builds a frontend for
-the existing `GET /reviews`/`POST /reviews/{run_id}/action` routes — flagged as a future Scope
-Expansion/CD candidate; Feature 08's lead detail view deliberately does not link to `/reviews/{run_id}`
-yet since that destination renders nothing (see `architecture-plan-feature-08.md`'s Risks / Navigation
-Relationships Flagged). Step 6 has not yet run against this plan.
+**Step:** Step 6: Worker Pool Orchestrator — Group_F08 (Feature 08, Observability / Monitoring View)
+COMPLETED this session, built against `architecture-plan-feature-08.md`'s 8-step Implementation
+Order. Added `PipelineRun.source_channel`/`.confidence_score` (denormalized, migration
+`9217c457cc82`), exported `graph.py`'s `STAGE_ORDER`, new `GET /leads`/`GET /leads/{lead_id}`
+endpoints with the post-persistence status mapping, and this project's first real frontend pages
+(`LeadListPage.tsx`/`LeadDetailPage.tsx`, reachable via the "Observability" nav link at `/leads`).
+111/111 backend tests passing (9 new), 3/3 frontend tests passing (2 new), `npm run build` clean,
+manual dev-server + Playwright smoke test against real seeded leads (including a genuine HubSpot-write
+failure) confirmed the list view, detail/timeline view, and 404 case all render correctly. **This
+completes all 8 Tier 1 features end-to-end** — the project's stated success criteria condition is now
+met. Full detail: `.claude/execution-log.md`/`.claude/validation-results.md`'s Feature 08 entries.
+**One pre-existing, unrelated flaky test found and logged, not fixed:**
+`test_router_notifications.py::test_list_notifications_returns_newest_first` (Feature 07's own test, a
+timestamp-ordering race) — outside Group_F08's file ownership; tracked as `.claude/refinement-
+backlog.md`'s RB-001. **Gap noted previously, still open:** no feature anywhere in the 14-feature
+roadmap builds a frontend for the existing `GET /reviews`/`POST /reviews/{run_id}/action` routes;
+Feature 08's lead detail view still does not link to `/reviews/{run_id}` since that destination
+renders nothing (see `architecture-plan-feature-08.md`'s Risks). Step 7 (Implementation Verification)
+has not yet run against any completed feature, including this one.
 
 **Completed steps:** 1 (Project Advisor), 2 (Roadmap Architect), 3 (Feature Specification Engine), 4
 (Environment Bootstrap), 5.5 (Implementation Planner — Feature 01 through Feature 08; re-entered per
 feature group, see `docs/implementation-planning.md` §16), 6 (Worker Pool Orchestrator — Group_F01
-through Group_F07 COMPLETED; Group_F08 UNCLAIMED, plan ready).
+through Group_F08 all COMPLETED — all 8 Tier 1 features implemented end-to-end).
 
 **Gates passed:** None yet — Gate 2 (Step 7, implementation verification) and Gate 1 (Step 13,
 portfolio score ≥9.0/10) are both ahead. Step 7 has not yet run against any completed feature.
@@ -47,25 +51,23 @@ Tier section, STANDARD mode with Tier 2/3 features present falls back to full ti
 
 ## Next Step
 
-**Step 6: Worker Pool Orchestrator — Group_F08.** `architecture-plan-feature-08.md` is now complete
-and `implementation_plan.md`'s Group_F08 `owned_files` is finalized (this session) — Step 6 claims
-Group_F08 next and builds against that plan's 8-step Implementation Order. This is the last Tier 1
-feature — once it lands, all 8 Tier 1 features are COMPLETED and the project's success criteria's "all
-Tier 1 features working end-to-end" condition is met. Feature 08 has a frontend component (group:
-FRONTEND) — the first Step 6 round with real UI surface, since Features 02-07 were all
-backend/pipeline-stage work.
+**Step 7: Implementation Verification (Gate 2)** — all 8 Tier 1 features are now COMPLETED, and Step 7
+has not run against any of them yet. Per the pipeline's standard sequence, this is the natural point to
+run it before continuing into Tier 2, checking the full Tier 1 implementation (not just each feature's
+own inline test-based validation from its Step 6 round) against its architecture plans and specs.
 
-**Dependency-satisfied but out of scope this round:** Group_F09 (Feature 09, Classification Accuracy
-Benchmark Report) is dependency-satisfiable (`depends_on: [Group_F03]`, completed), but it's a Tier 2
-item — Tier 1 (Features 01-08) takes priority per the roadmap's own tiering. Group_F10 (Feature 10,
-External Notification Delivery) is now also dependency-satisfiable (`depends_on: [Group_F07]`,
-completed) — its own spec explicitly names `persist_outcome_notification()`'s three direct call sites
-as the extension point it will use, per the new Architecture Rule Change this round — but it's still a
-Tier 2 item, same lower-priority treatment. Group_F13 (Feature 13) is also dependency-satisfiable
-(`depends_on: [Group_F05]`, completed) but is a Tier 3 item. Group_F11 (Feature 11) remains BLOCKED
-(`depends_on: [Group_F08, Group_F06]` — Group_F08 not yet done, about to become claimable once Group_F08
-lands). Group_F14 (Feature 14) remains CLAIMABLE-but-deferred as previously noted (Tier 3, visibility
-only).
+**Also available, not yet started:** Group_F09 (Feature 09, Classification Accuracy Benchmark Report,
+`depends_on: [Group_F03]`, completed) and Group_F10 (Feature 10, External Notification Delivery,
+`depends_on: [Group_F07]`, completed) are both dependency-satisfiable Tier 2 items. Group_F11 (Feature
+11, Per-Lead Audit/History Trail UI) is now also dependency-satisfiable (`depends_on: [Group_F08,
+Group_F06]` — both completed as of this session). Group_F13 (Feature 13, Tier 3) is dependency-
+satisfiable but lower priority. Group_F14 (Feature 14) remains CLAIMABLE-but-deferred as previously
+noted (Tier 3, visibility only). None of these should be started ahead of Step 7 per the pipeline's
+own sequence, absent an explicit Suggestion to the contrary.
+
+**Also outstanding:** `.claude/refinement-backlog.md`'s RB-001 (flaky `test_router_notifications.py`
+test) — a small, contained fix, independent of Step 7/Tier 2 sequencing, that could be picked up in
+any session.
 
 Step 5 (Workspace Recovery) does not apply — this is a fresh bootstrap, not a recovery.
 

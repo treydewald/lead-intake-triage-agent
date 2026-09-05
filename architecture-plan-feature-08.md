@@ -337,6 +337,20 @@ leads router/schemas, frontend routing/nav/API client, `.claude/portfolio-refere
 
 --- filled in later, by Step 7, once implementation is verified ---
 Actual Footprint
-Files actually changed: [pending Step 6/7]
-Deviations from plan: [pending Step 6/7]
-Rework required: [pending Step 6/7]
+Files actually changed: 12 (as predicted, ~11: 1 new migration, `LeadListPage.tsx`,
+`LeadDetailPage.tsx`, `stageOrder.ts`, 1 new backend test file, 1 new frontend test; modified
+`models/pipeline_run.py`, `orchestrator/graph.py`, `schemas/pipeline.py`, `routers/leads.py`,
+`lib/api.ts`, `App.tsx`, `components/Layout.tsx`) — plus this round's `.claude/execution-log.md` and
+`.claude/validation-results.md` entries, not counted in the original prediction.
+Deviations from plan: `LeadDetailOut.failed_stage`/`.error` are derived at read time from whichever
+`StageTrace` row has `status == "FAILED"`, not stored as columns on `PipelineRun` itself — the plan's
+schema listed these fields but didn't specify their source; `PipelineRun` has no such columns, so the
+router computes them while iterating `STAGE_ORDER`. `App.tsx`'s existing `index` route (`HomePage`)
+and `Layout.tsx`'s "Review Queue" nav item were deliberately left as-is (not in `owned_files`); the
+"Observability" nav item's target was retargeted from `/` to `/leads` rather than adding a second nav
+entry, since the plan's own framing treats this as the same destination gaining a real page. All 6
+architecture-plan-feature-07.md-flagged risks addressed as specified — no new deviations there.
+Rework required: none. All acceptance criteria passed on first test run; the one pre-existing
+(unrelated) test failure — `test_router_notifications.py::test_list_notifications_returns_newest_
+first`, a Feature 07 timestamp-ordering race — was logged to `.claude/refinement-backlog.md` (RB-001)
+rather than reworked here, since it's outside this group's file ownership.

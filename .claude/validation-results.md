@@ -265,3 +265,57 @@ updated to reflect the fixed/completed behavior, not left describing the bug. Th
 8. `OutcomeNotificationStage.allowed_tools` stays empty (pure signaling, no tool creep) → `test_stage_outcome_notification.py::test_outcome_notification_stage_declares_no_tool_access` + grep check above
 9. Null-name lead still produces a usable message (name→phone→email→lead_id fallback) → `test_stage_outcome_notification.py::test_null_name_falls_back_to_phone_then_email_then_lead_id`
 10. `alembic upgrade head` creates `notification` cleanly on the existing dev DB → verified manually above
+
+---
+
+## 2026-09-04 — Feature 08 (Observability / Monitoring View)
+
+**Checks run:** `pytest app/tests/` (full backend suite) + `npm test` (frontend) + `npm run build`
+(`tsc -b && vite build`, type-checks the whole frontend) + `npm run lint` (oxlint) + `alembic
+revision --autogenerate` + `alembic upgrade head` on the dev SQLite DB (added `source_channel`/
+`confidence_score` to `pipeline_run` cleanly) + a manual dev-server smoke test: started both
+`uvicorn`/`vite dev`, submitted two real leads through `POST /leads/webform` (both genuinely failed at
+`hubspot_crm_write` against the placeholder sandbox token — real failure data, not fabricated), then
+used Playwright (installed ad hoc for this check, not added as a project dependency) to screenshot
+`/leads` (filterable/sortable table, both leads shown with `Failed` badges), `/leads/{lead_id}` (full
+6-stage timeline, `Intake Parsing`/`Intent Classification`/`Data Enrichment` shown `COMPLETED` with
+their real decision payloads, `HubSpot CRM Write` failure banner naming the stage and the actual
+`httpx` error), and `/leads/does-not-exist` (graceful "No lead found" message, not a crash).
+
+No ruff/mypy installed in this project's `.venv` (same note as prior features) — pytest is the
+available backend validation signal this run; `tsc -b` is the frontend equivalent.
+
+**Result:** PASS — backend: 111 passed (102 pre-existing + 9 new in `test_router_leads_list.py`), 0
+failed on first run after implementation, no fix cycle needed. Frontend: 3 passed (1 pre-existing + 2
+new in `LeadListPage.test.tsx`), 0 failed; `npm run build` clean; `npm run lint` clean (2 pre-existing-
+pattern `react(set-state-in-effect)` warnings on the new pages' data-fetching effects — the standard
+loading/error/data pattern, not an actual bug; exit code 0).
+
+**Known flaky test, unrelated to this feature (see execution-log.md):**
+`test_router_notifications.py::test_list_notifications_returns_newest_first` — intermittent
+timestamp-ordering race in Feature 07's own test, outside Group_F08's `owned_files`. Not counted
+against this feature's PASS result; logged to `.claude/refinement-backlog.md` (RB-001).
+
+**Acceptance criteria coverage (architecture-plan-feature-08.md / roadmap Feature 08):**
+1. A completed, auto-processed lead's detail view shows all six stages' decisions/confidence/outcomes
+   correctly → `test_router_leads_list.py::test_lead_detail_completed_run_shows_all_six_stages` +
+   `test_lead_detail_decision_matches_stage_trace_output_exactly` + manual Playwright screenshot
+2. A lead awaiting Human Review shows partial trace plus a clear "awaiting review" state →
+   `test_router_leads_list.py::test_lead_detail_awaiting_review_shows_not_yet_run_stages`
+3. A failed lead's detail view clearly identifies which stage failed →
+   `test_router_leads_list.py::test_lead_detail_failed_run_identifies_failing_stage` + manual
+   Playwright screenshot (real HubSpot-write failure)
+4. The lead-list view can be filtered by status and source channel →
+   `test_router_leads_list.py::test_list_leads_filters_by_status_and_source_channel`
+5. Trace values shown match the underlying persisted trace-store values exactly →
+   `test_router_leads_list.py::test_lead_detail_decision_matches_stage_trace_output_exactly` (the
+   backend parses `StageTrace.output_snapshot` server-side and passes it through unformatted)
+6. Unknown `lead_id` returns 404, handled gracefully by the frontend →
+   `test_router_leads_list.py::test_lead_detail_unknown_lead_id_returns_404` + manual Playwright
+   screenshot of `/leads/does-not-exist`
+7. `PipelineRun.source_channel`/`.confidence_score` are set for every terminal/paused status, not only
+   the success path → covered indirectly by every `_run()` helper call in
+   `test_router_leads_list.py`, each asserting a non-null `source_channel`/`confidence_score` in the
+   list/detail response regardless of outcome (auto-processed, awaiting-review, failed)
+8. No stage's `run()`/`allowed_tools`/tool-scoping code touched — grep-verified the diff touches no
+   file under `app/orchestrator/stages/`
