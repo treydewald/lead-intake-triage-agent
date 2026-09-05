@@ -1,7 +1,7 @@
 # Pipeline Reference — Lead Intake Triage Agent
 
-**Last Updated:** 2026-09-05 (RB-009 backlog item — COMPLETED. Refinement backlog now has zero OPEN
-entries; no Suggestion queued.)
+**Last Updated:** 2026-09-05 (Dynamic Next-Action Selection run, twenty-eighth session same day —
+concluded NO_ACTION.)
 
 How *this project* is using the Upwork Portfolio Project Pipeline. Distinct from
 `portfolio-reference.md`, which is about the product — this file is about pipeline state.
@@ -10,7 +10,43 @@ How *this project* is using the Upwork Portfolio Project Pipeline. Distinct from
 
 ## Current Step
 
-**This session (2026-09-05, twenty-seventh session same day):** No Suggestion queued and
+**This session (2026-09-05, twenty-eighth session same day):** No Suggestion was given and
+`.claude/refinement-backlog.md` has zero `OPEN`/`IN_PROGRESS` entries (RB-001 through RB-009 all
+`COMPLETED`) — per Master Prompt Step 2, ran `docs/next-action-selection.md`'s Dynamic Next-Action
+Selection rather than assuming Scope Expansion by default.
+
+**§4 state evaluation:**
+- `roadmap.md`'s Tier 3 (Multi-Agent Orchestration) is confirmed still an explicit, documented
+  deferral ("do not re-add mid-build"), not an undiscovered gap — same conclusion the twenty-fifth
+  session reached, unchanged since.
+- `refinement-audit.md` (Continual Refinement Round 1, twenty-fifth session, same day) scored 9/9/9/8/
+  8/8/7/10 across the 8 dimensions (Security 7 weakest, tied to already-tracked/investigated
+  dependency advisories in `qa-report.md`, not a new finding). Every actionable finding that round
+  produced (RB-006 through RB-009) is now `COMPLETED` — nothing of substance has shipped since Round 1
+  beyond its own backlog's fixes (test coverage, an N+1 query fix, a lint-pattern refactor), so a
+  Round 2 would have no new ground to cover.
+- Step 11/12 ran 6 full rounds today, ending at OVERALL SCORE 9/10 with Visual & UI/UX 9/10 (Gate 1
+  PASS) — axe-core 0 violations, no-scroll invariant verified at 4 viewports × 7 pages, whitespace
+  measured at 2.0-2.9% empty across every page. This already fully covers UI Audit & Refinement's own
+  trigger 4 condition ("no full-app UI Audit pass recorded recently") — it's not stale, it's hours old.
+- Feature Signaling scored 9/10 at the same Step 11 Round 6, and the two concrete cohesion gaps this
+  project ever found (RB-002's dead nav link, RB-004's stale HomePage placeholder) are both
+  `COMPLETED`. No new UI surface has shipped since Round 6 without a cohesion check — In-App Cohesion
+  Audit's own trigger 4 is likewise not stale.
+
+**Selection: `NO_ACTION`** per §5 — none of the four operations' "what it needs to be worth selecting"
+conditions are genuinely met. This is a mature, cohesive, already-audited project with no credible
+scope gap, no stale refinement round, and no UI/cohesion drift signal. Per §6 step 3, this is reported
+directly rather than asking the user to confirm running any operation, since nothing is being
+proposed.
+
+Pipeline-level friction check: none found this session — `docs/next-action-selection.md`'s NO_ACTION
+path (v1.1/Iteration 28) worked exactly as documented; this is the first time this project's Step 2 has
+reached it rather than selecting an operation.
+
+---
+
+**Prior session (2026-09-05, twenty-seventh session same day):** No Suggestion queued and
 `.claude/session-checkpoint.md` was (again) the unfilled template. Per Master Prompt Step 2 (no
 Suggestion + backlog has an OPEN entry), picked up `.claude/refinement-backlog.md`'s only remaining
 entry, RB-009 (the `oxlint` `react(set-state-in-effect)` warning across 5 pages), and routed it through
@@ -1095,13 +1131,19 @@ Tier section, STANDARD mode with Tier 2/3 features present falls back to full ti
 
 ## Next Step
 
-**This session (2026-09-05, twenty-seventh session same day):** RB-009 (the last `OPEN` backlog entry)
+**This session (2026-09-05, twenty-eighth session same day):** Ran `docs/next-action-selection.md`'s
+Dynamic Next-Action Selection — concluded `NO_ACTION` (see Current Step above for the full evidence
+survey). **Next step for a future session:** there is genuinely nothing queued — no Suggestion, no
+`OPEN` backlog entry, no credible Scope Expansion gap, no stale Continual Refinement round, no UI/
+cohesion drift. A future session should either (a) bring a new Suggestion (a real client-style feature
+request or capability idea), or (b) re-run Dynamic Next-Action Selection fresh if enough time/change
+has passed that the evidence might have shifted (new commits, dependency updates, or a stale-feeling
+audit date) — don't assume this NO_ACTION conclusion is permanent, just that it's accurate as of
+2026-09-05.
+
+**Prior session (2026-09-05, twenty-seventh session same day):** RB-009 (the last `OPEN` backlog entry)
 COMPLETED — see Current Step above for full detail. **`.claude/refinement-backlog.md` now has zero
-`OPEN` entries.** **Next step for a future session:** with no Suggestion and no `OPEN` backlog entry,
-run `docs/next-action-selection.md`'s Dynamic Next-Action Selection (Scope Expansion, Continual Project
-Refinement Round 2, UI Audit & Refinement, or In-App Cohesion Audit) — this project has already run one
-Continual Refinement round (twenty-fifth session) and 6 rounds of Step 11/12 Visual & UI/UX work, so the
-evidence should be re-surveyed rather than assumed to point anywhere specific.
+`OPEN` entries.** Routed to this session's Dynamic Next-Action Selection.
 
 **Prior session (2026-09-05, twenty-sixth session same day):** RB-008 (Test Coverage gap) COMPLETED —
 see the twenty-sixth-session "Current Step" entry above for full detail. Routed to this session picking
