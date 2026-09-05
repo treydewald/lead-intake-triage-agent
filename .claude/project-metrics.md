@@ -86,3 +86,17 @@ metrics_rubric_v1`.
 - **professional_readiness:** 8/10, confidence: HIGH — unchanged from Round 2/3. States, data realism,
   and accessibility remain strong; the mobile table-reflow gap (P2-02, still open) is the same
   already-known reason this isn't yet a 9.
+
+## PROJECT_COMPLETED — 2026-09-05 (Round 5)
+
+Source: `portfolio-evaluation.md` (Step 11, Portfolio Evaluator, re-run after Step 12's Round 4 batch
+closed P1-01/P1-02/P2-02), copied verbatim — not a re-score. `evaluation_version: metrics_rubric_v1`.
+
+- **portfolio_value:** 7/10, confidence: HIGH — OVERALL SCORE from this run, unchanged from Round 3/4.
+  The chart-label defect is genuinely closed and Feature Signaling advanced to 9/10, but a new pixel-
+  measurement method (rather than visual estimation) found the empty-space/composition gap is pervasive
+  across all 7 primary desktop pages, not the 3 previously scoped — Visual & UI/UX holds at 8/10, still
+  below the 9.0 gate.
+- **professional_readiness:** 8/10, confidence: HIGH — unchanged from Round 2-4. States, data realism,
+  and accessibility remain strong; mobile reflow is now genuinely adapted on 5 of 7 pages with 2
+  documented density-driven exceptions.

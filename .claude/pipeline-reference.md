@@ -1,8 +1,8 @@
 # Pipeline Reference — Lead Intake Triage Agent
 
-**Last Updated:** 2026-09-05 (Step 12, Batch Backlog Processor — Round 4. P1-01 and P1-02 Completed;
-P2-02 Completed for 4 of 6 affected pages, documented exception for the other 2. Routes to Step 11,
-Round 5. See Current Step)
+**Last Updated:** 2026-09-05 (Step 11, Portfolio Evaluator — Round 5. OVERALL SCORE 7/10, unchanged
+from Round 3/4 — Visual & UI/UX 8, Feature Signaling 9 (up from 8), Professional Readiness 8, Client
+Impact 7. Routes to Step 12, Round 5. See Current Step)
 
 How *this project* is using the Upwork Portfolio Project Pipeline. Distinct from
 `portfolio-reference.md`, which is about the product — this file is about pipeline state.
@@ -11,7 +11,50 @@ How *this project* is using the Upwork Portfolio Project Pipeline. Distinct from
 
 ## Current Step
 
-**This session (2026-09-05, eighteenth session same day):** Ran Step 12 (Batch Backlog Processor),
+**This session (2026-09-05, nineteenth session same day):** Ran Step 11 (Portfolio Evaluator), Round 5
+— re-evaluated against the 9 screenshots Round 4's Step 12 batch re-captured (2026-09-05 18:11,
+confirmed fresh via file timestamp), reviewed directly via the Read tool. **OVERALL SCORE: 7/10**
+(unchanged from Round 3/4) — Visual & UI/UX 8, Feature Signaling 9 (up from 8), Professional Readiness
+8, Client Impact 7.
+
+**What this round found that prior rounds' visual re-inspection missed:** Round 4's two P1 items are
+genuinely closed — the trend chart's axis labels are confirmed legible (crop-and-enlarge re-check), and
+Home/Review Queue/Lead History all gained real secondary content. But rather than relying on another
+visual glance to judge the composition/empty-space finding, this round ran a reproducible pixel-scan
+measurement (Python/Pillow: scan each 1920x1080 screenshot's rows from the bottom up for the first row
+whose colors differ from the page background, skipping the bottom-right "Updated" timestamp region) to
+quantify exactly how much of each page is empty below its actual content. Result: **every one of the 7
+primary desktop pages** has 30-57% empty space below content — Review Queue 57%, Lead History 53%,
+Review Detail 51%, Home 44%, Lead Detail 43%, Lead List 32%, Benchmark 32%. This is materially broader
+than the Round 3/4 framing, which scoped the problem to Home/Review Queue/Lead History alone and
+explicitly credited Review Detail and Lead Detail as "genuinely closed." The Round 4 P1-02 fix (adding
+one compact panel per touched page) is real and measurably reduced the empty fraction on those 3 pages,
+but didn't close the underlying gap — a small panel added to a 1080px-tall viewport only moves the
+percentage a little. Full detail, strengths/weaknesses, and the new 1 P1 / 1 P2 / 3 P3 backlog:
+`portfolio-evaluation.md` (project root, fully rewritten this round). `.claude/project-metrics.md`'s
+`PROJECT_COMPLETED` (Round 5) entry appended (portfolio_value 7/10, professional_readiness 8/10, both
+HIGH confidence). `.claude/intervention-log.md` gained this round's own entry, plus a backfilled Round 4
+entry that a prior session should have written but didn't (see that file's Round 4 entry for the note).
+
+**Routing per `prompts/11_portfolio-evaluator.md`'s Next Steps: Score < 9.0, and Visual & UI/UX < 9.0
+→ Step 12 (Batch Backlog Processor), Round 5, then loop back to Step 11 to re-evaluate.** New P1
+backlog: P1-01 close the page-height/whitespace utilization gap now measured across all 7 desktop
+pages (4-5 hrs — apply one consistent strategy project-wide rather than another per-page compact
+panel, then re-measure with the same pixel-scan method to confirm closure, not just improvement). P2:
+mobile density exceptions on Lead Detail/Benchmark (1-2 hrs, not urgent). P3 carried forward unchanged
+(onboarding cue, dark mode, saved-view indicator). Dev servers were not running this session and were
+not needed — Step 11 evaluates already-captured, already-verified screenshots, not live application
+state.
+
+Pipeline-level friction check: found a real, generalizable methodology gap — composition/empty-space
+claims in this pipeline have been visually estimated (~30%, ~45%, "large void") across every round so
+far rather than measured, and that estimation approach both under- and over-scoped the actual defect in
+different rounds. Logged to the pipeline repo's `meta/PIPELINE_INSIGHTS_LOG.md` (a new, distinct entry
+from the existing chart-legibility one) and pushed.
+
+---
+
+**Prior session (2026-09-05, eighteenth session same day):** Ran Step 12 (Batch Backlog Processor),
 Round 4 — processed Round 4's P1-01, P1-02, and the carried-forward P2-02 from `portfolio-evaluation.md`
 (3 items, within the step's 3-5 item range).
 

@@ -156,3 +156,45 @@ edit to that same entry once the round they belong to is scored, not a new entry
   weakness is fixed last, not just leave it unchanged — worth anticipating in future rounds' batch
   ordering rather than treating each P1 item as independent.
 - Agent: claude/claude_code
+
+### 2026-09-05 — portfolio_evaluation (Round 4)
+- Trigger: Step 12 (Batch Backlog Processor) completed all 4 Round 3 P1 items (Benchmark trend
+  visualization, Review Detail composition fix, motion layer, signature visual) and re-captured
+  screenshots; Step 11 re-ran unconditionally per `prompts/12_batch-backlog-processor.md`'s own Next
+  Steps section to re-score against the current state.
+- Expected effect: an anchored 0-10 re-score per `QUALITY_RUBRIC.md`'s four dimensions, gating routing
+  to either Step 13 (≥9.0, Visual & UI/UX ≥9.0) or another Step 12 batch.
+- Outcome: OVERALL SCORE 7/10 (Visual & UI/UX 8, Feature Signaling 8, Professional Readiness 8, Client
+  Impact 7) — unchanged from Round 3. New backlog: 2 P1 (chart axis-label legibility, composition/
+  empty-space gap on Home/Review Queue/Lead History), 1 P2 (mobile scroll regression, carried forward
+  with a new confirmed instance), 3 P3 (carried forward unchanged). `.claude/project-metrics.md`'s
+  `PROJECT_COMPLETED` entry appended with matching numbers. (Entry backfilled 2026-09-05 during Round 5 —
+  this round's own session did not append it at the time, a gap this file's own "written immediately
+  after it runs" convention should have caught; see `.claude/pipeline-reference.md`'s Round 4 write-up
+  for the source data used to reconstruct it.)
+- Surprise: direct pixel-level inspection (cropping/enlarging the new trend chart's axis-label region)
+  found a genuine legibility defect that a full-page visual re-inspection had missed in Round 3's own
+  verification — and confirmed the "large empty void" issue Round 2/3 scoped to Lead Detail alone is
+  also visible on Home, Review Queue, and Lead History at 1920x1080, wider than previously credited.
+- Agent: claude/claude_code
+
+### 2026-09-05 — portfolio_evaluation (Round 5)
+- Trigger: Step 12 (Batch Backlog Processor) completed Round 4's P1-01 (chart labels), P1-02
+  (composition panels), and P2-02 (mobile reflow, 4 of 6 pages) and re-captured screenshots; Step 11
+  re-ran unconditionally per `prompts/12_batch-backlog-processor.md`'s own Next Steps section.
+- Expected effect: an anchored 0-10 re-score per `QUALITY_RUBRIC.md`'s four dimensions, gating routing
+  to either Step 13 (≥9.0, Visual & UI/UX ≥9.0) or another Step 12 batch.
+- Outcome: OVERALL SCORE 7/10 (Visual & UI/UX 8, Feature Signaling 9, Professional Readiness 8, Client
+  Impact 7) — unchanged from Round 3/4 despite Feature Signaling's gain. New backlog: 1 P1 (page-height/
+  whitespace gap, now measured across all 7 pages rather than 3), 1 P2 (2 mobile density exceptions),
+  3 P3 (carried forward unchanged). `.claude/project-metrics.md`'s `PROJECT_COMPLETED` entry appended
+  with matching numbers.
+- Surprise: this round used a reproducible pixel-scan measurement (Python/Pillow, background-color
+  boundary detection) instead of a visual estimate to quantify each screenshot's empty space, and the
+  result contradicted the prior rounds' framing — the composition gap turned out to be present on every
+  one of the 7 primary desktop pages (30-57% empty below content at 1920x1080), including Review Detail
+  and Lead Detail, both explicitly credited as "genuinely closed" in Round 3/4. The prior batch's fix
+  (adding one compact secondary panel per page) measurably reduced the empty fraction on the 3 pages it
+  touched but did not close the underlying gap. Logged as a pipeline-level insight (composition/
+  whitespace claims should be pixel-measured, not eyeballed) to `meta/PIPELINE_INSIGHTS_LOG.md`.
+- Agent: claude/claude_code
