@@ -100,3 +100,51 @@ export async function getBenchmarkRun(runId: string): Promise<BenchmarkRun> {
   const response = await api.get<BenchmarkRun>(`/benchmark/runs/${runId}`)
   return response.data
 }
+
+export interface ReviewQueueItem {
+  id: string
+  run_id: string
+  lead_id: string
+  draft_intent_label: string | null
+  confidence_score: number | null
+  created_at: string
+}
+
+export type ReviewAction = 'approve' | 'reject' | 'edit'
+
+export interface ReviewActionRequest {
+  action: ReviewAction
+  corrected_intent_label?: string | null
+}
+
+export interface StageTraceSummary {
+  id: string
+  stage_name: string
+  status: string
+  error: string | null
+  created_at: string
+}
+
+export interface ReviewActionResult {
+  id: string
+  lead_id: string
+  status: string
+  created_at: string
+  updated_at: string
+  stage_traces: StageTraceSummary[]
+}
+
+export async function listReviews(): Promise<ReviewQueueItem[]> {
+  const response = await api.get<ReviewQueueItem[]>('/reviews')
+  return response.data
+}
+
+export async function getReview(runId: string): Promise<ReviewQueueItem> {
+  const response = await api.get<ReviewQueueItem>(`/reviews/${runId}`)
+  return response.data
+}
+
+export async function actionReview(runId: string, payload: ReviewActionRequest): Promise<ReviewActionResult> {
+  const response = await api.post<ReviewActionResult>(`/reviews/${runId}/action`, payload)
+  return response.data
+}

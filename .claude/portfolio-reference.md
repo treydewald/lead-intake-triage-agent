@@ -1,10 +1,10 @@
 # Portfolio Reference — Lead Intake Triage Agent
 
-**Last Updated:** 2026-09-04 (Architecture Map updated with Feature 09's Step 6 implementation, see
-`architecture-plan-feature-09.md`. Note: this table was never backfilled for Features 02-08's own
+**Last Updated:** 2026-09-05 (Architecture Map updated with Feature 15's Continued Development round,
+see `architecture-plan-feature-15.md`. Note: this table was never backfilled for Features 02-08's own
 files despite each landing via its own Step 6 group — logged as `.claude/refinement-backlog.md`'s
-RB-003 rather than fixed here, since backfilling 7 features' worth of rows is out of Group_F09's
-scope.)
+RB-003 rather than fixed here, since backfilling 7 features' worth of rows is out of scope for any one
+feature's own round.)
 
 Read this before opening source files. Only open the actual code when this doc doesn't answer the
 question.
@@ -71,6 +71,8 @@ portfolio gate (Mode: STANDARD).
 | `backend/app/schemas/benchmark.py` | Feature 09's `BenchmarkRunSummaryOut` (list, no case detail)/`BenchmarkRunOut` (detail, full `cases`)/`BenchmarkCaseOut` |
 | `backend/app/routers/benchmark.py` | Feature 09: `POST /benchmark/run` (synchronous), `GET /benchmark/runs`, `GET /benchmark/runs/{run_id}` |
 | `frontend/src/pages/BenchmarkPage.tsx` | Feature 09: "Run Benchmark" trigger, accuracy/consistency/model stat tiles, ambiguous-or-misclassified case table |
+| `frontend/src/pages/ReviewQueuePage.tsx` | Feature 15 (CD round, addendum): PENDING review-queue list, reading `GET /reviews` |
+| `frontend/src/pages/ReviewDetailPage.tsx` | Feature 15: per-item detail + approve/reject/edit action form against `GET /reviews/{run_id}`/`POST /reviews/{run_id}/action`; surfaces the backend's 409 "already actioned" response as a distinct message, not a generic error |
 
 *(Fill in further as each remaining feature's own Step 6 group lands — don't pre-guess a structure
 that doesn't exist yet.)*

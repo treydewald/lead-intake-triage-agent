@@ -52,7 +52,7 @@ renumber.]
   unchanged.
 
 ### RB-002 — Dead "Review Queue" nav item renders a blank page
-- **Status:** OPEN
+- **Status:** COMPLETED
 - **Dimension:** In-App Cohesion (`docs/in-app-cohesion.md`) / Feature Signaling
 - **Priority:** P3
 - **Discovered:** Step 7 (Implementation Verification), 2026-09-04, during the mandatory "can navigate
@@ -81,7 +81,18 @@ renumber.]
   already-working backend routes (this is the more valuable fix — the backend has supported this
   entire workflow since Feature 06). Surface at the next idle-session Dynamic Next-Action Selection
   (`docs/next-action-selection.md`) or the next In-App Cohesion Audit, whichever comes first.
-- **Implementation notes:** _(pending)_
+- **Implementation notes:** Resolved 2026-09-05 via Continued Development (CD-1 through CD-4),
+  option (b) from this entry's own "Routes to" — built the real frontend against the already-working
+  backend rather than removing the nav link. Asked the user directly which option to take; "build the
+  page" was chosen. Added as a new addendum feature, Feature 15 (Review Queue Frontend UI):
+  `roadmap-addendum-2026-09-04.md` (CD-1), `implementation_plan.md`'s Feature 15 entry (CD-2),
+  `architecture-plan-feature-15.md` (CD-2.5/CD-4 — see its Actual Footprint for full verification
+  detail). Two new pages (`ReviewQueuePage.tsx`, `ReviewDetailPage.tsx`), three modified files
+  (`api.ts`, `App.tsx`, `Layout.tsx` — nav `to` repointed from `/review` to `/reviews`), zero backend
+  changes. Verified live against the real backend (all three reviewer actions, the 409
+  already-actioned case, and the 404 not-found case) — not just component tests. As a side effect,
+  this also makes Feature 07's existing `/reviews/{run_id}` notification `detail_link`s resolve to a
+  real page for the first time.
 
 ### RB-003 — `.claude/portfolio-reference.md`'s Architecture Map was never backfilled for Features 02-08
 - **Status:** OPEN

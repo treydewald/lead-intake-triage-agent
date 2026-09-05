@@ -3,7 +3,7 @@ import { BuildIndicator } from './BuildIndicator'
 
 const navItems = [
   { to: '/leads', label: 'Observability' },
-  { to: '/review', label: 'Review Queue' },
+  { to: '/reviews', label: 'Review Queue' },
   { to: '/benchmark', label: 'Benchmark' },
 ]
 

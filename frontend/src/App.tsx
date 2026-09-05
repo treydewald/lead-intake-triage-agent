@@ -4,6 +4,8 @@ import { BenchmarkPage } from './pages/BenchmarkPage'
 import { HomePage } from './pages/HomePage'
 import { LeadDetailPage } from './pages/LeadDetailPage'
 import { LeadListPage } from './pages/LeadListPage'
+import { ReviewDetailPage } from './pages/ReviewDetailPage'
+import { ReviewQueuePage } from './pages/ReviewQueuePage'
 
 function App() {
   return (
@@ -13,6 +15,8 @@ function App() {
           <Route index element={<HomePage />} />
           <Route path="leads" element={<LeadListPage />} />
           <Route path="leads/:leadId" element={<LeadDetailPage />} />
+          <Route path="reviews" element={<ReviewQueuePage />} />
+          <Route path="reviews/:runId" element={<ReviewDetailPage />} />
           <Route path="benchmark" element={<BenchmarkPage />} />
         </Route>
       </Routes>

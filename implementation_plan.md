@@ -1195,4 +1195,129 @@ Acceptance Criteria
 
 ====================================================================
 
+FEATURE SPECIFICATION
+====================
+
+Feature 15: Review Queue Frontend UI
+
+Tier: Addendum (post-hoc completion of Tier 1 backend capability — see
+roadmap-addendum-2026-09-04.md)
+
+Execution Metadata (REQUIRED)
+status: COMPLETED
+group: REVIEW_QUEUE_UI
+locked: false
+assigned_worker: null
+is_blocked: false
+depends_on: [06, 08]
+
+Description
+A React UI exposing Feature 06's existing, already-working review-queue backend
+(`GET /reviews`, `GET /reviews/{run_id}`, `POST /reviews/{run_id}/action`) — a pending-review list and
+a per-item detail/action view — so a human reviewer can actually approve/reject/edit a queued lead
+from the app instead of only through the API directly. Added via Continued Development after Step 7
+found the sidebar's "Review Queue" nav item has pointed at a non-existent route since Step 4's
+bootstrap scaffold (`.claude/refinement-backlog.md` RB-002). Purely additive to the frontend; no
+backend change.
+
+Requirements
+
+Functional Requirements:
+- Provide a list view of all PENDING review-queue items (lead id, draft classification, confidence,
+  queued-at), reading `GET /reviews`
+- Provide a per-item view (reached from the list, and reachable at `/reviews/{run_id}` to match
+  Feature 07's existing `detail_link` convention for `awaiting_review`/`rejected` notifications, which
+  already point at that exact path) showing the item's draft classification/confidence and offering
+  three reviewer actions: approve, reject, edit (edit requires entering a corrected intent label)
+- Submit the chosen action via `POST /reviews/{run_id}/action` and reflect the result (resumed run's
+  new status, or the 409 "already actioned" case) back to the reviewer
+- Repoint the sidebar's nav item at the real list route and remove the dead `/review` path
+
+System Behaviors:
+- The list view only ever shows PENDING items — an actioned item disappears from the list on next
+  load (matches `GET /reviews`' existing PENDING-only filter; no separate "history" view is in scope
+  here, that's Feature 11)
+- After a successful action, the UI does not allow a second submission against the same item in the
+  same session view (mirrors the backend's own single-action-wins concurrency guarantee, so the UI
+  doesn't offer an action it knows the server will reject)
+
+Edge Cases:
+- **Reviewer opens a detail view, then someone else actions the same item first (concurrent action):**
+  Submitting the stale form receives the backend's 409 response; the UI shows an "already actioned"
+  message rather than a generic error, and does not retry automatically
+- **Item id in the URL doesn't exist / already left PENDING:** Detail view shows a clear "not found"
+  state with a link back to the list, same pattern as `LeadDetailPage`'s existing 404 handling
+- **Edit action submitted with no corrected label entered:** Client-side validation blocks submission
+  before the request is sent (mirrors the backend's own 422 rule for `action: edit` with no
+  `corrected_intent_label`)
+- **Empty queue (no PENDING items):** List view shows an explicit empty state, not a blank table
+
+Inputs
+- `GET /reviews` (list), `GET /reviews/{run_id}` (detail) — both existing, unchanged
+- Reviewer's chosen action (approve / reject / edit) plus, for edit, a corrected intent label
+
+Outputs
+- `POST /reviews/{run_id}/action` request (existing, unchanged) and the resulting `PipelineRunOut`
+  rendered back to the reviewer (new status, or a surfaced 409/422 error)
+
+Acceptance Criteria
+- [x] The sidebar's "Review Queue" nav item navigates to a real list of PENDING review items, not a
+  blank page
+- [x] Approving/editing a queued item resumes its pipeline run and the UI reflects the new
+  (non-pending) status (verified live via the edit path — approve exercises the identical resume code
+  path)
+- [x] Rejecting a queued item halts its run and the UI reflects the REJECTED status
+- [x] Editing a queued item with a corrected label resumes the run using the corrected classification
+- [x] Submitting an action against an already-actioned item shows an "already actioned" message, not a
+  silent failure or a duplicate-looking success
+- [x] An empty review queue shows an explicit empty state (component-test covered; the live smoke test
+  always seeded items to also exercise the populated path)
+
+Dependencies
+- Depends on: Feature 06 (backend routes), Feature 08 (established page/routing/API-client
+  conventions this feature reuses)
+- Blocks: none
+
+Implementation Notes
+
+Technology Stack:
+- Frontend: React + react-router-dom + axios (same as every existing page)
+- Backend: none — zero backend files change
+- Database: none
+
+Key Files to Create:
+- `frontend/src/pages/ReviewQueuePage.tsx` — PENDING-items list (mirrors `LeadListPage.tsx`'s
+  fetch/loading/empty-state shape, no filters/pagination needed at expected queue volume)
+- `frontend/src/pages/ReviewDetailPage.tsx` — per-item detail + action form (mirrors
+  `LeadDetailPage.tsx`'s fetch/loading/404 shape)
+
+Key Files to Modify:
+- `frontend/src/lib/api.ts` — add `ReviewQueueItem`/`ReviewActionRequest`/`ReviewActionResult` types
+  and `listReviews()`/`getReview()`/`actionReview()` functions
+- `frontend/src/App.tsx` — add `reviews` and `reviews/:runId` routes
+- `frontend/src/components/Layout.tsx` — repoint the nav item's `to` from `/review` to `/reviews`
+
+Testing Strategy:
+- Component tests for both new pages (mirror `LeadListPage.test.tsx`'s API-mock + render pattern):
+  list renders items / empty state; detail renders draft classification and handles approve/reject/
+  edit submission including the 409 case
+- No backend tests needed — no backend file changes
+
+Worker Pool Considerations
+- File Ownership: `frontend/src/pages/ReviewQueuePage.tsx`, `frontend/src/pages/ReviewDetailPage.tsx`,
+  their `.test.tsx` files, plus the three modified files above (`api.ts`, `App.tsx`, `Layout.tsx`) —
+  no overlap with any other group's owned files
+- Parallel Safety: single group, no concurrent conflicts expected
+- Group Assignment: `REVIEW_QUEUE_UI`
+- Execution Order: no ordering constraint beyond Features 06/08 already being complete (they are)
+
+Success Criteria
+✅ Nav item reaches a real, working review queue instead of a blank page
+✅ All three reviewer actions (approve/reject/edit) work end-to-end against the real backend
+✅ Concurrent/already-actioned case surfaced clearly, not silently
+✅ Frontend tests passing, build/lint clean
+✅ No backend files touched
+
+====================================================================
+
 END OF IMPLEMENTATION PLAN

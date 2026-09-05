@@ -54,3 +54,28 @@ edit to that same entry once the round they belong to is scored, not a new entry
   — flagged as a future Scope Expansion/CD candidate instead, and the plan deliberately withholds a
   `/reviews/{run_id}` link from the lead detail view until that destination actually exists.
 - Agent: claude/claude_code
+
+### 2026-09-05 — continued_development / implementation_planning_standard
+- Trigger: RB-002 (`.claude/refinement-backlog.md`) — Step 7 found the sidebar's "Review Queue" nav
+  item pointed at a non-existent route, a defect this same gap was already flagged for back in Feature
+  08's own Implementation Planning round (2026-09-04, entry above). No Suggestion queued this session;
+  asked the user directly which of RB-002's two named resolution options to take (remove the dead link,
+  or build the real page) — user chose to build it. Ran the full Continued Development loop (CD-1
+  through CD-4): `roadmap-addendum-2026-09-04.md` (CD-1), Feature 15 spec in `implementation_plan.md`
+  (CD-2), `architecture-plan-feature-15.md` (CD-2.5, Standard-tier — new frontend surface, zero backend
+  changes, every pattern already established by Features 08/09), Step 6-equivalent implementation
+  (CD-3), Step 7-equivalent verification (CD-4).
+- Expected effect (Predicted Footprint, `architecture-plan-feature-15.md`): 7 files — 2 new pages + 2
+  new test files + 3 modified files (`api.ts`, `App.tsx`, `Layout.tsx`); zero backend files.
+- Outcome (Actual Footprint, same file): exactly 7 files changed, architecturally identical to the
+  plan. One test-infrastructure fix not anticipated by the plan: cross-test `vi.spyOn` mock leakage in
+  `ReviewDetailPage.test.tsx` required an `afterEach(() => vi.restoreAllMocks())` the project's other
+  test files hadn't needed yet. 118/118 backend tests (unchanged) + 11/11 frontend tests passed;
+  build/lint clean. Live-verified against the real backend (not just mocked tests): approve/reject/edit
+  actions, the 409 already-actioned case, and the 404 not-found case, using a temporary
+  `CONFIDENCE_THRESHOLD=0.95` env-var override (not `.env`) to reliably route real leads into the queue
+  for testing, since the real local model proved consistently overconfident on ambiguous messages.
+- Surprise: none architecturally — this round is itself the resolution of a surprise an earlier round
+  (Feature 08's Implementation Planning) had already correctly predicted and flagged, closing that loop
+  rather than opening a new one.
+- Agent: claude/claude_code

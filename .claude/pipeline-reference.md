@@ -1,6 +1,7 @@
 # Pipeline Reference — Lead Intake Triage Agent
 
-**Last Updated:** 2026-09-04 (Step 6 — Worker Pool Orchestrator, Group_F09, complete)
+**Last Updated:** 2026-09-05 (Continued Development round — Feature 15, Review Queue Frontend UI,
+CD-1 through CD-4 complete)
 
 How *this project* is using the Upwork Portfolio Project Pipeline. Distinct from
 `portfolio-reference.md`, which is about the product — this file is about pipeline state.
@@ -12,7 +13,23 @@ How *this project* is using the Upwork Portfolio Project Pipeline. Distinct from
 **Project Mode:** STANDARD (Intent: PORTFOLIO, Lifetime: MEDIUM, Scale: MEDIUM, Optimization
 Objective: PORTFOLIO_SIGNAL — see `docs/project-strategy.md`). Steps 10-16 are MANDATORY this cycle.
 
-**Step:** Step 6 (Worker Pool Orchestrator) COMPLETED this session for Group_F09 (Feature 09,
+**Step:** Continued Development — Round 1, CD-1 through CD-4 COMPLETED this session (Feature 15,
+Review Queue Frontend UI — see `docs/continued-development.md`). Resolves `.claude/refinement-
+backlog.md`'s RB-002 (dead "Review Queue" nav link) by building the real frontend against Feature 06's
+already-working backend, per the user's explicit choice between RB-002's two named options.
+`roadmap-addendum-2026-09-04.md` (CD-1), `implementation_plan.md`'s new Feature 15 entry (CD-2),
+`architecture-plan-feature-15.md` (CD-2.5/CD-4). Two new frontend pages
+(`ReviewQueuePage.tsx`/`ReviewDetailPage.tsx`), three modified files (`lib/api.ts`, `App.tsx`,
+`Layout.tsx`), zero backend changes. 11/11 frontend tests passing (4 new), 118/118 backend tests
+unchanged, build/lint clean. Live-verified against the real backend (approve/reject/edit, the 409
+already-actioned case, the 404 not-found case) via a temporary `CONFIDENCE_THRESHOLD=0.95` override
+(not `.env`) since the real local model proved consistently overconfident on ambiguous test messages.
+Confirmed as a side effect that Feature 07's existing `/reviews/{run_id}` notification `detail_link`s
+now resolve to a real page for the first time. Full detail: `architecture-plan-feature-15.md`'s Actual
+Footprint; `.claude/intervention-log.md`'s 2026-09-05 entry; `.claude/refinement-backlog.md`'s RB-002
+(now COMPLETED).
+
+Prior to this: Step 6 (Worker Pool Orchestrator) COMPLETED for Group_F09 (Feature 09,
 Classification Accuracy Benchmark Report, Tier 2) — built against `architecture-plan-feature-09.md`'s
 10-step Implementation Order. Added `backend/app/benchmark/` (dataset.py + harness.py),
 `models/benchmark.py` (`BenchmarkRun`/`BenchmarkCase`, migration `b86e4d4ef367`),
@@ -70,11 +87,12 @@ renders nothing (see `architecture-plan-feature-08.md`'s Risks). Step 7 (Impleme
 has not yet run against any completed feature, including this one.
 
 **Completed steps:** 1 (Project Advisor), 2 (Roadmap Architect), 3 (Feature Specification Engine), 4
-(Environment Bootstrap), 5.5 (Implementation Planner — Feature 01 through Feature 09; re-entered per
-feature group, see `docs/implementation-planning.md` §16), 6 (Worker Pool Orchestrator — Group_F01
-through Group_F09 all COMPLETED — all 8 Tier 1 features plus Feature 09 [Tier 2] implemented
-end-to-end), 7 (Implementation Verification — Gate 2 — PASSED, against Tier 1 only; Feature 09 not yet
-covered by a Gate 2 pass).
+(Environment Bootstrap), 5.5 (Implementation Planner — Feature 01 through Feature 09, plus Feature 15's
+CD-2.5; re-entered per feature group, see `docs/implementation-planning.md` §16), 6 (Worker Pool
+Orchestrator — Group_F01 through Group_F09 all COMPLETED — all 8 Tier 1 features plus Feature 09
+[Tier 2] implemented end-to-end), 7 (Implementation Verification — Gate 2 — PASSED, against Tier 1
+only; Feature 09 not yet covered by a Gate 2 pass), Continued Development Round 1 (CD-1 through CD-4 —
+Feature 15, Review Queue Frontend UI, COMPLETED and verified).
 
 **Gates passed:** Gate 2 (Step 7, implementation verification) — PASSED, 2026-09-04. Gate 1 (Step 13,
 portfolio score ≥9.0/10, per `docs/premium-ui-standard.md`) is still ahead.
@@ -90,24 +108,24 @@ Tier section, STANDARD mode with Tier 2/3 features present falls back to full ti
 
 ## Next Step
 
-**Group_F09 is COMPLETED.** Two paths forward, neither yet decided:
+**Feature 15 (Continued Development Round 1) is COMPLETED.** Same two Tier 2 paths forward as before
+remain undecided:
 - **Step 5.5 for Group_F10** (Feature 10, External Notification Delivery, `depends_on: [Group_F07]`,
   now COMPLETED) or **Group_F11** (Feature 11, Per-Lead Audit/History Trail UI,
   `depends_on: [Group_F08, Group_F06]`, both now COMPLETED) — both dependency-satisfiable, neither has
   an `architecture-plan-*.md` yet. Group_F13 (Feature 13, Tier 3) is also dependency-satisfiable but
   lower priority; Group_F14 (Feature 14) remains CLAIMABLE-but-deferred (Tier 3, visibility only).
-- **A Gate 2 (Step 7) re-pass covering Feature 09** specifically — the last Gate 2 run (this session's
-  "Prior to this" entry above) only verified Tier 1; Feature 09 (Tier 2) has its own full validation
-  loop already recorded in `.claude/execution-log.md`/`validation-results.md` but has not been through
-  a dedicated Implementation Verification gate the way the 8 Tier 1 features were as a batch.
+- **A Gate 2 (Step 7) re-pass covering Feature 09** specifically — the last full Gate 2 run only
+  verified Tier 1; Feature 09 (Tier 2) has its own full validation loop already recorded in
+  `.claude/execution-log.md`/`validation-results.md` but has not been through a dedicated
+  Implementation Verification gate the way the 8 Tier 1 features were as a batch. Feature 15 has its
+  own CD-4 verification recorded in `architecture-plan-feature-15.md` and does not need a separate
+  Gate 2 pass.
 
-**Also available:** `.claude/refinement-backlog.md`'s RB-002 (dead "Review Queue" nav item, OPEN,
-P3) — this session's Step 7 finding. Per its own "Routes to" note, it's a product decision (remove the
-dead link vs. build the Review Queue frontend via Scope Expansion/Suggestion) rather than a mechanical
-fix, so it wasn't auto-routed anywhere this session. Surface it the next time a Suggestion is being
-picked, or at the next Dynamic Next-Action Selection / In-App Cohesion Audit.
-
-RB-001 remains COMPLETED (resolved last session) — no longer outstanding.
+RB-001 and RB-002 are both COMPLETED — no longer outstanding. **`.claude/refinement-backlog.md`'s
+RB-003 remains OPEN** (P3, documentation-only: backfill the Architecture Map for Features 02-08's own
+files) — a scoped documentation pass, pick up as a Suggestion or fold into a future Continual
+Refinement round's Documentation dimension.
 
 Step 5 (Workspace Recovery) does not apply — this is a fresh bootstrap, not a recovery.
 
