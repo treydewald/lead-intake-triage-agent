@@ -181,8 +181,8 @@ GROUPS:
     # architecture-plan-feature-08.md (Step 5.5) sets Implementation Order — see that file
 
   Group_F09:
-    status: UNCLAIMED
-    owner: null
+    status: IN_PROGRESS
+    owner: Worker-1
     features: [Feature 09]
     owned_files: [backend/app/benchmark/dataset.py (new),
       backend/app/benchmark/harness.py (new),
