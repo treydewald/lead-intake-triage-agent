@@ -54,13 +54,13 @@ export function BenchmarkPage() {
 
   return (
     <div className="flex flex-col gap-4">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <h1 className="text-xl font-semibold">Classification Accuracy Benchmark</h1>
         <button
           type="button"
           onClick={handleRunBenchmark}
           disabled={running}
-          className="rounded-md bg-teal-700 px-4 py-2 text-sm font-medium text-white disabled:opacity-50"
+          className="w-fit rounded-md bg-teal-700 px-4 py-2 text-sm font-medium text-white disabled:opacity-50"
         >
           {running ? 'Running…' : 'Run Benchmark'}
         </button>
@@ -74,18 +74,18 @@ export function BenchmarkPage() {
 
       {latestRun && (
         <>
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-            <div className="rounded-lg border border-slate-200 bg-white p-4">
-              <div className="text-xs uppercase tracking-wide text-slate-500">Accuracy</div>
-              <div className="mt-1 text-2xl font-semibold text-slate-900">{formatPercent(latestRun.accuracy)}</div>
+          <div className="grid grid-cols-3 gap-2 sm:gap-4">
+            <div className="rounded-lg border border-slate-200 bg-white p-2.5 sm:p-4">
+              <div className="text-[10px] uppercase tracking-wide text-slate-500 sm:text-xs">Accuracy</div>
+              <div className="mt-1 text-lg font-semibold text-slate-900 sm:text-2xl">{formatPercent(latestRun.accuracy)}</div>
             </div>
-            <div className="rounded-lg border border-slate-200 bg-white p-4">
-              <div className="text-xs uppercase tracking-wide text-slate-500">Consistency</div>
-              <div className="mt-1 text-2xl font-semibold text-slate-900">{formatPercent(latestRun.consistency)}</div>
+            <div className="rounded-lg border border-slate-200 bg-white p-2.5 sm:p-4">
+              <div className="text-[10px] uppercase tracking-wide text-slate-500 sm:text-xs">Consistency</div>
+              <div className="mt-1 text-lg font-semibold text-slate-900 sm:text-2xl">{formatPercent(latestRun.consistency)}</div>
             </div>
-            <div className="rounded-lg border border-slate-200 bg-white p-4">
-              <div className="text-xs uppercase tracking-wide text-slate-500">Model / Cases</div>
-              <div className="mt-1 text-sm text-slate-700">
+            <div className="rounded-lg border border-slate-200 bg-white p-2.5 sm:p-4">
+              <div className="text-[10px] uppercase tracking-wide text-slate-500 sm:text-xs">Model / Cases</div>
+              <div className="mt-1 text-xs text-slate-700 sm:text-sm">
                 {latestRun.model_used} · {latestRun.total_cases} cases · {latestRun.repeats} repeats
               </div>
             </div>
