@@ -33,8 +33,22 @@ problem to solve yet).
 
 **Per §4's tie-break rule (added v15.0):** S-01 and S-02 share the top priority tier (P1) — asked the
 user directly which to pursue as this round's candidate into CD-1, rather than defaulting to list order.
-Awaiting that answer before proceeding into CD-1. `.claude/intervention-log.md` gained this round's own
-entry (outcome pending).
+**Answer: both, in sequence — S-01 first.** Recorded in `scope-expansion.md`'s own Tie-Break Decision
+section. `.claude/intervention-log.md` gained this round's own entry (outcome pending).
+
+**Continued into CD-1** per `docs/continued-development.md`: wrote `roadmap-addendum-2026-09-05.md`
+defining **Feature 16 (Failed-Run Retry / Resubmission)** — a new `POST /leads/{lead_id}/retry` endpoint
+reusing Feature 06's existing resume-graph construction, plus a "Retry" action on `LeadDetailPage.tsx`'s
+failed-state banner. Genuinely new capability (new route + new UI action), so CD-2 (full spec) is
+required next, not the deepening-shortcut. S-02 (What-If Simulator) is queued as its own CD round
+immediately after Feature 16 ships, per the addendum's own note.
+
+**Session paused here for a checkpoint before CD-2** — the user's literal request this session was
+"run scope expansion," which is now fully delivered (backlog + tie-break decision + CD-1 addendum);
+CD-2 onward (full spec, implementation planning, and actual Worker Pool implementation) is a materially
+larger commitment better started with an explicit go-ahead rather than assumed. Next step, on
+confirmation: CD-2 (spec Feature 16 into `implementation_plan.md`) → CD-2.5 (`architecture-plan-
+feature-16.md`) → CD-3 (implement) → CD-4 (verify).
 
 Pipeline-level friction check: none found this session — `docs/scope-expansion.md`'s mechanics and
 output-format instructions were clear and sufficient as written; this was also the first real exercise

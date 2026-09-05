@@ -86,8 +86,16 @@ DECLINED / REJECTED
   that scale, batch tooling solves a volume problem this project doesn't yet have. Revisit if a future
   round's data shows queue volume growing past what one-at-a-time review comfortably handles.
 
+TIE-BREAK DECISION (S-01 vs. S-02, both P1)
+Asked the user directly which to pursue first, per §4's tie-break rule. Answer: both, in sequence — S-01
+(Failed-Run Retry) goes into CD-1 first; S-02 (What-If Simulator) follows as its own CD round immediately
+after, not deferred to a future Scope Expansion round. Status below updated to reflect S-01 entering CD-1
+this session.
+
+- S-01: Status: In Progress (entering CD-1 this session)
+- S-02: Status: Not Started (queued as the next CD round after S-01 ships)
+
 NEXT ROUND
-No forced follow-up. If S-01 or S-02 (the two P1s) ship via CD-1, a natural next-round candidate worth
-revisiting is extending S-02's simulator into a live "preview this threshold against real pending
-reviews" view once S-01's retry path establishes the pattern for a second lead-level action button next
-to the existing ones.
+No forced follow-up beyond the queued S-02 CD round above. Once both P1s ship, a natural future
+candidate worth revisiting is extending S-02's simulator into a live "preview this threshold against real
+pending reviews" view, using the same lead-level action-button pattern S-01 will establish.
