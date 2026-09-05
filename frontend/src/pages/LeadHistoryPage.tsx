@@ -12,11 +12,11 @@ function TimelineRow({ entry }: { entry: TimelineEntry }) {
   const isReviewAction = entry.kind === 'review_action'
   return (
     <div
-      className={`rounded-lg border p-4 ${
+      className={`rounded-lg border p-3 ${
         isReviewAction ? 'border-teal-300 bg-teal-50' : 'border-slate-200 bg-white'
       }`}
     >
-      <div className="flex items-center justify-between">
+      <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1">
         <h2 className="font-medium">
           {isReviewAction
             ? (REVIEW_ACTION_LABELS[entry.reviewer_action ?? ''] ?? entry.reviewer_action)
@@ -102,7 +102,7 @@ export function LeadHistoryPage() {
       {history.entries.length === 0 ? (
         <p className="text-slate-500">No history recorded for this lead yet.</p>
       ) : (
-        <div className="flex flex-col gap-3">
+        <div className="flex flex-col gap-2">
           {history.entries.map((entry, index) => (
             <TimelineRow key={`${entry.run_id}-${entry.kind}-${index}`} entry={entry} />
           ))}
