@@ -70,3 +70,19 @@ P1-03 batch), copied verbatim — not a re-score. `evaluation_version: metrics_r
 - **professional_readiness:** 8/10, confidence: HIGH — unchanged from Round 2. States, data realism,
   and accessibility remain strong; still short of 9 for the same reason as Round 2 (no dedicated
   success-state confirmation on primary actions).
+
+## PROJECT_COMPLETED — 2026-09-05 (Round 4)
+
+Source: `portfolio-evaluation.md` (Step 11, Portfolio Evaluator, re-run after Step 12's Round 3 batch
+closed all four prior P1 items), copied verbatim — not a re-score. `evaluation_version:
+metrics_rubric_v1`.
+
+- **portfolio_value:** 7/10, confidence: HIGH — OVERALL SCORE from this run, unchanged from Round 3.
+  Review Detail's composition gap is genuinely closed and the trend chart now makes the benchmark trend
+  legible, but direct pixel-level inspection this round found a new legibility defect in the trend
+  chart's own axis labels and confirmed the empty-space/composition problem spans more pages (Home,
+  Review Queue, Lead History) than previously scoped — Visual & UI/UX holds at 8/10, still below the
+  9.0 gate.
+- **professional_readiness:** 8/10, confidence: HIGH — unchanged from Round 2/3. States, data realism,
+  and accessibility remain strong; the mobile table-reflow gap (P2-02, still open) is the same
+  already-known reason this isn't yet a 9.

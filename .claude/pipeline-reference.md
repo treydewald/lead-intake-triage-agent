@@ -1,7 +1,7 @@
 # Pipeline Reference — Lead Intake Triage Agent
 
-**Last Updated:** 2026-09-05 (Step 12, Batch Backlog Processor — Round 3 batch. All 4 P1 items from
-Round 3's evaluation Completed; routes to a fresh Step 11 Round 4 re-evaluation. See Current Step)
+**Last Updated:** 2026-09-05 (Step 11, Portfolio Evaluator — Round 4. OVERALL SCORE 7/10, Visual &
+UI/UX 8/10 — still below the 9.0 gate. Routes to Step 12, Round 4. See Current Step)
 
 How *this project* is using the Upwork Portfolio Project Pipeline. Distinct from
 `portfolio-reference.md`, which is about the product — this file is about pipeline state.
@@ -10,7 +10,35 @@ How *this project* is using the Upwork Portfolio Project Pipeline. Distinct from
 
 ## Current Step
 
-**This session (2026-09-05, sixteenth session same day):** Ran Step 12 (Batch Backlog Processor),
+**This session (2026-09-05, seventeenth session same day):** Ran Step 11 (Portfolio Evaluator), Round
+4 — re-evaluated against the same 9 screenshots Round 3's Step 12 batch had already re-captured and
+verified, but went further via direct pixel-level inspection (cropping/enlarging chart regions rather
+than a render-level check). **OVERALL SCORE: 7/10** (unchanged from Round 3) — Visual & UI/UX 8,
+Feature Signaling 8 (up from 7), Professional Readiness 8, Client Impact 7.
+
+**What this round found that Round 3's own verification missed:** (1) the new Run History & Trend
+chart's y-axis labels (`TrendChart.tsx:71-72`, `fontSize={9}`, `fill="#94a3b8"`) are illegible — confirmed
+by cropping and 4x-enlarging that region of `07-benchmark.png`, not just eyeballing the full screenshot;
+(2) the "large empty void below sparse content" issue Round 2/3 scoped to Lead Detail alone is also
+plainly visible on Home, Review Queue, and Lead History at 1920×1080. Neither is a regression — both
+were already there, just not caught by a full-page visual pass. Review Detail's own composition gap
+(Round 3's actual fix target) is genuinely closed. Full detail, strengths/weaknesses, and the new 2 P1 /
+1 P2 / 3 P3 backlog: `portfolio-evaluation.md` (project root, fully rewritten this round).
+`.claude/project-metrics.md`'s `PROJECT_COMPLETED` (Round 4) entry appended (portfolio_value 7/10,
+professional_readiness 8/10, both HIGH confidence).
+
+**Routing per `prompts/11_portfolio-evaluator.md`'s Next Steps: Score < 9.0, and Visual & UI/UX < 9.0
+→ Step 12 (Batch Backlog Processor), Round 4, then loop back to Step 11 to re-evaluate.** New P1
+backlog: P1-01 fix the chart's illegible axis labels (30 min, confirmed root cause), P1-02 close the
+composition/empty-space gap on Home, Review Queue, and Lead History (3-4 hrs, supersedes the former
+Lead-Detail-only P2-01). P2-02 (mobile scroll/reflow regression) carried forward unchanged, now with an
+additional confirmed instance on Lead List's table. P3 carried forward unchanged.
+
+Pipeline-level friction check: none found this session.
+
+---
+
+**Prior session (2026-09-05, sixteenth session same day):** Ran Step 12 (Batch Backlog Processor),
 Round 3 — processed all 4 P1 items from Round 3's `portfolio-evaluation.md` backlog (Benchmark trend
 visualization, Review Detail composition fix, motion/microinteraction layer, signature visual
 characteristic). All 4 marked Completed with implementation notes; full detail in
