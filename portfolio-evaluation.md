@@ -2,162 +2,127 @@ PORTFOLIO EVALUATION REPORT
 ===========================
 
 Project: Lead Intake Triage Agent
-Evaluation Date: 2026-09-05
+Evaluation Date: 2026-09-05 (Round 2 — re-evaluation after Step 12's P1-01 through P1-04 batch)
 
-OVERALL SCORE: 5/10
+OVERALL SCORE: 6/10
 
 Score Justification:
-The app is real and works end-to-end — genuine multi-stage pipeline, real local-LLM classification,
-real accumulated data, no placeholder content, and consistent contextual navigation from lead IDs to
-their detail/history views. But every screen reads as an unstyled default: a single accent color, no
-typographic hierarchy, no depth, raw native form controls, and large unused whitespace on every
-desktop screenshot where a single card or table sits alone in the top-left of a 1920×1080 viewport.
-This matches `QUALITY_RUBRIC.md`'s 4-5 band ("clean but generic — looks like an unstyled component
-library, no visual identity") closely enough across all four dimensions that no dimension pulls the
-score above it, per the rubric's gating rule.
+Step 12's batch closed the one genuine functional gap (Review Detail now shows the lead's actual
+message and links to its full Detail/History view) and replaced every plain-text empty/loading/error
+state with a designed one (icon + message + action). A real shared UI kit now gives every page a
+consistent type scale, iconography, and card depth that the prior round entirely lacked. That is real
+progress — this is no longer "unstyled component library, no visual identity." But two of the four
+weaknesses named in Round 1 are only partially closed: every page still leaves roughly half to most of
+a 1920×1080 viewport as plain background below its content (Review Detail and Lead Detail most
+visibly — their new two-column layouts fill width, not height), and native browser controls (Lead
+List's three filter selects, Review Detail's Approve/Reject/Edit radios) remain completely unstyled
+next to an otherwise-cohesive Tailwind interface. Per `QUALITY_RUBRIC.md`'s gating rule, Visual & UI/UX
+and Client Impact — both still pulled down by these two residual issues — keep the Overall Score at
+6/10 rather than letting Professional Readiness's real gains average it higher.
 
 STRENGTHS:
-- Real, honest data throughout — no lorem ipsum; the visible `failed` status skew is a documented,
-  explained consequence of an intentionally-unconfigured HubSpot sandbox token, not a bug or a gap in
-  realism
-- Consistent, working contextual navigation for entities: every lead ID in every list/table is a live
-  link to its detail view, and Lead Detail ↔ Lead History link both ways
-- Accessibility fundamentals are real, not perfunctory — Step 9 drove axe-core to 0 violations
-  app-wide (color contrast, select labeling, landmark regions)
-- Mobile breakpoint is genuinely adapted, not just shrunk — sidebar becomes a horizontal tab strip,
-  cards restack cleanly, no overflow
-- Benchmark page's Failure & Ambiguous Cases table is a real, specific piece of technical depth made
-  visible (exact predicted-vs-expected mismatches), not just a raw accuracy number
+- Review Detail cohesion gap fully closed and live-verified: the lead's message ("Is this still
+  available?") renders in a dedicated card, and the lead id links directly to `/leads/{lead_id}`
+- Every empty/loading/error state across all 7 pages is now designed (icon + message + action where
+  relevant), replacing the prior round's plain `<p>` text and default browser spinner/error text
+- A real, consistent visual system exists for the first time — shared `PageHeader`/`Card`/`StatCard`
+  components, a considered type scale (uppercase tracking-wide section labels, 2xl tracking-tight page
+  titles), `lucide-react` iconography in the sidebar and on every stat card/state
+- Real-data stat rows (Home, Lead List, Review Queue) and two-column layouts (Lead Detail, Review
+  Detail) give every page more legible context at a glance than the prior round's single anchored
+  card
+- Mobile breakpoint remains genuinely adapted (restacked cards, horizontal tab strip nav), and
+  accessibility fundamentals remain real (Step 9's axe-core 0-violations pass), both re-confirmed in
+  this round's screenshots
+- Benchmark's Failure & Ambiguous Cases table is still a genuine piece of technical depth made visible
+  (exact predicted-vs-expected mismatches with confidence), a real differentiator for this project
 
 WEAKNESSES:
-- No visual identity beyond one teal accent color and status pills — flat white cards, a single
-  border-only depth cue, no considered typographic scale (headers and body text differ only by
-  bold/size, not by a deliberate system)
-- Every desktop screenshot anchors its one content block in the top-left corner of the viewport and
-  leaves the remaining ~70% of the screen empty background — reads as unfinished rather than an
-  intentional composition choice
-- Native, unstyled browser controls (selects, radio buttons) sit next to otherwise-Tailwind-styled
-  buttons and inputs, breaking visual consistency
-- Empty/loading/error states exist but are plain text only ("No leads found.", "Loading…", raw red
-  error text) — none are designed with an icon, message, and next action
-- Review Detail — the one screen where a human makes a judgment call — shows only the draft
-  classification, confidence, and queue time. It does not show the lead's actual message content, and
-  has no link to that lead's full Detail/History view, even though `lead_id` is already present on the
-  API response the frontend receives. A reviewer currently cannot see what they're approving without
-  leaving the page and searching the Lead List separately.
-- No data visualization beyond raw tables and three flat stat tiles on the Benchmark page — no trend,
-  no comparison across runs, nothing that makes the benchmark's own history legible at a glance
+- Native, unstyled browser controls remain the single most visible inconsistency: Lead List's three
+  filter selects and Review Detail's Approve/Reject/Edit radio buttons render as plain OS-default
+  widgets directly next to the new Tailwind-styled cards, buttons, and icons — more visually jarring
+  now than before, precisely because everything around them is now polished
+- The composition fix only partially closed the dead-space problem it targeted: stat rows and
+  two-column layouts fill the top ~250-350px of each page, but Review Detail, Lead Detail, and
+  Benchmark still leave roughly 50-75% of a 1920×1080 viewport as plain background below that — this
+  still reads as an incomplete layout on the pages a client is most likely to scroll straight past
+- No depth or interaction feedback beyond a static `shadow-sm` — table rows, cards, and buttons show no
+  hover/focus elevation change, so nothing on screen confirms it's interactive until clicked
+- No motion or microinteraction layer anywhere — Review Detail's Submit and Lead List's filter changes
+  produce no visible transition confirming the action took effect
+- No data visualization beyond raw tables and the (now restyled but still flat) three stat tiles on
+  Benchmark — no trend or cross-run comparison, so the benchmark's own history over time is still not
+  legible at a glance
 
 DETAILED ANALYSIS:
 
-Visual & UI/UX: 5/10
-Layout is organized and internally consistent (same sidebar, same card/table pattern on every page),
-which keeps this out of the 1-3 band, but there is no considered color palette, no depth/elevation,
-no typographic hierarchy beyond weight/size at the header level, and no motion or microinteraction
-layer anywhere. Native form controls (Lead List's three filter selects, Review Detail's action
-radios) are entirely unstyled against an otherwise Tailwind-built interface. Every desktop screenshot
-has a large dead-space area below and to the right of its single content block — this reads as an
-unstyled component library scaffold, matching the 4-5 band's anchor language almost exactly, not the
-6-7 band's "organized layout... but generic/corporate palette."
+Visual & UI/UX: 6/10
+Real progress from Round 1's 5/10: a considered type scale, consistent iconography, and card depth now
+exist on every page, matching `QUALITY_RUBRIC.md`'s 6-7 band ("organized layout, clear hierarchy") far
+better than the prior 4-5 band ("unstyled component library"). It does not clear 8 for two concrete
+reasons: (1) the native-control inconsistency the 4-5 band explicitly names as a tell is still present
+and now more conspicuous against the newly-polished surroundings, and (2) there is no motion/
+microinteraction layer at all, which `docs/premium-ui-standard.md` §4 names as exactly what separates
+band 8 from band 6-7. The dead-space composition issue is reduced from Round 1 but not eliminated.
 
-Feature Signaling: 5/10
-The Home page names all three destinations clearly in one sentence each, and lead-ID links are
-consistent everywhere they appear — a real strength. But data presentation is thin: no chart or trend
-anywhere, only raw tables and three flat stat tiles (Benchmark). The most consequential in-app
-cohesion gap is on Review Detail: it omits the lead's message body entirely and has no link to that
-lead's Detail/History page, despite the underlying API response already carrying `lead_id`
-(`backend/app/schemas/review.py`'s `ReviewQueueItemOut`) — this is a functional gap in the one screen
-where a human decision is made, not just a missing polish link.
+Feature Signaling: 7/10
+The one real functional gap from Round 1 — Review Detail's missing message content and lead link — is
+now fully closed and live-verified, which is the main driver of this dimension's improvement. Stat rows
+communicate business-relevant numbers (awaiting review, auto-processed, latest benchmark accuracy) at a
+glance on three pages. What keeps this below 8: no data visualization anywhere beyond raw tables and
+flat stat tiles, so the benchmark's own trend over time — this project's most technically interesting
+result — is still not visible without manually comparing numbers across separate runs.
 
-Professional Readiness: 5/10
-Real seed data and a real, explained status mix are genuine strengths — nothing here reads as fake or
-placeholder. But empty states (`LeadListPage.tsx`, `ReviewQueuePage.tsx`), the loading state
-(`ReviewDetailPage.tsx`'s bare "Loading…"), and error states (plain red text) are all present but
-undesigned — none has an icon, a considered message, or a next action. Mobile/tablet behavior is
-genuinely adapted (top-nav breakpoint, restacked cards), and accessibility fundamentals are real
-(Step 9's axe-core pass), which keeps this dimension from falling into the 1-3 band.
+Professional Readiness: 8/10
+This is the dimension Step 12's batch improved the most. Every empty/loading/error state on every page
+is now designed (icon + message + action where relevant) rather than plain text — matching
+`QUALITY_RUBRIC.md`'s band-8 anchor ("designed on most... pages") closely. Real seed data, genuinely
+adapted mobile behavior, and real accessibility fundamentals (re-confirmed, not just carried over from
+Step 9) round this out. It does not reach 9 because success-state feedback (e.g., confirming a Review
+Detail submission actually completed) still has no dedicated visible design, just a route change.
 
-Client Impact: 5/10
-An 8-second scan reads as "this works" — a legible, functioning internal tool — but nothing on any
-screen signals "expensive" or "an agency built this." The empty desktop whitespace and unstyled native
-controls are the first things a client would notice, and the Review Detail screen's missing message
-content would be the first thing an actual reviewer would notice trying to use it. Per
-`docs/premium-ui-standard.md` §9's Analytics/dashboard and Enterprise/admin profiles (the closest
-matches for this project's product class), the missing ingredients are precisely data density done
-well and configurable-feeling data tables — currently just plain HTML tables.
+Client Impact: 6/10
+An 8-second scan now reads noticeably better than Round 1 — real numbers, real icons, and a legible
+header land immediately. But the two residual issues are exactly the kind a client notices fast: the
+unstyled native selects/radios read as an obvious inconsistency within seconds, and scrolling reveals
+large empty regions on Review Detail and Lead Detail that undercut the "finished, expensive" impression
+`docs/premium-ui-standard.md` §3's Premium Product Test asks for. Per §9's Analytics/Enterprise-admin
+profiles (this project's closest match), what's still missing is exactly "data density done well" — the
+benchmark trend visualization and better-filled detail pages would close most of this gap.
 
 PRIORITIZED IMPROVEMENT BACKLOG:
 
-P1 (Critical - High Impact):
-- P1-01: Show the lead's message body on Review Detail and add a direct link to that lead's full
-  Detail/History view | Est. Effort: 1-2 hours (add `message_body` to `ReviewQueueItemOut`, render it,
-  add a `Link` to `/leads/{lead_id}` — `lead_id` is already on the response, no new endpoint needed)
-  | **Status: Completed** (2026-09-05, Step 12 batch). `backend/app/schemas/review.py`'s
-  `ReviewQueueItemOut` gained `message_body: str | None`; `backend/app/routers/reviews.py`'s new
-  `_to_review_out()` helper parses it from `item.state_snapshot` (`LeadPipelineState.intake
-  .message_body`) rather than a new DB column, used by both `GET /reviews` and `GET /reviews/{run_id}`.
-  `ReviewDetailPage.tsx` now renders the message body in a dedicated card and links the lead id to
-  `/leads/{lead_id}`. Tests: `test_router_reviews.py` asserts `message_body` on both endpoints;
-  `ReviewDetailPage.test.tsx` gained a test asserting the message renders and the lead link resolves.
-  Verified live against the real backend/dev DB (lead `7b0d3af5`, message "Is this still available?").
-- P1-02: Establish a real visual identity — a considered color palette beyond the single teal accent,
-  a deliberate typographic scale (distinct weights/sizes for page title / section header / body /
-  metadata), and consistent depth (shadow or elevation) applied across all 7 pages | Est. Effort: 3
-  hours | **Status: Completed** (2026-09-05, Step 12 batch). Added a shared UI kit
-  (`frontend/src/components/ui/`: `PageHeader`, `Card`/`SectionLabel`, `StatCard`, `States` —
-  `EmptyState`/`LoadingState`/`ErrorState`) applying a consistent type scale (2xl/tracking-tight page
-  titles, xs/uppercase/tracking-wider section labels and metadata) and `shadow-sm` card depth across
-  all 7 pages plus `Layout.tsx`. Added `lucide-react` for a consistent icon set in the sidebar nav
-  (Activity/ClipboardCheck/Gauge) and per-page iconography (stat cards, states, headers) — previously
-  no icons anywhere. Kept the existing teal accent as the sole brand color (restraint per
-  `docs/premium-ui-standard.md` §6) rather than adding a second accent.
-- P1-03: Design real empty/loading/error states (icon + message + next action where relevant) to
-  replace the current plain-text versions on every page | Est. Effort: 2-3 hours | **Status:
-  Completed** (2026-09-05, Step 12 batch, same session as P1-02 — built as part of the same shared
-  `States.tsx` component). `EmptyState` (icon + title + description + optional action),
-  `LoadingState` (spinner + label), and `ErrorState` (icon + message) now used on Lead List, Review
-  Queue, Lead Detail, Lead History, Review Detail, Benchmark, and NotFoundPage (which now offers a
-  "Back to home" action) in place of the previous bare `<p>Loading…</p>` / plain red text.
-- P1-04: Redesign page composition so content fills the viewport intentionally (e.g., summary/stat
-  cards above each table, a two-column layout on Lead Detail) instead of one card/table anchored
-  top-left with the rest of a 1920×1080 screen empty | Est. Effort: 2-3 hours | **Status: Completed**
-  (2026-09-05, Step 12 batch). Home gained a real-data stat row (total leads, awaiting review, latest
-  benchmark accuracy — via existing `listLeads`/`listReviews`/`listBenchmarkRuns` endpoints, no backend
-  changes). Lead List and Review Queue each gained a 3-stat summary row above their tables (Lead List's
-  awaiting-review/auto-processed counts fetched via two lightweight `page_size:1` calls to the existing
-  endpoint). Lead Detail became a two-column layout (stage timeline + a lead-summary sidebar card with
-  a "View full history" action). Review Detail became a two-column layout (message + classification on
-  the left, reviewer-decision panel on the right) as part of the same rework as P1-01. Benchmark's
-  existing 3-tile stat row was kept and restyled to the new `StatCard` component. Re-verified the
-  no-scroll invariant (`docs/ui-design-standards.md` §1) at all three desktop widths after this change
-  — Lead List's new stat row initially pushed it 11px over at 1366×768; fixed by tightening its root
-  gap from `gap-5` to `gap-4`. All 6 checked pages now fit 1920×1080/1440×900/1366×768 with zero
-  overflow (verified via a Playwright script measuring `main.scrollHeight` vs `clientHeight`).
+P1 (Critical - High Impact — all three target the still-gating Visual & UI/UX dimension directly):
+- P1-01: Restyle Lead List's three filter `<select>`s and Review Detail's Approve/Reject/Edit radio
+  group to match the existing Tailwind design system (custom-styled select/radio components, or a
+  lightweight headless-UI pattern consistent with the shared `ui/` kit) | Est. Effort: 1-2 hours — the
+  single highest-ROI item left: cheap, and the most visually conspicuous remaining inconsistency
+- P1-02: Close the remaining composition gap on Review Detail, Lead Detail, and Benchmark with genuinely
+  useful secondary content rather than more stat tiles — e.g., a "related activity" panel, contextual
+  tips, or expanded detail in the currently-empty lower two-thirds of each viewport | Est. Effort: 3-4
+  hours
+- P1-03: Add depth and interaction feedback — hover/focus elevation on cards, table rows, and buttons —
+  so the interface signals interactivity before a click, not just via a static `shadow-sm` | Est.
+  Effort: 1-2 hours
 
 P2 (High Priority):
-- P2-01: Add a trend/comparison view to the Benchmark page (accuracy/consistency across runs over
-  time) instead of three flat, standalone stat tiles | Est. Effort: 2 hours
-- P2-02: Restyle native form controls (Lead List's three filter selects, Review Detail's action
-  radios) to match the rest of the Tailwind-built interface | Est. Effort: 1-2 hours
-- P2-03: Add subtle depth and interaction feedback — card/row shadows, hover and focus states — in
-  place of the current flat white-on-white with a 1px border only | Est. Effort: 1-2 hours
-- P2-04: Add purposeful transitions confirming action → result (e.g., a visible state change on
-  Review Detail's Submit, on Lead List filter changes) | Est. Effort: 1-2 hours
+- P2-01: Add a trend/comparison view to the Benchmark page (accuracy/consistency across runs over time)
+  instead of three flat, standalone stat tiles | Est. Effort: 2 hours
+- P2-02: Add purposeful transitions confirming action → result (a visible state change on Review
+  Detail's Submit, on Lead List filter changes) | Est. Effort: 1-2 hours
 
 P3 (Nice-to-Have):
-- P3-01: Add a first-visit onboarding cue on Home (e.g., pointing at the one pending review item) |
-  Est. Effort: 1 hour
+- P3-01: Add a first-visit onboarding cue on Home (e.g., pointing at the one pending review item) | Est.
+  Effort: 1 hour
 - P3-02: Add dark mode | Est. Effort: 2-3 hours
-- P3-03: Persist and surface last-viewed filters/sort as a visible "saved view" indicator on Lead List
-  | Est. Effort: 1-2 hours
+- P3-03: Persist and surface last-viewed filters/sort as a visible "saved view" indicator on Lead List |
+  Est. Effort: 1-2 hours
 
 SCORE PATH TO 10/10:
-Closing all P1 items (message content + cohesion link, visual identity, designed states, filled
-composition) should move Visual & UI/UX and Feature Signaling into the 7-8 range — functional gaps
-closed, generic-but-competent design in place. Closing P2 items (data visualization, styled controls,
-depth, motion) is what should clear the 9.0 gate: at that point the interface passes the Premium
-Product Test — consistent palette/typography/depth, every reference to another part of the app
-reachable directly, and states that read as designed rather than default. P3 polish plus one genuinely
-memorable detail (most likely the Benchmark trend visualization, since this project's real
-differentiator is a measured, explainable accuracy result) is what would close the remaining gap to
-9.5-10.
+Closing all three P1 items (native-control restyling, real composition fill, depth/interaction
+feedback) should be enough on its own to clear Visual & UI/UX and Client Impact into the 8-9 range —
+these are precisely the items `docs/premium-ui-standard.md` §4 names as the gap between "strong" (band
+8) and "premium" (band 9). Closing P2 (Benchmark trend visualization, motion) is what should push
+Feature Signaling and Professional Readiness to 9+ and clear the 9.0 gate outright, since the trend
+view is this project's most memorable technical differentiator and currently the least visible. P3
+polish is what would close the remaining gap to 9.5-10 once the gate is cleared.

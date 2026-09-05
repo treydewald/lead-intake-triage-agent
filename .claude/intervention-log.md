@@ -120,3 +120,20 @@ edit to that same entry once the round they belong to is scored, not a new entry
   Detail/History view, even though the API response it already receives (`ReviewQueueItemOut`) carries
   `lead_id` needed for that link at zero backend cost. Logged as P1-01, the top-priority item.
 - Agent: claude/claude_code
+
+### 2026-09-05 — portfolio_evaluation (Round 2)
+- Trigger: Step 12 (Batch Backlog Processor) completed all 4 Round 1 P1 items and re-captured
+  screenshots; Step 11 re-ran unconditionally per `prompts/12_batch-backlog-processor.md`'s own Next
+  Steps section to re-score against the current state rather than assume the batch's effect.
+- Expected effect: an anchored 0-10 re-score per `QUALITY_RUBRIC.md`'s four dimensions, gating routing
+  to either Step 13 (≥9.0, Visual & UI/UX ≥9.0) or another Step 12 batch.
+- Outcome: OVERALL SCORE 6/10 (Visual & UI/UX 6, Feature Signaling 7, Professional Readiness 8, Client
+  Impact 6) — up from 5/10, still below the 9.0 gate, routes to another Step 12 batch. New backlog: 3
+  P1 (native-control restyling, composition fill, depth/interaction feedback), 2 P2 (Benchmark trend
+  viz, motion), 3 P3 (carried forward unchanged). `.claude/project-metrics.md`'s `PROJECT_COMPLETED`
+  entry appended with matching numbers.
+- Surprise: the composition fix (Round 1's P1-04) only partially resolved the dead-space weakness it
+  targeted — filling the top of each page with stat rows/two-column layouts left most pages' lower
+  50-75% still empty, so the same underlying weakness persists in reduced form rather than being fully
+  closed by what looked like a direct fix.
+- Agent: claude/claude_code

@@ -1,8 +1,8 @@
 # Pipeline Reference — Lead Intake Triage Agent
 
-**Last Updated:** 2026-09-05 (Step 12, Batch Backlog Processor, COMPLETED — P1-01 through P1-04 all
-Completed, routes back to Step 11 for re-evaluation. Prior: Step 11 Portfolio Evaluator COMPLETED,
-OVERALL SCORE 5/10 — see Current Step)
+**Last Updated:** 2026-09-05 (Step 11, Portfolio Evaluator, Round 2 — RE-EVALUATED after Step 12's
+P1-01 through P1-04 batch. OVERALL SCORE 6/10 (up from 5/10), still below the 9.0 gate — routes to
+another Step 12 batch. Prior: Step 12 Batch Backlog Processor COMPLETED — see Current Step)
 
 How *this project* is using the Upwork Portfolio Project Pipeline. Distinct from
 `portfolio-reference.md`, which is about the product — this file is about pipeline state.
@@ -11,7 +11,39 @@ How *this project* is using the Upwork Portfolio Project Pipeline. Distinct from
 
 ## Current Step
 
-**This session (2026-09-05, twelfth session same day):** Ran Step 12 (Batch Backlog Processor) against
+**This session (2026-09-05, thirteenth session same day):** Ran Step 11 (Portfolio Evaluator), Round 2
+— re-evaluated against the 9 screenshots this session's own predecessor (Step 12) had already
+re-captured after its P1-01 through P1-04 batch, plus a direct visual read of all 9 PNGs (not inferred
+from code alone). **OVERALL SCORE: 6/10** (up from 5/10) — Visual & UI/UX 6, Feature Signaling 7,
+Professional Readiness 8, Client Impact 6. Still below the 9.0 gate on every dimension, so this routes
+to another Step 12 batch rather than Step 13.
+
+**What improved and why it wasn't enough to clear the gate:** the Review Detail cohesion gap (Round 1's
+one genuine functional defect) is fully closed and visually re-confirmed — the lead's message and a
+link to `/leads/{lead_id}` both render correctly. Every empty/loading/error state is now designed
+(icon + message + action), driving Professional Readiness from 5→8, the largest single-round gain.
+But two Round 1 weaknesses were only *partially* closed by Step 12's P1-02/P1-04 work: (1) native
+browser controls (Lead List's 3 filter `<select>`s, Review Detail's Approve/Reject/Edit radios) are
+still completely unstyled — now more visually conspicuous, not less, against the newly-polished
+surroundings; (2) the composition/dead-space fix (stat rows, two-column layouts) filled only the top
+~250-350px of each page — Review Detail, Lead Detail, and Benchmark still leave 50-75% of a
+1920×1080 viewport empty below that. Full detail, strengths/weaknesses, and the new 3 P1 / 2 P2 / 3 P3
+backlog: `portfolio-evaluation.md` (project root, fully rewritten this round per Step 11's own output
+format — not an append). `.claude/project-metrics.md`'s `PROJECT_COMPLETED` (Round 2) entry appended
+(portfolio_value 6/10, professional_readiness 8/10, both HIGH confidence).
+`.claude/intervention-log.md`'s 2026-09-05 `portfolio_evaluation (Round 2)` entry records trigger/
+expected effect/outcome/surprise — the surprise being that the composition fix only partially resolved
+what it targeted, a useful correction for the next Step 12 batch to act on directly rather than
+re-diagnosing.
+
+**Routing per `prompts/11_portfolio-evaluator.md`'s Next Steps: Score < 9.0 → Step 12 (Batch Backlog
+Processor), then loop back to Step 11 to re-evaluate.** New P1 backlog (all three chosen specifically
+because they target the still-gating Visual & UI/UX dimension): P1-01 native-control restyling
+(1-2 hrs, highest ROI remaining), P1-02 composition fill with genuinely useful secondary content
+(3-4 hrs), P1-03 depth/hover/focus interaction feedback (1-2 hrs). P2: Benchmark trend visualization,
+motion/transitions. P3 carried forward unchanged (onboarding cue, dark mode, saved-view indicator).
+
+Prior session (2026-09-05, twelfth session same day): Ran Step 12 (Batch Backlog Processor) against
 `portfolio-evaluation.md`'s 4 P1 items (all 4 processed in one batch, within the step's 3-5 item
 range). Found the dev backend (port 8000, PID 8516, started in an earlier session) was serving stale
 code — `--reload` had not picked up the schema/router edits after several seconds, confirmed via a
@@ -419,16 +451,17 @@ Feature 10, and Feature 11 [Tier 2] implemented end-to-end), 7 (Implementation V
 PASSED twice: 2026-09-04 against Tier 1, 2026-09-05 against Features 09/10/11), Continued Development
 Round 1 (CD-1 through CD-4 — Feature 15, Review Queue Frontend UI, COMPLETED and verified), 8
 (Viewport-First Refactor, COMPLETED 2026-09-05), 9 (Unified QA & Repair, COMPLETED 2026-09-05), 10
-(Screenshot Capture, COMPLETED 2026-09-05), 11 (Portfolio Evaluator, COMPLETED 2026-09-05 — OVERALL
-SCORE 5/10, below gate — see Current Step), 12 (Batch Backlog Processor, COMPLETED 2026-09-05 — P1-01
-through P1-04 all Completed, routes back to Step 11).
+(Screenshot Capture, COMPLETED 2026-09-05), 11 (Portfolio Evaluator, COMPLETED 2026-09-05, run twice —
+Round 1 OVERALL SCORE 5/10, Round 2 OVERALL SCORE 6/10, both below gate — see Current Step), 12 (Batch
+Backlog Processor, COMPLETED 2026-09-05 — Round 1's P1-01 through P1-04 all Completed, routed back to
+Step 11 for Round 2 re-evaluation).
 
 **Gates passed:** Gate 2 (Step 7, implementation verification) — PASSED, 2026-09-04 (Tier 1) and
 2026-09-05 (Features 09/10/11 batch). Gate 1 (Step 13, portfolio score ≥9.0/10, per
-`docs/premium-ui-standard.md`) is still ahead — Step 11's first pass scored 5/10; Step 12 has now
-processed all 4 P1 items, so the next action is looping back to Step 11 for a fresh re-evaluation
-against the updated screenshots, not a second Step 12 batch (P2/P3 items remain Not Started, pending
-what the re-evaluation actually finds still open).
+`docs/premium-ui-standard.md`) is still ahead — Step 11 Round 2 scored 6/10 (up from 5/10), still below
+gate on Visual & UI/UX (6) and Client Impact (6). Next action is another Step 12 batch against this
+round's 3 P1 items (native-control restyling, composition fill, depth/interaction feedback), then loop
+back to Step 11 for a Round 3 re-evaluation.
 
 **`.claude/` scaffold status:** Current — full-tier scaffold copied from pipeline templates on
 2026-09-04. See `PIPELINE-SYNC.md`.
@@ -441,19 +474,23 @@ Tier section, STANDARD mode with Tier 2/3 features present falls back to full ti
 
 ## Next Step
 
-**This session (2026-09-05, twelfth session same day):** Step 12 (Batch Backlog Processor) COMPLETED —
-see Current Step above for full detail. **Next Step is Step 11 (Portfolio Evaluator), unconditional
-per `prompts/12_batch-backlog-processor.md`'s own Next Steps section** — re-capture is already done
-(this session re-ran `.claude/skills/capture-screenshots.mjs` after the P1 fixes), so that session can
-proceed directly to scoring against the current `./portfolio-screenshots/` rather than re-capturing
-again. Note for that session: `portfolio-evaluation.md`'s P2/P3 items (data viz on Benchmark, native
-control restyling, depth/hover polish, transitions, onboarding cue, dark mode, saved-view indicator)
-are still Not Started — if the re-evaluation still lands below 9.0, those are the next Step 12 batch's
-natural candidates, per `docs/premium-ui-standard.md` §7's ROI ordering (P2-02's native-control
-restyling was already substantially addressed as a side effect of this session's Review Detail rework
-— re-check it against the fresh screenshots before assuming it still needs full-scope work).
+**This session (2026-09-05, thirteenth session same day):** Step 11 (Portfolio Evaluator), Round 2,
+COMPLETED — see Current Step above for full detail. **OVERALL SCORE 6/10 (up from 5/10), still below
+the 9.0 gate. Next Step is another Step 12 (Batch Backlog Processor) round**, per
+`prompts/11_portfolio-evaluator.md`'s own Next Steps section — process `portfolio-evaluation.md`'s
+fresh 3 P1 / 2 P2 / 3 P3 backlog (all superseding the Round 1 backlog, which is fully consumed), start
+with P1-01 (native-control restyling — cheapest, highest remaining visual-inconsistency ROI), then
+P1-02 (composition fill) and P1-03 (depth/interaction feedback), then loop back to Step 11 for a Round
+3 re-evaluation. Note for that session: this round's Surprise finding matters directly here — Round 1's
+composition fix (stat rows, two-column layouts) only filled the *top* of each page, not the whole
+viewport, so P1-02 this round should aim for content that fills remaining vertical space, not another
+stat row at the top.
 
-**Prior session (2026-09-05, eleventh session same day):** Step 11 (Portfolio Evaluator) COMPLETED —
+**Prior session (2026-09-05, twelfth session same day):** Step 12 (Batch Backlog Processor) COMPLETED
+— Round 1's P1-01 through P1-04 all Completed; see Current Step above for full detail.
+
+**Prior to this (2026-09-05, eleventh session same day):** Step 11 (Portfolio Evaluator), Round 1,
+COMPLETED —
 see Current Step above for full detail. **OVERALL SCORE 5/10, below the 9.0 gate. Next Step is Step 12
 (Batch Backlog Processor)**, per `prompts/11_portfolio-evaluator.md`'s own Next Steps section — process
 `portfolio-evaluation.md`'s 4 P1 / 4 P2 / 3 P3 backlog items (start with P1-01, the Review Detail
