@@ -1046,3 +1046,62 @@ regression-free. This ships S-04, the last of `scope-expansion.md`'s Round 1 P1/
 S-05 (P3, Exportable Audit Trail CSV) remains unshipped from that round. A future idle session should
 run `docs/next-action-selection.md`'s Dynamic Next-Action Selection rather than defaulting straight
 back to another Scope Expansion round.
+
+## 2026-09-06 — Dependency Upgrade: langgraph/langchain-core/starlette compatibility-verification round
+
+**Trigger:** `docs/next-action-selection.md`'s Dynamic Next-Action Selection concluded `NO_ACTION` for
+all four registered operations (Scope Expansion, Continual Refinement, UI Audit, Cohesion Audit — all
+either non-credible or freshly re-run same day). `qa-report.md`'s Remaining Issues §1 and Continual
+Refinement Round 2's closing note both named the deferred `langgraph`/`langchain-core`/`starlette`
+major-version compatibility-verification task as the one concrete, already-identified item worth
+weighing at this idle point. Surfaced to the user alongside the NO_ACTION finding; user chose to run it.
+
+**Checks run:** Incremental upgrade on branch `dependency-upgrade-2026-09-06`, full `pytest -q`
+(171 tests) after every version bump; `pytest --cov=app --cov-report=term-missing` after the full set
+of bumps; `pip check`; `pip-audit` before and after; a live `uvicorn` smoke test against the real dev
+database and real Ollama model.
+
+**Versions changed (`backend/requirements.txt` + resolved transitive deps):**
+| Package | Before | After |
+|---|---|---|
+| `python-dotenv` | 1.0.1 | 1.2.2 |
+| `pytest` | 8.3.3 | 9.0.3 |
+| `pytest-asyncio` | 0.24.0 | 1.4.0 |
+| `langgraph` | 0.2.34 | 1.2.11 |
+| `langgraph-checkpoint` (transitive) | 2.1.2 | 4.1.1 |
+| `langchain-core` (transitive) | 0.3.86 | 1.6.2 |
+| `fastapi` | 0.115.0 | 0.141.1 |
+| `starlette` (transitive) | 0.38.6 | 1.6.0 |
+
+**Result:** PASS at every increment — no code changes required in `app/`. 171/171 backend tests passed
+after each bump, 98% statement coverage unchanged, `pip check` reported no broken requirements.
+`pip-audit`: 26 advisories across 7 packages (including `pip` itself) → **0 known vulnerabilities**
+after also upgrading `pip` in the venv. `npm audit` unaffected (already 0; no frontend files touched).
+
+**Live smoke test (beyond the test suite):** Started a real `uvicorn` instance against the accumulated
+dev database (34 leads). `POST /leads/webform` with a real payload executed the full `LangGraph`
+`StateGraph` end-to-end: `intake_parsing` → `intent_classification` (a real call to the local
+`llama3.2:3b` model via Ollama) → `data_enrichment`, all `COMPLETED`; `hubspot_crm_write` `FAILED` with
+the expected `HUBSPOT_ACCESS_TOKEN is not configured` message (the same known placeholder-token
+dev-environment limitation every prior CD round's live verification has hit, not a new defect);
+`outcome_notification` correctly fired on the failure path. `GET /leads/{lead_id}` then rendered the
+full 5-stage timeline correctly for the newly-created run. This exercises the actual compiled graph's
+node execution, state transitions, and `_make_node`'s exception handling under the new major versions —
+not just import compatibility.
+
+**Why so clean despite crossing two major-version boundaries (`langgraph` 0.x→1.x, `starlette` 0.x→1.x)
+in one round:** grep-confirmed no file under `app/` imports `langchain_core` directly — it is a pure
+transitive dependency of `langgraph`, and this project's own `Stage`/`ToolRegistry` abstraction never
+touches LangChain's message/tool primitives. `app/orchestrator/graph.py`'s `StateGraph`/`.compile()`
+usage configures no checkpointer and no custom cache backend, which is also exactly why the
+`langgraph-checkpoint` RCE advisory (CVE-2026-27794) was assessed non-exploitable in the first place —
+the same absence of surface area that made the audit low-risk also made the upgrade itself low-risk.
+
+**Docs updated:** `qa-report.md` (Remaining Issues §1 rewritten as RESOLVED), `README.md` (dependency
+vulnerability scanning line), `.claude/pipeline-reference.md`/`.claude/portfolio-reference.md` (round
+entries), `.claude/intervention-log.md` (`dependency_upgrade` entry).
+
+**Verdict:** COMPLETE. All 19 (26 as of Round 2's re-scan) advisories this project had been carrying as
+a documented, deliberately-deferred residual risk since QA (Step 9) are resolved. This was the specific
+gap `refinement-audit.md` Round 2 named as capping Security at 7/10 — a future Continual Refinement
+round should re-derive that dimension against this now-clean state rather than carrying 7/10 forward.

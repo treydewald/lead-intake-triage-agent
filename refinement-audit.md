@@ -132,3 +132,23 @@ has named as the correct remediation path since Round 1). A future round — or 
 Development round taking on that upgrade directly — is the honest next step for that specific gap; nothing
 about today's re-scan makes it more urgent than Round 1 already assessed it to be, but the growing advisory
 count (19→26) is worth weighing next time this project goes idle.
+
+---
+
+ADDENDUM (2026-09-06, same day, next idle session): the residual risk named above as this round's cap on
+Security has been resolved. Per the Dynamic Next-Action Selection procedure's own recommendation once all
+four registered operations evaluated NO_ACTION, this project ran the dedicated compatibility-verification
+round `qa-report.md` had been recommending since Round 1: `langgraph` 0.2.34→1.2.11, `langgraph-checkpoint`
+2.1.2→4.1.1, `langchain-core` 0.3.86→1.6.2, `fastapi` 0.115.0→0.141.1 (`starlette` 0.38.6→1.6.0 transitively),
+plus `pytest` 8.3.3→9.0.3 and `python-dotenv` 1.0.1→1.2.2. Zero application code changes required. 171/171
+backend tests passed throughout, `pip-audit` now reports 0 known vulnerabilities (was 26 across 7 packages),
+and a live end-to-end pipeline run (real Ollama classification through to the expected HubSpot-write
+failure) confirmed the compiled `LangGraph` `StateGraph` behaves identically under the new versions. Full
+detail: `.claude/validation-results.md`'s 2026-09-06 Dependency Upgrade entry, `.claude/intervention-log.md`'s
+`dependency_upgrade` entry, `qa-report.md`'s Remaining Issues §1 (rewritten as RESOLVED).
+
+This does not retroactively change Round 2's own recorded score (7/10 was the honest state at the time this
+round scored it) — but a future Continual Refinement round should re-derive Dimension 7 (Security) against
+this now-clean state rather than carrying 7/10 forward. With this specific residual risk closed, the
+remaining path to a genuine project-wide 10/10 is narrower than at any prior point in this project's
+history.

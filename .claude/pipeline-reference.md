@@ -1,11 +1,11 @@
 # Pipeline Reference — Lead Intake Triage Agent
 
-**Last Updated:** 2026-09-06 (Continual Project Refinement — Round 2. 7 of 8 dimensions held steady;
-Test Coverage rose 8→9/10 after fixing RB-010 (two newer pages' coverage gaps on interactive paths);
-Security's fresh dependency-audit re-scan found real drift (19→26 advisories, same packages, non-
-exploitable per the same assessment) and confirmed the new Slack webhook attack surface holds up under
-review. Full detail: `refinement-audit.md`'s Round 2 entry, `.claude/intervention-log.md`'s
-`continual_refinement (Round 2)` entry.)
+**Last Updated:** 2026-09-06 (Dependency Upgrade round — langgraph/langchain-core/starlette
+compatibility-verification. All four registered idle-time operations evaluated `NO_ACTION`; the deferred
+security residual risk Round 2 flagged was resolved instead. `pip-audit` 26 advisories→0, zero
+application code changes, 171/171 tests throughout, live end-to-end pipeline run confirmed no behavioral
+regression. Full detail: `.claude/validation-results.md`'s Dependency Upgrade entry,
+`.claude/intervention-log.md`'s `dependency_upgrade` entry, `refinement-audit.md`'s addendum.)
 
 How *this project* is using the Upwork Portfolio Project Pipeline. Distinct from
 `portfolio-reference.md`, which is about the product — this file is about pipeline state.
@@ -14,7 +14,63 @@ How *this project* is using the Upwork Portfolio Project Pipeline. Distinct from
 
 ## Current Step
 
-**This session (2026-09-06, thirty-fourth session) — Continual Project Refinement, Round 2 (no
+**This session (2026-09-06, thirty-fifth session) — Dependency Upgrade: langgraph/langchain-core/
+starlette compatibility-verification round (no Suggestion queued, `.claude/refinement-backlog.md` had
+zero `OPEN` entries, project idle — Steps 1-16 all complete, no in-progress CD/audit round):**
+
+Ran `docs/next-action-selection.md`'s Dynamic Next-Action Selection per Step 2's idle branch. Evidence:
+Scope Expansion's only remaining candidate (S-05, P3 CSV export) already judged non-credible;
+Continual Refinement (Round 2), UI Audit & Refinement (Round 1), and In-App Cohesion Audit (Round 1) had
+all run earlier this same calendar day with clean exit conditions — none stale, nothing to re-check.
+Concluded `NO_ACTION` for all four registered operations and reported that plainly per §5/§6 step 3.
+
+Outside the four-operation registry, surfaced one additional, already-identified item to the user:
+`qa-report.md`'s Remaining Issues §1 and Continual Refinement Round 2's own closing note both named the
+`langgraph`/`langchain-core`/`starlette` major-version compatibility-verification task — deferred since
+Step 9 (QA) specifically because it's a "compatibility verification pass of its own, not a same-session
+blind bump" — as the one concrete item worth weighing at this exact idle point (advisory count had grown
+19→26 across two Continual Refinement rounds with zero dependency-version change). Asked the user
+directly whether to run it (a materially larger, riskier commitment than a normal backlog item) or leave
+it deferred; user chose to run it.
+
+**Executed on branch `dependency-upgrade-2026-09-06`, incrementally, full test suite after each step:**
+`python-dotenv` 1.0.1→1.2.2, `pytest` 8.3.3→9.0.3 (+`pytest-asyncio` 0.24.0→1.4.0), `langgraph`
+0.2.34→1.2.11 (pulling `langgraph-checkpoint` 2.1.2→4.1.1 and `langchain-core` 0.3.86→1.6.2
+transitively), `fastapi` 0.115.0→0.141.1 (pulling `starlette` 0.38.6→1.6.0 transitively, crossing its
+own 1.0 major-version boundary). **Zero application code changes required** — grep-confirmed no file
+under `app/` imports `langchain_core` directly (a pure transitive dependency of `langgraph`), and
+`app/orchestrator/graph.py`'s `StateGraph`/`.compile()` usage configures no checkpointer/custom cache
+backend, the same absence of surface area that made the original advisories non-exploitable as deployed.
+
+**Verified:** 171/171 backend tests passing after every increment, 98% coverage unchanged, `pip check`
+clean. `pip-audit`: 26 advisories across 7 packages (including `pip` itself) → **0** after also
+upgrading `pip` in the venv. `npm audit` unaffected (already 0; no frontend files touched). Beyond the
+test suite, live-verified against a real running `uvicorn` instance and the accumulated dev database:
+`POST /leads/webform` executed the full compiled `LangGraph` `StateGraph` end-to-end under the new major
+versions — `intake_parsing`→`intent_classification` (a real Ollama call)→`data_enrichment` all
+`COMPLETED`, `hubspot_crm_write` `FAILED` with the expected placeholder-token message (the same known
+dev-environment limitation every prior CD round has hit, not a new defect), `outcome_notification`
+correctly firing on the failure path — then `GET /leads/{lead_id}` rendered the full stage timeline
+correctly. Full detail: `.claude/validation-results.md`'s new Dependency Upgrade entry.
+
+**Record:** `backend/requirements.txt` updated to the new pinned versions; `qa-report.md`'s Remaining
+Issues §1 rewritten as RESOLVED; `README.md`'s dependency-scanning claim updated; `refinement-audit.md`
+gained an addendum noting Security's 7/10 cap (Round 2) is now resolved, though not retroactively
+re-scored — a future Continual Refinement round should re-derive Dimension 7 fresh; `.claude/
+intervention-log.md` gained this round's own `dependency_upgrade` entry.
+
+Pipeline-level friction check: none found this session — `docs/next-action-selection.md`'s `NO_ACTION`
+path (v1.1/Iteration 28) worked exactly as documented for all four registered operations; surfacing the
+one genuinely available non-registry item alongside a formal `NO_ACTION` conclusion (rather than either
+suppressing it or forcing it into one of the four operations' own frames) isn't something this doc's text
+explicitly anticipates, worth a light mention in a future pipeline-insights entry if this pattern recurs
+on other projects. This is also the first time this project has actually completed the specific
+"dedicated compatibility-verification round" `qa-report.md` has been recommending since Step 9 (2026-09-05)
+rather than continuing to defer it.
+
+---
+
+**Prior update (2026-09-06, thirty-fourth session) — Continual Project Refinement, Round 2 (no
 Suggestion queued, `.claude/refinement-backlog.md` had zero `OPEN` entries, project idle — Steps 1-16
 all complete, no in-progress CD/audit round):**
 

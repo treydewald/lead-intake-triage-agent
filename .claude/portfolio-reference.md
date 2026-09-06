@@ -1,10 +1,19 @@
 # Portfolio Reference — Lead Intake Triage Agent
 
-**Last Updated:** 2026-09-06 (Continual Project Refinement — Round 2: closed a frontend test-coverage
+**Last Updated:** 2026-09-06 (Dependency Upgrade round — `langgraph`/`langchain-core`/`starlette`
+carried across major-version boundaries (`langgraph` 0.2→1.2, `starlette` 0.38→1.6) to resolve the
+security residual risk Round 2 flagged. Zero application code changes needed — grep-confirmed no direct
+`langchain_core` import anywhere in `app/`, and the orchestrator's `StateGraph` usage configures no
+checkpointer/cache backend. `pip-audit` 26 advisories→0; 171/171 tests throughout; live end-to-end
+pipeline run (real Ollama call through to the expected HubSpot-write failure) confirmed no behavioral
+change. Full detail: `.claude/validation-results.md`'s Dependency Upgrade entry,
+`.claude/pipeline-reference.md`'s matching entry.)
+
+Prior update: Continual Project Refinement — Round 2: closed a frontend test-coverage
 gap on two newer pages' interactive paths (RB-010, now 237 tests / 92% frontend statement coverage) and
 re-confirmed the new Slack-signature trust boundary holds up under a dedicated security re-check; no
 architecture changes. Full detail: `refinement-audit.md`'s Round 2, `.claude/pipeline-reference.md`'s
-matching entry.)
+matching entry.
 
 Prior update: UI Audit & Refinement — Round 1, trigger 4 (full-app pass; no full-app
 UI Audit had been recorded since Step 11 Round 6, and Features 16-19 shipped UI-facing changes since).

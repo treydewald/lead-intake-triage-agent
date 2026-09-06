@@ -113,9 +113,10 @@ not just convention (`backend/app/tests/test_orchestrator_tool_scope.py`).
 - **0 accessibility violations** (axe-core, all severities) across every primary page.
 - **Dependency vulnerability scanning** (`npm audit`, `pip-audit`) run and findings triaged during
   QA — see `qa-report.md`; re-run in each Continual Refinement round (frontend: 0 vulnerabilities;
-  backend: same 6 transitive packages, 26 pre-assessed Moderate advisories as of Round 2 — the count
-  grows as new CVEs are disclosed against the same pinned versions, not from any dependency change
-  this project made — still non-exploitable as this project is deployed).
+  backend: 0 vulnerabilities as of the 2026-09-06 dependency-upgrade round, after a dedicated
+  compatibility-verification pass carried `langgraph`, `langgraph-checkpoint`, `langchain-core`,
+  `starlette`/`fastapi`, `pytest`, and `python-dotenv` across major-version boundaries — full test
+  suite and a live end-to-end pipeline run re-confirmed no regressions).
 
 ## Setup Instructions
 

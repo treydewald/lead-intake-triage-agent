@@ -556,3 +556,36 @@ edit to that same entry once the round they belong to is scored, not a new entry
   rather than a hypothetical, and validating re-running the audit command fresh each round instead of
   trusting a prior scan result even a single day later.
 - Agent: claude/claude_code
+
+### 2026-09-06 — dependency_upgrade (langgraph/langchain-core/starlette compatibility-verification round)
+- Trigger: idle Step 2 ran `docs/next-action-selection.md`'s Dynamic Next-Action Selection immediately
+  after Continual Refinement Round 2. All four registered operations evaluated `NO_ACTION` — Scope
+  Expansion's only candidate (S-05) already non-credible, UI Audit/Cohesion Audit/Continual Refinement
+  all ran clean earlier this same day. Outside the four-operation registry, `qa-report.md`'s Remaining
+  Issues §1 and Round 2's own closing note both named a specific, already-identified, deliberately-
+  deferred item — the `langgraph`/`langchain-core`/`starlette` major-version compatibility-verification
+  round — as "worth weighing more seriously next time this project goes idle." Surfaced this to the user
+  directly alongside the formal NO_ACTION conclusion; user chose to run it.
+- Expected effect (`qa-report.md`'s own "Recommended action"): upgrade `langgraph`/`langchain-core`/
+  `starlette` to fixed versions as a dedicated compatibility-verification task, full test suite + live
+  smoke test required after.
+- Outcome: COMPLETED. Worked on a branch, upgrading incrementally with a full test run after each step:
+  `python-dotenv` 1.0.1→1.2.2, `pytest` 8.3.3→9.0.3 (+`pytest-asyncio` 0.24.0→1.4.0), `langgraph`
+  0.2.34→1.2.11 (pulling `langgraph-checkpoint` 2.1.2→4.1.1 and `langchain-core` 0.3.86→1.6.2
+  transitively), `fastapi` 0.115.0→0.141.1 (pulling `starlette` 0.38.6→1.6.0 transitively). 171/171
+  backend tests passed after every step, 98% coverage unchanged, `pip check` clean. `pip-audit`: 26
+  advisories across 7 packages → **0**. Live-verified beyond the test suite: started a real `uvicorn`
+  instance, submitted a real lead through `POST /leads/webform` against the real Ollama model, and
+  confirmed the full `LangGraph` `StateGraph` executed correctly end-to-end under the new major versions
+  (`intake_parsing`→`intent_classification`→`data_enrichment` all `COMPLETED`, `hubspot_crm_write`
+  `FAILED` with the expected placeholder-token message, `outcome_notification` correctly firing on the
+  failure path), then confirmed `GET /leads/{lead_id}` rendered the full stage timeline correctly.
+  `requirements.txt`, `qa-report.md` (Remaining Issues §1 rewritten as RESOLVED), and `README.md`
+  updated; no frontend files touched (frontend `npm audit` was already 0).
+- Surprise: the upgrade was far cleaner than the size of the version jump suggested — no code in this
+  project imports `langchain_core` directly (grep-confirmed; it's a pure transitive dependency of
+  `langgraph`), and the orchestrator's own `StateGraph`/`.compile()` usage never configures a checkpointer
+  or custom cache backend, which sharply limited the actual breaking-change surface despite crossing two
+  separate 1.0 major-version boundaries (`langgraph`, `starlette`) in one round. Zero application code
+  needed to change — only pinned versions.
+- Agent: claude/claude_code
