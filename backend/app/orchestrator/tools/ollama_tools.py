@@ -17,10 +17,14 @@ class _ChatClient(Protocol):
         ...
 
 
-def classify_intent(client: _ChatClient, model: str, lead_text: str) -> dict:
-    """Issue one Ollama chat call and return the parsed response dict. Deterministic
-    (temperature=0) and structured (format="json"). No retry/validation logic here — that
-    is `IntentClassificationStage`'s responsibility, keeping this binding thin and swappable."""
+def classify_intent(client: _ChatClient, model: str, lead_text: str, temperature: float = 0.0) -> dict:
+    """Issue one Ollama chat call and return the parsed response dict. Structured
+    (format="json"); `temperature` defaults to 0 (deterministic), used for the primary
+    classification call. `IntentClassificationStage` also issues a second, best-effort
+    confirmation call at a nonzero temperature (see `confidence_scoring.py`) through this
+    same binding to sample self-consistency for its composite confidence score. No retry/
+    validation logic here — that is `IntentClassificationStage`'s responsibility, keeping
+    this binding thin and swappable."""
     response = client.chat(
         model=model,
         messages=[
@@ -28,7 +32,7 @@ def classify_intent(client: _ChatClient, model: str, lead_text: str) -> dict:
             {"role": "user", "content": lead_text},
         ],
         format="json",
-        options={"temperature": 0},
+        options={"temperature": temperature},
     )
     content = response["message"]["content"]
     return json.loads(content)

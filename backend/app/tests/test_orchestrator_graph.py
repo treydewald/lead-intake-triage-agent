@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 from app.core.config import settings
+from app.orchestrator import confidence_scoring
+from app.orchestrator.stages.intent_classification import _build_lead_text
 from app.models.notification import Notification
 from app.models.pipeline_run import PipelineRun, StageTrace
 from app.models.review_queue import ReviewQueueItem
@@ -203,7 +205,9 @@ def test_default_stages_web_form_payload_reaches_enrichment_with_normalized_inta
     same for classification."""
     stages = default_stages()
     registry = ToolRegistry()
-    registry.register("ollama_classify", lambda text: {"intent_label": "buyer", "confidence_score": 0.95})
+    registry.register(
+        "ollama_classify", lambda text, temperature=0.0: {"intent_label": "buyer", "confidence_score": 0.95}
+    )
     registry.register("hubspot_search_contact", lambda **kwargs: (_ for _ in ()).throw(
         AssertionError("tool should not be called - all fields already present")
     ))
@@ -225,7 +229,8 @@ def test_default_stages_web_form_payload_reaches_enrichment_with_normalized_inta
     assert final.intake.email == "jane@example.com"
     assert final.intake.empty_message is False
     assert final.classification.intent_label == "buyer"
-    assert final.classification.confidence_score == 0.95
+    lexical = confidence_scoring.lexical_signal(_build_lead_text(final.intake), "buyer", has_contact_info=True)
+    assert final.classification.confidence_score == confidence_scoring.combine(0.95, lexical, 1.0)
     assert final.enrichment.resolved_fields == {}
     assert final.run.status == RunStatus.FAILED
     assert final.run.failed_stage == "hubspot_crm_write"
@@ -245,7 +250,9 @@ def test_low_confidence_classification_from_real_stage_reaches_human_review(db_s
         "human_review", "review", ReviewSlice, lambda data, tools: ReviewSlice(queued=True, paused_at_stage="crm_write")
     )
     registry = ToolRegistry()
-    registry.register("ollama_classify", lambda text: {"intent_label": "browser", "confidence_score": 0.2})
+    registry.register(
+        "ollama_classify", lambda text, temperature=0.0: {"intent_label": "browser", "confidence_score": 0.2}
+    )
     graph = build_graph(stages, registry, db_session_factory, confidence_threshold=0.7)
 
     initial_state = LeadPipelineState(
@@ -254,7 +261,11 @@ def test_low_confidence_classification_from_real_stage_reaches_human_review(db_s
     final = run_pipeline("lead-low-conf-real", initial_state, graph=graph, session_factory=db_session_factory)
 
     assert final.classification.intent_label == "browser"
-    assert final.classification.confidence_score == 0.2
+    lexical = confidence_scoring.lexical_signal(
+        _build_lead_text(final.intake), "browser", has_contact_info=False
+    )
+    assert final.classification.confidence_score == confidence_scoring.combine(0.2, lexical, 1.0)
+    assert final.classification.confidence_score < 0.7  # still routes to Human Review
     assert final.review.queued is True
     assert final.crm_write.write_status is None
 

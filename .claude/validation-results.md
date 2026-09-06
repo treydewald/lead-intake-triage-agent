@@ -1105,3 +1105,52 @@ entries), `.claude/intervention-log.md` (`dependency_upgrade` entry).
 a documented, deliberately-deferred residual risk since QA (Step 9) are resolved. This was the specific
 gap `refinement-audit.md` Round 2 named as capping Security at 7/10 — a future Continual Refinement
 round should re-derive that dimension against this now-clean state rather than carrying 7/10 forward.
+
+---
+
+## 2026-09-06 — Continued Development: Confidence Scoring robustness (CD-4)
+
+**Trigger:** User-supplied Suggestion, explicitly framed as the project's last feature addition —
+"establish a more robust confidence scoring system so the project has more diversity than 80, 85, and
+90%." Routed to `docs/continued-development.md` CD-1 (deepens Feature 03, no new Feature ID) →
+CD-2.5 (`architecture-plan-2026-09-06.md`, Deep tier) → CD-3 (implementation).
+
+**Checks run:** `pytest -q` (full suite), `pytest --cov=app --cov-report=term-missing`, `npm test --
+--run` (frontend), and a live `run_benchmark(repeats=3)` call against the real local `llama3.2:3b`
+model (not mocked).
+
+**Result:** PASS. **184/184 backend tests passing (13 new)** — `confidence_scoring.py`,
+`intent_classification.py`, and `ollama_tools.py` all at 100% coverage; **98% total statement coverage,
+unchanged** from the last recorded baseline (no coverage regression per CD-4's own threshold). **66/66
+frontend tests passing, unchanged** — confirmed directly that every existing `confidence_score`
+consumer (`ConfidenceMeter.tsx`, `ReviewQueuePage.tsx`'s `.toFixed(2)`, etc.) already renders an
+arbitrary float, so no frontend file required a change.
+
+**Live verification (not mocked):** a full `run_benchmark(repeats=3)` run against the existing 22-case
+benchmark dataset (~130 real Ollama calls, including the new confirmation samples). **Accuracy 87.0% /
+consistency 90.9% — identical to the last recorded baseline** (this project's Feature 09 session,
+`.claude/pipeline-reference.md`), confirming the new composite scoring introduced no classification
+quality regression. **Confidence values: 19 distinct values across 22 cases**
+(`[0.0, 0.4704, 0.4776, 0.4848, 0.5422, 0.7324, 0.7706, 0.7776, 0.7824, 0.785, 0.785, 0.7874, 0.7874,
+0.7898, 0.7922, 0.7946, 0.7946, 0.8326, 0.8398, 0.8446, 0.847, 0.897]`) — directly closing the
+originating problem (self-reported confidence previously clustering on 0.80/0.85/0.90). Live run took
+~326s for repeats=3, roughly double a pre-change run of the same shape (one extra real Ollama call per
+successful classification) — an accepted, predicted cost (see `architecture-plan-2026-09-06.md`'s
+Risks), not a defect; `BenchmarkPage.tsx`'s existing `running`/"Running…" loading state already covers
+the longer wait with no code change needed (checked directly).
+
+**Architectural fidelity (`architecture-plan-2026-09-06.md`'s Step 4.6 check):** implementation matched
+the plan's Existing Systems Analysis and Implementation Order with one deviation — the plan's Predicted
+Footprint under-counted 3 existing test files (`test_orchestrator_graph.py`, `test_benchmark_harness.py`,
+`test_router_benchmark.py`) that also faked `ollama_classify` with a single-argument lambda and asserted
+an exact `confidence_score`; all three needed mechanical fixture updates once the full suite surfaced
+them. No architectural rework, no duplicated system created. Actual Footprint section appended to the
+plan file.
+
+**Docs updated:** `.claude/portfolio-reference.md` (2 new Key Decisions), `.claude/pipeline-reference.md`
+(Current Step / Next Step entries), `.claude/intervention-log.md` (`implementation_planning_deep` entry),
+`architecture-plan-2026-09-06.md` (Actual Footprint). README/description/LinkedIn intentionally left
+unchanged — this round has no new user-facing route/UI surface for them to describe (see Next Step in
+`.claude/pipeline-reference.md`).
+
+**Verdict:** COMPLETE.

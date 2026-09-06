@@ -43,6 +43,14 @@ def test_classify_intent_calls_with_deterministic_json_mode_options():
     assert client.last_call["messages"][-1] == {"role": "user", "content": "just looking"}
 
 
+def test_classify_intent_passes_through_custom_temperature():
+    client = _FakeChatClient(json.dumps({"intent_label": "buyer", "confidence_score": 0.7}))
+
+    classify_intent(client, "llama3.2:3b", "buy now", temperature=0.6)
+
+    assert client.last_call["options"] == {"temperature": 0.6}
+
+
 def test_register_default_tools_registers_ollama_classify():
     registry = ToolRegistry()
     settings = Settings(ollama_base_url="http://localhost:11434", ollama_model="llama3.2:3b")

@@ -4,6 +4,7 @@ import pytest
 
 import app.benchmark.harness as harness_module
 from app.benchmark.dataset import DatasetItem
+from app.orchestrator import confidence_scoring
 from app.orchestrator.state import IntakeSlice
 from app.routers.benchmark import get_session_factory
 from main import app
@@ -27,7 +28,7 @@ _SMALL_DATASET = [
 def _fake_register_default_tools(scripted_responses):
     responses = iter(scripted_responses)
 
-    def fake_ollama_classify(lead_text: str) -> dict:
+    def fake_ollama_classify(lead_text: str, temperature: float = 0.0) -> dict:
         item = next(responses)
         if isinstance(item, Exception):
             raise item
@@ -52,10 +53,14 @@ def _small_scripted_dataset(monkeypatch):
     monkeypatch.setattr(
         harness_module,
         "register_default_tools",
+        # Each successful classification issues a primary + confirmation call (scripted
+        # identically so they agree) — see `confidence_scoring.py`.
         _fake_register_default_tools(
             [
-                {"intent_label": "buyer", "confidence_score": 0.9},  # buyer, correct
-                {"intent_label": "browser", "confidence_score": 0.4},  # spam, misclassified
+                {"intent_label": "buyer", "confidence_score": 0.9},  # buyer: primary
+                {"intent_label": "buyer", "confidence_score": 0.9},  # buyer: confirmation
+                {"intent_label": "browser", "confidence_score": 0.4},  # spam: primary (misclassified)
+                {"intent_label": "browser", "confidence_score": 0.4},  # spam: confirmation
             ]
         ),
     )
@@ -94,7 +99,10 @@ def test_get_run_detail_lists_every_misclassified_case_with_predicted_and_actual
     assert misclassified[0]["case_id"] == "spam-test"
     assert misclassified[0]["expected_label"] == "spam"
     assert misclassified[0]["predicted_label"] == "browser"
-    assert misclassified[0]["confidence"] == 0.4
+    expected_confidence = confidence_scoring.combine(
+        0.4, confidence_scoring.lexical_signal("spam message", "browser", has_contact_info=False), 1.0
+    )
+    assert misclassified[0]["confidence"] == expected_confidence
 
 
 def test_get_run_detail_404_for_unknown_run(client):

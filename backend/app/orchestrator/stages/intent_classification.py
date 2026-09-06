@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
+from app.orchestrator import confidence_scoring
 from app.orchestrator.contracts import Stage
 from app.orchestrator.state import ClassificationSlice, IntakeSlice
 
@@ -39,6 +40,12 @@ class IntentClassificationStage(Stage[IntakeSlice, ClassificationSlice]):
     raised, so it flows through the existing confidence-threshold routing into Human
     Review instead of halting the run — see `.claude/portfolio-reference.md`'s Key
     Decisions (set by `architecture-plan-feature-03.md`).
+
+    `confidence_score` is a composite, not a single LLM self-report passed through verbatim
+    — see `confidence_scoring.py` and `architecture-plan-2026-09-06.md`. `intent_label` is
+    always decided by the primary (temperature=0) call alone; a second, best-effort
+    confirmation call at a nonzero temperature only feeds the confidence number, and its
+    failure never turns an already-successful classification into a failure.
     """
 
     name = "intent_classification"
@@ -64,10 +71,39 @@ class IntentClassificationStage(Stage[IntakeSlice, ClassificationSlice]):
                 response = None
                 continue
             if _is_valid_response(response):
-                return ClassificationSlice(
-                    intent_label=response["intent_label"],
-                    confidence_score=float(response["confidence_score"]),
-                    model_used="ollama_local",
-                )
+                break
+            response = None
+        else:
+            response = None
 
-        return ClassificationSlice(intent_label=None, confidence_score=0.0, model_used="classification_failed")
+        if response is None:
+            return ClassificationSlice(intent_label=None, confidence_score=0.0, model_used="classification_failed")
+
+        intent_label = response["intent_label"]
+        self_reported = float(response["confidence_score"])
+        confidence_score = self._score_confidence(tools, lead_text, intent_label, self_reported, data)
+        return ClassificationSlice(intent_label=intent_label, confidence_score=confidence_score, model_used="ollama_local")
+
+    @staticmethod
+    def _score_confidence(
+        tools: "ScopedToolProxy", lead_text: str, intent_label: str, self_reported: float, data: IntakeSlice
+    ) -> float:
+        """Best-effort second signal: a confirmation sample at a nonzero temperature, used only
+        to feed the composite confidence score (see `confidence_scoring.combine`). Never raises —
+        a failed or invalid confirmation degrades to `combine()`'s fallback weighting instead."""
+        confirmation: object = None
+        try:
+            confirmation = tools.call(
+                "ollama_classify", lead_text, temperature=confidence_scoring.CONFIRMATION_TEMPERATURE
+            )
+        except Exception:
+            confirmation = None
+
+        consistency: float | None = None
+        if _is_valid_response(confirmation):
+            consistency = 1.0 if confirmation["intent_label"] == intent_label else 0.0
+
+        has_contact_info = bool(data.phone or data.email)
+        lexical = confidence_scoring.lexical_signal(lead_text, intent_label, has_contact_info=has_contact_info)
+
+        return confidence_scoring.combine(self_reported, lexical, consistency)

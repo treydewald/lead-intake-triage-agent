@@ -1,11 +1,26 @@
 # Pipeline Reference — Lead Intake Triage Agent
 
-**Last Updated:** 2026-09-06 (Dependency Upgrade round — langgraph/langchain-core/starlette
-compatibility-verification. All four registered idle-time operations evaluated `NO_ACTION`; the deferred
-security residual risk Round 2 flagged was resolved instead. `pip-audit` 26 advisories→0, zero
+**Last Updated:** 2026-09-06 (Continued Development round — Confidence Scoring robustness).
+User-supplied Suggestion, explicitly framed as the project's last feature addition. CD-1 scoped this
+as deepening Feature 03 (no new Feature ID — no new route/UI surface); CD-2.5 produced
+`architecture-plan-2026-09-06.md` (Deep tier). `IntentClassificationStage.confidence_score` is now a
+composite of the model's self-report, a best-effort self-consistency confirmation call, and a
+deterministic lexical signal (new `app/orchestrator/confidence_scoring.py`), replacing a single
+deterministic LLM self-report that clustered on 0.80/0.85/0.90. 184/184 backend tests passing (13 new),
+66/66 frontend tests unchanged (no frontend file needed to change — every existing consumer already
+renders an arbitrary float). Live-verified against the real local `llama3.2:3b` model via a full
+`run_benchmark(repeats=3)` run: accuracy 87.0%/consistency 90.9% (unchanged from the prior recorded
+baseline — no quality regression), confidence now takes 19 distinct values across 22 cases (was 3).
+Two new Key Decisions added to `.claude/portfolio-reference.md`. Full detail:
+`architecture-plan-2026-09-06.md`'s Actual Footprint; `.claude/intervention-log.md`'s
+`implementation_planning_deep` entry for this round.
+
+**Prior to this** (Dependency Upgrade round — langgraph/langchain-core/starlette
+compatibility-verification): All four registered idle-time operations evaluated `NO_ACTION`; the
+deferred security residual risk Round 2 flagged was resolved instead. `pip-audit` 26 advisories→0, zero
 application code changes, 171/171 tests throughout, live end-to-end pipeline run confirmed no behavioral
 regression. Full detail: `.claude/validation-results.md`'s Dependency Upgrade entry,
-`.claude/intervention-log.md`'s `dependency_upgrade` entry, `refinement-audit.md`'s addendum.)
+`.claude/intervention-log.md`'s `dependency_upgrade` entry, `refinement-audit.md`'s addendum.
 
 How *this project* is using the Upwork Portfolio Project Pipeline. Distinct from
 `portfolio-reference.md`, which is about the product — this file is about pipeline state.
@@ -14,7 +29,78 @@ How *this project* is using the Upwork Portfolio Project Pipeline. Distinct from
 
 ## Current Step
 
-**This session (2026-09-06, thirty-fifth session) — Dependency Upgrade: langgraph/langchain-core/
+**This session (2026-09-06, thirty-sixth session) — Continued Development: Confidence Scoring
+robustness (user-supplied Suggestion, explicitly framed as the project's last feature addition):**
+
+Per Master Prompt Step 2, checked `.claude/refinement-backlog.md` (zero `OPEN` entries) and
+`pipeline-reference.md`'s other loop-tracking (no matching gap under any other loop) before routing —
+neither named this, so this Suggestion entered `docs/continued-development.md`'s addendum loop at CD-1
+directly, per that doc's own routing rule.
+
+**CD-1 (define the addition):** The Suggestion — "establish a more robust confidence scoring system so
+the project has more diversity than 80, 85, and 90%" — adds no new route, UI surface, or countable
+feature; it materially deepens an existing capability (how `IntentClassificationStage.confidence_score`
+is computed, Feature 03). Per CD-1's own rule for this case, CD-2 (new Feature ID spec) was skipped and
+this round is logged directly against Feature 03 here.
+
+**CD-2.5 (Implementation Planner, re-entered):** Classified AI integration / architecture change,
+Planning Depth Deep (touches 5 existing systems: the classification stage, the Ollama tool binding, the
+benchmark harness, the live confidence-threshold routing gate, and `.claude/portfolio-reference.md`'s
+Key Decisions). Produced `architecture-plan-2026-09-06.md`. Root cause identified: a single
+deterministic (temperature=0) LLM self-report clusters on a small set of round numbers — this project's
+own real local `llama3.2:3b` model consistently produced 0.80/0.85/0.90, matching a prior session's own
+note about needing a `CONFIDENCE_THRESHOLD=0.95` override "since the real local model proved
+consistently overconfident on ambiguous test messages." Existing-system reuse identified: Feature 09's
+benchmark harness already established that self-consistency across repeated real model calls is a
+meaningful signal in this project (its own `repeats`-based consistency metric) — this round applies
+that same idea inside the live classification path itself, through the exact same `ollama_classify`
+tool binding (no new tool registered).
+
+**CD-3 (implement):** New `backend/app/orchestrator/confidence_scoring.py` — pure functions
+`lexical_signal()` (deterministic, LLM-independent signal from message length, per-label keyword hits,
+and contact-info completeness) and `combine()` (weighted blend: 0.55 self-reported / 0.25 consistency /
+0.20 lexical when a confirmation sample succeeds; 0.70/0.30 fallback split otherwise, clamped to
+[0,1]). `ollama_tools.classify_intent()` gained an optional `temperature` parameter (default 0.0 —
+every existing caller unaffected). `IntentClassificationStage.run()`: `intent_label` is still decided
+by the primary (temperature=0) call alone, unchanged; on a valid primary response, a new
+`_score_confidence()` issues exactly one best-effort confirmation call at a nonzero temperature
+(`confidence_scoring.CONFIRMATION_TEMPERATURE = 0.6`), wrapped in `try/except Exception` so its failure
+never turns a successful classification into `classification_failed` — it only degrades `combine()` to
+the two-signal fallback. Two new Key Decisions added to `.claude/portfolio-reference.md` (confidence
+values must be composite, never a bare self-report; a stage's own best-effort secondary signal call
+must be exception-safe and degrade gracefully, generalizing the existing Features 03/04/05/10
+failure-handling family to a new case).
+
+**CD-4 (verify):** Updating the wiring surfaced 3 more existing test files this plan's Existing
+Systems Analysis hadn't named — `test_orchestrator_graph.py`, `test_benchmark_harness.py`, and
+`test_router_benchmark.py` all faked `ollama_classify` with a single-argument lambda and asserted an
+exact `confidence_score` value; all three needed their fakes updated to accept the new confirmation
+call and their assertions updated to compare against `confidence_scoring.combine(...)` instead of the
+raw mocked number — logged as a planning-accuracy lesson in the architecture plan's own Actual
+Footprint, not a defect. **184/184 backend tests passing (13 new: 9 in the new
+`test_confidence_scoring.py`, plus stage/tool tests covering agreement, disagreement, and
+confirmation-call-failure fallback). 66/66 frontend tests unchanged** — confirmed directly (not
+assumed) that every existing `confidence_score` consumer (`ConfidenceMeter.tsx`'s
+`Math.round(value * 100)`, `ReviewQueuePage.tsx`'s `.toFixed(2)`, etc.) already renders an arbitrary
+float, so no frontend file needed to change. **Live-verified against the real local `llama3.2:3b`
+model (not mocked):** ran the real `run_benchmark(repeats=3)` end-to-end against the existing 22-case
+dataset (~130 real Ollama calls). Result: accuracy 87.0% / consistency 90.9% — identical to the last
+recorded baseline (this file's own Feature 09 session note), confirming no quality regression.
+**Confidence diversity: 19 distinct values across 22 cases** (was clustering on 3 before this round) —
+directly closing the originating problem. Live run took ~326s for repeats=3 (roughly double a
+pre-change run of the same shape, as predicted in the architecture plan's Risks — an accepted,
+one-time cost for this project's synchronous, single-operator benchmark endpoint). Full detail:
+`architecture-plan-2026-09-06.md`'s Actual Footprint.
+
+**CD-5 through CD-8 (polish/QA/screenshots/re-evaluate):** Skipped — no UI surface changed (confirmed
+above), so there is nothing for Step 8/10/11 to re-verify visually; CD-6's regression smoke pass is
+already covered by CD-4's full-suite + live-benchmark verification above.
+
+**CD-9/CD-10 (docs refresh/re-publish):** Not run this session — see Next Step below.
+
+Pipeline-level friction check: none found this session.
+
+**Prior session (2026-09-06, thirty-fifth session) — Dependency Upgrade: langgraph/langchain-core/
 starlette compatibility-verification round (no Suggestion queued, `.claude/refinement-backlog.md` had
 zero `OPEN` entries, project idle — Steps 1-16 all complete, no in-progress CD/audit round):**
 
@@ -1577,7 +1663,27 @@ Tier section, STANDARD mode with Tier 2/3 features present falls back to full ti
 
 ## Next Step
 
-**This session (2026-09-06, thirtieth session):** Features 16 (Failed-Run Retry/Resubmission) AND
+**This session (2026-09-06, thirty-sixth session):** Continued Development — Confidence Scoring
+robustness round COMPLETED (CD-1 through CD-4; CD-5–CD-8 skipped, no UI surface changed) — see Current
+Step above for full detail. **The user explicitly framed this as the project's last feature addition.**
+CD-9 (regenerate README/description/LinkedIn) and CD-10 (re-publish) were **not** run this session —
+this is a backend-only correctness/quality deepening with zero user-facing route or page change, so
+there is no new feature surface for those docs to describe; the existing README/description already
+describe Feature 03's classification capability at the right level of abstraction (they don't currently
+claim anything specific about confidence-value distribution that this round would make stale). **Next
+step for a future session:** no Suggestion is queued and no backlog entry is open. Given the user's "last
+feature" framing, the highest-value next session is likely a final CD-9/CD-10 pass (confirm README/
+description/LinkedIn still accurately describe the finished feature set, then treat the project as
+feature-complete going forward) rather than seeking new scope — though per Master Prompt Step 2, an
+idle future session should still run `docs/next-action-selection.md`'s Dynamic Next-Action Selection
+(Scope Expansion, Continual Project Refinement, UI Audit & Refinement, or In-App Cohesion Audit) rather
+than assuming there is nothing to do, since polish/audit rounds remain in scope even after feature
+additions stop. One minor note, not a gap: `BenchmarkPage.tsx`'s "Run Benchmark" now takes roughly twice as long to
+complete (each of the 22×`repeats` attempts issues 2 real Ollama calls instead of 1, per this round's
+confirmation-sampling addition) — checked directly, and the page already has a correct `running`
+loading state (`disabled` button + "Running…" label) that covers this fine with no code change needed.
+
+**Prior session (2026-09-06, thirtieth session):** Features 16 (Failed-Run Retry/Resubmission) AND
 17 (Confidence-Threshold What-If Simulator) both COMPLETED — CD-1 through CD-4 for each, see
 Current Step above. **Both P1 candidates from `scope-expansion.md`'s Round 1 are now shipped; no
 Continued Development round is currently queued.** No `.claude/refinement-backlog.md` entries are

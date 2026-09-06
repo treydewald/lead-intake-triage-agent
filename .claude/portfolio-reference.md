@@ -665,3 +665,25 @@ that doesn't exist yet.)*
   view the same way, whenever that filter already exists — and should stay unlinked, per
   `docs/in-app-cohesion.md` §4, when no such destination exists yet (e.g. Reviewer Throughput's
   reviewer names, correctly left unlinked this round since no reviewer-detail view exists).
+- **`IntentClassificationStage.confidence_score` (and any future stage that emits a confidence-style
+  value) must be a composite of at least one LLM-independent signal, never a single LLM self-report
+  passed through verbatim.** A deterministic (temperature=0) self-report alone clusters on a small set
+  of round numbers (this project's own real local `llama3.2:3b` model consistently produced
+  0.80/0.85/0.90) rather than reflecting real, continuously-varying evidence. `confidence_scoring.py`
+  blends the self-report with a best-effort self-consistency sample (a second call at a nonzero
+  temperature, testing label agreement) and a deterministic lexical signal derived from the lead's own
+  text/contact fields — live-verified against the real model to produce 19 distinct values across a
+  22-case benchmark run, with accuracy/consistency unchanged from the pre-change baseline (87.0%/
+  90.9%). Set by this round's implementation plan (`architecture-plan-2026-09-06.md`).
+- **A stage's own best-effort secondary signal-gathering call (distinct from its primary, run-defining
+  call) must be exception-safe inside `run()` and degrade to a reduced-weight fallback on failure,
+  never raising or invalidating an already-successful primary result.**
+  `IntentClassificationStage._score_confidence()`'s confirmation call (above) never affects
+  `intent_label` and never turns a successful classification into `classification_failed` if it fails
+  or returns an invalid response — `confidence_scoring.combine()` falls back to a two-signal weighting
+  instead. This generalizes, rather than restates, the existing "external-system failure encoded as
+  data, never raised" family (Features 03/04/05) and the "internally exception-safe, return a status,
+  never raise" rule (Feature 10) to a new case neither covered: a *secondary* call a stage makes to
+  enrich its own already-decided output, as opposed to a primary call the pipeline must route around or
+  plumbing invoked strictly after a stage completes. Set by this round's implementation plan
+  (`architecture-plan-2026-09-06.md`).

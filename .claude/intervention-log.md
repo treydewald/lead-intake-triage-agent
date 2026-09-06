@@ -589,3 +589,37 @@ edit to that same entry once the round they belong to is scored, not a new entry
   separate 1.0 major-version boundaries (`langgraph`, `starlette`) in one round. Zero application code
   needed to change — only pinned versions.
 - Agent: claude/claude_code
+
+### 2026-09-06 — implementation_planning_deep (Confidence Scoring robustness, CD round)
+- Trigger: user-supplied Suggestion, explicitly framed as the project's last feature addition —
+  "establish a more robust confidence scoring system so the project has more diversity than 80, 85, and
+  90%." Checked `.claude/refinement-backlog.md` (zero `OPEN` entries) and this file's other loop-tracking
+  before routing; neither named this gap, so it entered `docs/continued-development.md`'s addendum loop
+  at CD-1 directly. CD-1 classified it as deepening Feature 03 (no new route/UI surface, no new Feature
+  ID), so CD-2.5 (Implementation Planner) ran at Planning Depth Deep — AI integration/architecture change
+  touching 5 existing systems.
+- Expected effect (`architecture-plan-2026-09-06.md`'s Predicted Footprint / Acceptance Criteria): a
+  composite `confidence_score` (self-report + best-effort self-consistency confirmation call + a
+  deterministic lexical signal) producing more than 3 distinct values on a real live run, with no
+  material accuracy/consistency regression versus the last recorded benchmark baseline, and ~5 files
+  changed (2 new, 4 modified).
+- Outcome: COMPLETED. New `app/orchestrator/confidence_scoring.py`; `ollama_tools.classify_intent()`
+  gained an optional `temperature` parameter; `IntentClassificationStage` issues one best-effort
+  confirmation call after a valid primary classification, never overriding `intent_label`, degrading to
+  a two-signal fallback if the confirmation call fails. Predicted Footprint under-counted by 3 files — 3
+  existing test files elsewhere in the suite (`test_orchestrator_graph.py`, `test_benchmark_harness.py`,
+  `test_router_benchmark.py`) also faked `ollama_classify` with a fixed-arity lambda and asserted an
+  exact `confidence_score`, surfaced only once the full suite ran, not by the plan's Existing Systems
+  Analysis. 184/184 backend tests passing (13 new), 66/66 frontend tests unchanged (confirmed, not
+  assumed, that no frontend file renders confidence in a way that would need to change). Live-verified
+  against the real local `llama3.2:3b` model: a full `run_benchmark(repeats=3)` run produced accuracy
+  87.0%/consistency 90.9% — identical to the pre-change baseline — with confidence now taking 19 distinct
+  values across 22 cases (previously clustering on 3). Two new Key Decisions added to
+  `.claude/portfolio-reference.md`.
+- Surprise: a Deep-tier Existing Systems Analysis that reasoned carefully about the *production* call
+  sites (the stage, the tool binding, the benchmark harness) still under-counted *test* call sites — a
+  project-wide grep for the literal string `"ollama_classify"` across `app/tests/` up front would have
+  found all 3 missed fakes before CD-3 began, rather than during CD-4's full-suite run. No rework was
+  needed (every fix was mechanical), but this is a concrete instance of the general lesson that a tool
+  binding's "existing systems" footprint includes its test doubles, not just its production callers.
+- Agent: claude/claude_code
