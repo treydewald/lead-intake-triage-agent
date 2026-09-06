@@ -80,6 +80,30 @@ def test_deliver_webhook_notification_timeout_returns_failed_without_raising():
     assert result == {"delivered": False, "status_code": None, "error": "TimeoutException"}
 
 
+def test_deliver_webhook_notification_includes_interactive_buttons_when_run_id_given():
+    """Feature 19: when `run_id` is provided, the payload gains a Slack Block Kit
+    `actions` block with Approve/Reject buttons carrying that run id - see
+    architecture-plan-feature-19.md."""
+    client = _FakeWebhookClient(_FakeWebhookResponse(status_code=200))
+
+    result = deliver_webhook_notification(
+        "https://hooks.example.com/incoming",
+        message="Lead Jane Doe is awaiting human review.",
+        detail_link="/reviews/run-1",
+        run_id="run-1",
+        client=client,
+    )
+
+    assert result["delivered"] is True
+    sent = client.last_call["json"]
+    assert sent["text"] == "Lead Jane Doe is awaiting human review.\n/reviews/run-1"
+    actions_block = next(block for block in sent["blocks"] if block["type"] == "actions")
+    buttons = {el["action_id"]: el for el in actions_block["elements"]}
+    assert set(buttons.keys()) == {"approve_lead", "reject_lead"}
+    assert buttons["approve_lead"]["value"] == "run-1"
+    assert buttons["reject_lead"]["value"] == "run-1"
+
+
 def test_deliver_webhook_notification_error_never_includes_the_webhook_url():
     """Risk mitigation from architecture-plan-feature-10.md: `error` must be built from
     the status code/exception type only, never interpolate the configured URL (a

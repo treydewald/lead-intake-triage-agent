@@ -33,5 +33,11 @@ class Settings(BaseSettings):
     # not an error.
     notification_webhook_url: str | None = None
 
+    # Feature 19: Slack's own request-signing secret, used to verify
+    # POST /slack/interactions actually originated from Slack before trusting anything
+    # in the payload. Unset by default - with no secret configured, every request to
+    # that endpoint is rejected (fail closed, never fail open).
+    slack_signing_secret: str | None = None
+
 
 settings = Settings()

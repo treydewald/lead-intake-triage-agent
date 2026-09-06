@@ -1,8 +1,9 @@
 # Pipeline Reference — Lead Intake Triage Agent
 
-**Last Updated:** 2026-09-06 (Continued Development — Round 2, Feature 18 (Aggregate Lead Funnel &
-Reviewer Throughput Dashboard) COMPLETED. Feature 19 (Interactive Slack Review Actions, S-04) is
-in progress in the same session, per the user's "both, in sequence" tie-break answer.)
+**Last Updated:** 2026-09-06 (Continued Development — Round 3, Feature 19 (Interactive Slack Review
+Actions) COMPLETED, immediately after Feature 18 in the same session. All of `scope-expansion.md`'s
+Round 1 P1/P2 candidates are now shipped (S-01 through S-04); only S-05 (P3) remains. No Continued
+Development round is currently queued.)
 
 How *this project* is using the Upwork Portfolio Project Pipeline. Distinct from
 `portfolio-reference.md`, which is about the product — this file is about pipeline state.
@@ -11,7 +12,38 @@ How *this project* is using the Upwork Portfolio Project Pipeline. Distinct from
 
 ## Current Step
 
-**This session (2026-09-06, thirty-first session) — Continued Development, Round 2, Feature 18:**
+**This session (2026-09-06, thirty-first session), continued — Feature 19:** After Feature 18
+shipped, continued into Feature 19 (S-04, Interactive Slack Review Actions) per the user's "both, in
+sequence" tie-break answer. Ran CD-1 through CD-4 — see `roadmap-addendum-2026-09-06-round3.md`
+(CD-1), `implementation_plan.md`'s Feature 19 entry (CD-2), `architecture-plan-feature-19.md`
+(CD-2.5/CD-4), and `.claude/validation-results.md`'s new CD-4 entry for full detail. New
+`POST /slack/interactions` (a genuine inbound trust boundary verifying Slack's own HMAC-SHA256
+request signature — fails closed on any missing/invalid input); extracted `action_review`'s logic
+into `orchestrator/review_actions.py::apply_review_action()` so both the existing HTTP endpoint and
+the new Slack endpoint call one implementation, verified behavior-preserving by
+`test_router_reviews.py` passing completely unmodified; extended Feature 10's outbound webhook with
+optional Slack Block Kit Approve/Reject buttons. 171/171 backend tests (+17), coverage held at 98%,
+no frontend files touched (no UI surface). Live-verified end-to-end against the real running backend
+— deliberately consumed the project's one real `awaiting_review` item via a real, correctly-signed
+signature (not a synthetic example): a forged signature and a stale timestamp were both rejected
+before touching the review, and the real signed click actually approved the real lead, resuming it
+through the real orchestrator into the same expected (documented) HubSpot-write limitation Feature 05
+already established. `.claude/seed-data.md` updated to record the consumption. Two new Key Decisions
+recorded (`.claude/portfolio-reference.md`): multi-transport domain logic lives in
+`app/orchestrator/`, and an inbound trust boundary fails closed on every missing input, not just a
+wrong signature.
+
+This ships S-04 — the last of `scope-expansion.md`'s Round 1 P1/P2 tie-break candidates. Only S-05
+(P3, Exportable Audit Trail CSV) remains unshipped from that round.
+
+Pipeline-level friction check (Feature 19): none found — `docs/continued-development.md`'s CD-1
+through CD-4 sequence and `docs/implementation-planning.md`'s Deep-tier planning depth (used here for
+the first time on this project, for a security-sensitive inbound trust boundary) both worked exactly
+as documented.
+
+---
+
+**Prior update, same session (2026-09-06, thirty-first session) — Continued Development, Round 2, Feature 18:**
 No Suggestion was queued and `.claude/refinement-backlog.md` had zero `OPEN` entries (all 9
 `COMPLETED`), so per Master Prompt Step 2's idle branch, ran `docs/next-action-selection.md`'s
 Dynamic Next-Action Selection. Evidence favored UI Audit & Refinement (Feature 17's expanded panel

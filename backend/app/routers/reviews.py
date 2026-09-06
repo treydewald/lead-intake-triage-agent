@@ -1,19 +1,15 @@
 from __future__ import annotations
 
-from datetime import datetime, timezone
 from typing import Callable
 
 from fastapi import APIRouter, Depends, HTTPException
 from langgraph.graph.state import CompiledStateGraph
-from sqlalchemy import update
 
 from app.database.session import SessionLocal
-from app.models.pipeline_run import PipelineRun
 from app.models.review_queue import ReviewQueueItem
-from app.orchestrator.graph import build_production_resume_graph, persist_outcome_notification, resume_pipeline
-from app.orchestrator.stages.outcome_notification import OutcomeNotificationStage
-from app.orchestrator.state import LeadPipelineState, RunStatus
-from app.orchestrator.tool_scope import ToolRegistry
+from app.orchestrator.graph import build_production_resume_graph
+from app.orchestrator.review_actions import apply_review_action
+from app.orchestrator.state import LeadPipelineState
 from app.schemas.pipeline import PipelineRunOut
 from app.schemas.review import ReviewActionRequest, ReviewQueueItemOut
 
@@ -82,77 +78,15 @@ def action_review(
     session_factory: SessionFactory = Depends(get_session_factory),
     resume_graph_factory: GraphFactory = Depends(get_resume_graph_factory),
 ) -> PipelineRunOut:
-    if payload.action == "edit" and not payload.corrected_intent_label:
-        raise HTTPException(status_code=422, detail="corrected_intent_label is required when action is 'edit'")
-
-    state_snapshot: str | None = None
-
-    db = session_factory()
-    try:
-        item = db.query(ReviewQueueItem).filter(ReviewQueueItem.run_id == run_id).first()
-        if item is None:
-            raise HTTPException(status_code=404, detail="Review queue item not found")
-
-        # Concurrency-safe claim: the atomic UPDATE's matched-row-count is the only
-        # authority for whether this is the first action applied - never a
-        # separate SELECT-then-branch on `status`. A second concurrent/sequential
-        # call on an already-actioned item matches zero rows and is rejected.
-        result = db.execute(
-            update(ReviewQueueItem)
-            .where(ReviewQueueItem.run_id == run_id, ReviewQueueItem.status == "PENDING")
-            .values(
-                status="ACTIONED",
-                reviewer_action=payload.action,
-                corrected_intent_label=payload.corrected_intent_label,
-                reviewer_name=payload.reviewer_name,
-                actioned_at=datetime.now(timezone.utc),
-            )
-        )
-        db.commit()
-        if result.rowcount == 0:
-            raise HTTPException(status_code=409, detail="Review item already actioned")
-
-        state_snapshot = item.state_snapshot
-
-        if payload.action == "reject":
-            run_row = db.get(PipelineRun, run_id)
-            if run_row is not None:
-                run_row.status = RunStatus.REJECTED.value
-                db.commit()
-                db.refresh(run_row)
-            try:
-                rejected_state = LeadPipelineState.model_validate_json(state_snapshot)
-                rejected_state.run = rejected_state.run.model_copy(update={"status": RunStatus.REJECTED})
-                persist_outcome_notification(
-                    rejected_state, OutcomeNotificationStage(), ToolRegistry(), session_factory
-                )
-            except Exception:
-                # Notification creation is a side effect of a reviewer decision, never
-                # a gating condition - it must not affect the REJECTED status already
-                # committed above.
-                pass
-            return PipelineRunOut.model_validate(run_row)
-    finally:
-        db.close()
-
-    # approve / edit: reconstruct the paused state and re-enter the orchestrator via
-    # resume_pipeline - never a bespoke API code path calling stage tools directly.
-    state = LeadPipelineState.model_validate_json(state_snapshot)
-    state.review = state.review.model_copy(
-        update={"reviewer_action": payload.action, "corrected_intent_label": payload.corrected_intent_label}
+    """Feature 19: thin wrapper over `apply_review_action()` — the actual logic now
+    lives in `orchestrator/review_actions.py` so the new Slack callback endpoint
+    (`routers/slack.py`) can call the exact same implementation rather than a parallel
+    one. See architecture-plan-feature-19.md."""
+    return apply_review_action(
+        run_id,
+        action=payload.action,
+        corrected_intent_label=payload.corrected_intent_label,
+        reviewer_name=payload.reviewer_name,
+        session_factory=session_factory,
+        resume_graph_factory=resume_graph_factory,
     )
-    if payload.action == "edit":
-        state.classification = state.classification.model_copy(
-            update={"intent_label": payload.corrected_intent_label}
-        )
-
-    final_state = resume_pipeline(
-        run_id, state, graph=resume_graph_factory(session_factory), session_factory=session_factory
-    )
-
-    db = session_factory()
-    try:
-        run_row = db.get(PipelineRun, final_state.run.run_id)
-        return PipelineRunOut.model_validate(run_row)
-    finally:
-        db.close()

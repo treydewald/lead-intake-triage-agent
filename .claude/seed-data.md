@@ -31,6 +31,16 @@ matches what the screenshots actually show.
   (e.g. `name: "Morgan Ellis"`, `email: "morgan.ellis@example.com"`).
 
 ### Review Queue item (`ReviewQueueItem`)
+- **Consumed 2026-09-06** (Feature 19's CD-4 live verification): the one `awaiting_review` item
+  described below (lead `7b0d3af5`) was approved via a real, correctly-signed
+  `POST /slack/interactions` call against a disposable second `uvicorn` instance (port 8001, same
+  `leads.db` file, `SLACK_SIGNING_SECRET` set only in that process's environment) — deliberately
+  chosen as the most valuable verification available (a real signature, a real queued lead, a real
+  resume through the orchestrator) over a synthetic example, following the exact same "disposable
+  second instance against the same DB file" technique this file already documents below. The review
+  queue is now empty; a future Step 10/11/12 or Continual Refinement session capturing fresh
+  Review Queue screenshots needs to regenerate a new `awaiting_review` item first, using the same
+  technique (a webform submission through a disposable instance with a raised `CONFIDENCE_THRESHOLD`).
 - Count: 1 `awaiting_review` item at capture time (lead `7b0d3af5`, draft classification `buyer`,
   confidence 0.90), used for both `05-review-queue.png` and `06-review-detail.png`.
 - Why a fresh one was needed: both real pending items from Step 9's live QA testing were consumed

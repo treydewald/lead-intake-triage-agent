@@ -22,6 +22,7 @@ def deliver_webhook_notification(
     *,
     message: str,
     detail_link: str,
+    run_id: str | None = None,
     timeout: float = 5.0,
     client: _HttpClient | None = None,
 ) -> dict:
@@ -39,8 +40,39 @@ def deliver_webhook_notification(
     is never interpolated into it, since `GET /notifications` serves this table with no
     auth. Exactly one attempt, no retry loop (per the feature spec's "do not retry
     indefinitely" edge case).
+
+    Feature 19: when `run_id` is provided (the caller only ever does this for
+    `awaiting_review` deliveries — see `graph.py`'s call site), the payload also carries
+    a Slack Block Kit `actions` block with Approve/Reject buttons whose `value` is the
+    run id, so `POST /slack/interactions` can route a click back to
+    `apply_review_action()`. When `run_id` is omitted (every other outcome type), the
+    payload shape is byte-for-byte unchanged from before this feature — no regression to
+    a non-`awaiting_review` delivery.
     """
-    payload = {"text": f"{message}\n{detail_link}"}
+    payload: dict = {"text": f"{message}\n{detail_link}"}
+    if run_id is not None:
+        payload["blocks"] = [
+            {"type": "section", "text": {"type": "mrkdwn", "text": f"{message}\n{detail_link}"}},
+            {
+                "type": "actions",
+                "elements": [
+                    {
+                        "type": "button",
+                        "text": {"type": "plain_text", "text": "Approve"},
+                        "style": "primary",
+                        "action_id": "approve_lead",
+                        "value": run_id,
+                    },
+                    {
+                        "type": "button",
+                        "text": {"type": "plain_text", "text": "Reject"},
+                        "style": "danger",
+                        "action_id": "reject_lead",
+                        "value": run_id,
+                    },
+                ],
+            },
+        ]
     try:
         if client is not None:
             response = client.post(webhook_url, json=payload)

@@ -113,8 +113,13 @@ Review Actions) follows as its own CD round immediately after, same pattern as t
   Dashboard. CD-1 through CD-4 all complete, live-verified against real accumulated data and
   visually confirmed with real browser automation at all four target viewports; see
   `.claude/validation-results.md`'s CD-4 entry.
-- S-04: Status: In Progress — entering CD-1 this session as Feature 19, per the user's "both, in
-  sequence" answer.
+- S-04: Status: Shipped (2026-09-06) — Feature 19, Interactive Slack Review Actions. CD-1 through
+  CD-4 all complete, including a real, correctly-signed live approval of the project's one real
+  `awaiting_review` item end-to-end (signature verification -> shared action logic -> resume through
+  the real orchestrator); see `.claude/validation-results.md`'s CD-4 entry. Only the real-Slack-
+  workspace-delivery leg is honestly recorded as unverifiable in this environment (no live Slack app
+  credentials), the same category of gap Feature 05's HubSpot-write verification already established
+  a precedent for.
 
 NEXT ROUND
 Once S-03/S-04 ship, all 5 of this round's candidates will be resolved except S-05 (P3, CSV export),

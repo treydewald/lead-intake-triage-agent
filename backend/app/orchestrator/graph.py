@@ -148,7 +148,10 @@ def persist_outcome_notification(
 
         if settings.notification_webhook_url:
             result = deliver_webhook_notification(
-                settings.notification_webhook_url, message=output.message, detail_link=output.detail_link
+                settings.notification_webhook_url,
+                message=output.message,
+                detail_link=output.detail_link,
+                run_id=state.run.run_id,
             )
             external_delivery_status = "sent" if result["delivered"] else "failed"
             external_delivery_error = result["error"]

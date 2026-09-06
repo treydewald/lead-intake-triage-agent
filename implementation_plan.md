@@ -1776,4 +1776,157 @@ Success Criteria
 
 ====================================================================
 
+Feature 19: Interactive Slack Review Actions
+
+Tier: Addendum (closes the loop on Feature 10's one-way delivery — see
+roadmap-addendum-2026-09-06-round3.md; proposed by `docs/scope-expansion.md`'s Scope Expander,
+Round 1, S-04)
+
+Execution Metadata (REQUIRED)
+status: COMPLETED
+group: SLACK_INTERACTIONS
+locked: false
+assigned_worker: null
+is_blocked: false
+depends_on: [06, 10, 11]
+
+Description
+Feature 10 delivers a one-way Slack-compatible webhook alert when a lead reaches `awaiting_review`,
+but a reviewer still has to leave Slack and open this app's Review Queue to act. This feature adds a
+real inbound trust boundary — a signature-verified Slack interactive-component callback endpoint —
+and wires Feature 10's outbound message to carry Approve/Reject buttons that call it, so the alert
+and the action live in the same place.
+
+Requirements
+
+Functional Requirements:
+- Add `POST /slack/interactions`, accepting Slack's `application/x-www-form-urlencoded` interactive-
+  component payload (a single `payload` field containing JSON)
+- Verify every request's `X-Slack-Signature`/`X-Slack-Request-Timestamp` headers against
+  `SLACK_SIGNING_SECRET` using Slack's own HMAC-SHA256 scheme before trusting anything in the body;
+  reject with `401` if the secret isn't configured, the signature doesn't match, or the timestamp is
+  more than 5 minutes old (replay protection)
+- Extend `deliver_webhook_notification()` (Feature 10) with an optional Slack Block Kit `actions`
+  block (Approve/Reject buttons, each carrying the run id as `value`) sent alongside the existing
+  plain-text message, only for `awaiting_review` deliveries — the same gate Feature 10 already
+  applies
+- Route a valid Approve/Reject click through the exact same action logic
+  `POST /reviews/{run_id}/action` already uses (extracted into one shared function both endpoints
+  call), attributing the action to the Slack user's username via the existing `reviewer_name` field
+
+System Behaviors:
+- Approve/reject only via Slack buttons — "edit" (which needs a corrected label as free text) is
+  explicitly out of scope for this round; a plain button click carries no text-input surface without
+  a full Slack modal flow (see Implementation Notes)
+- A request that fails signature verification never reaches the review-action logic at all — auth
+  happens strictly before payload parsing
+- A structurally valid, correctly-signed request naming an already-actioned or nonexistent run
+  returns `200` with an explanatory message body (Slack's own delivery semantics expect `200` to
+  acknowledge receipt; a non-2xx response causes Slack to retry, which would misfire against the
+  already-idempotent claim this endpoint's underlying action logic performs) — genuine auth/transport
+  failures (bad signature, malformed payload, unrecognized action) still return real 4xx codes
+
+Edge Cases:
+- **`SLACK_SIGNING_SECRET` not configured:** every request to `/slack/interactions` is rejected with
+  `401` — fail closed, never fail open, since an unconfigured secret must not silently accept
+  unverified requests
+- **Signature valid but timestamp stale (>5 minutes old):** rejected with `401` (replay protection),
+  independent of whether the HMAC itself would otherwise match
+- **A click on an already-actioned review (double-click, or two reviewers racing):** the same atomic-
+  claim mechanism `POST /reviews/{run_id}/action` already uses rejects the second one; the Slack
+  endpoint surfaces this as a `200` response with a "already actioned" message, not a raw `409`
+- **A click referencing a `run_id` with no matching review-queue item:** same treatment — `200` with
+  an explanatory message, not a raw `404`
+- **A payload with an unrecognized `action_id`** (neither `approve_lead` nor `reject_lead`): rejected
+  with `400` — this is a malformed/unexpected request shape, not a normal business outcome
+
+Inputs
+- Slack's interactive-component POST body (form-encoded `payload` JSON: `actions[].action_id`,
+  `actions[].value` (the run id), `user.username`)
+- `X-Slack-Signature`/`X-Slack-Request-Timestamp` request headers
+- `Settings.slack_signing_secret` (new, optional, unset by default)
+
+Outputs
+- `POST /slack/interactions` → a small JSON body Slack renders back into the channel (`text`,
+  `replace_original`)
+- The existing `PipelineRunOut`-shaped side effect of a successful approve/reject, identical to what
+  `POST /reviews/{run_id}/action` already produces (same underlying function)
+
+Acceptance Criteria
+- [x] A correctly-signed request with a valid `approve_lead`/`reject_lead` action reaches the same
+  action logic `POST /reviews/{run_id}/action` uses, verified by both endpoints producing identical
+  `PipelineRun` state changes for equivalent inputs
+- [x] An incorrectly-signed request, a stale-timestamp request, and a request sent with no
+  `SLACK_SIGNING_SECRET` configured are all rejected with `401` before any payload parsing occurs
+  (verified by asserting the underlying review-queue item is untouched)
+- [x] Feature 10's outbound payload includes interactive buttons only for `awaiting_review`
+  deliveries, and the existing plain-text-only payload shape is unchanged when no `run_id` is passed
+  (no regression to Feature 10's existing tests)
+- [x] An already-actioned or nonexistent run returns `200` with an explanatory message; an
+  unrecognized `action_id` returns `400`
+
+Dependencies
+- Depends on: Feature 06 (`ReviewQueueItem`, the resume-graph action logic this reuses), Feature 10
+  (the existing outbound webhook this extends), Feature 11 (`reviewer_name`)
+- Blocks: none
+
+Implementation Notes
+
+Technology Stack:
+- Backend: FastAPI — one new router; signature verification via Python's standard `hmac`/`hashlib`
+  (no new dependency)
+- Frontend: none — this feature has no UI surface of its own
+- Database: none — no new columns, no new tables
+
+Key Files to Create:
+- `backend/app/orchestrator/review_actions.py` — `apply_review_action()`, extracted from
+  `routers/reviews.py`'s `action_review` so both endpoints call one implementation
+- `backend/app/routers/slack.py` — `POST /slack/interactions` + `verify_slack_signature()`
+- `backend/app/tests/test_slack_signature.py` — pure HMAC verification tests (no live Slack needed)
+- `backend/app/tests/test_router_slack_interactions.py`
+
+Key Files to Modify:
+- `backend/app/core/config.py` — add `slack_signing_secret: str | None = None`
+- `backend/.env.example` — document `SLACK_SIGNING_SECRET`
+- `backend/app/orchestrator/tools/webhook_tools.py` — optional `run_id` parameter adding the
+  interactive-buttons Block Kit payload
+- `backend/app/orchestrator/graph.py` — pass `run_id=state.run.run_id` to
+  `deliver_webhook_notification()`
+- `backend/app/routers/reviews.py` — `action_review` becomes a thin wrapper over
+  `apply_review_action()`
+- `backend/main.py` — register the new `slack` router
+- `backend/app/tests/test_webhook_tools.py` — cover the new interactive-buttons payload shape
+
+See `architecture-plan-feature-19.md` (CD-2.5) for the full implementation plan, including why "edit"
+is explicitly out of scope for this round and why live verification against a real Slack workspace
+is not possible in this environment (same category of limitation as Feature 05's real HubSpot write).
+
+Testing Strategy:
+- Backend: `verify_slack_signature()` tested directly with self-computed valid/invalid/stale-
+  timestamp HMACs (fully deterministic, no live Slack dependency); `POST /slack/interactions` tested
+  end-to-end with a real computed signature against a fake signing secret, covering the full
+  auth-then-action flow and every edge case above; `test_router_reviews.py` re-run unchanged to
+  confirm the extraction introduced no regression to the existing HTTP endpoint
+
+Worker Pool Considerations
+- File Ownership: `backend/app/orchestrator/review_actions.py`, `backend/app/routers/slack.py`,
+  `backend/app/tests/test_slack_signature.py`, `backend/app/tests/test_router_slack_interactions.py`,
+  plus edits to `backend/app/core/config.py`, `backend/.env.example`,
+  `backend/app/orchestrator/tools/webhook_tools.py`, `backend/app/orchestrator/graph.py`,
+  `backend/app/routers/reviews.py`, `backend/main.py`, `backend/app/tests/test_webhook_tools.py` — no
+  overlap with any other group's owned files
+- Parallel Safety: single group, no concurrent conflicts expected
+- Group Assignment: `SLACK_INTERACTIONS`
+- Execution Order: no ordering constraint beyond Features 06/10/11 already being complete (they are)
+
+Success Criteria
+✅ Signature verification is real, tested cryptography — never a stubbed-out or bypassable check
+✅ The Slack endpoint reuses the exact same action logic the existing HTTP endpoint uses, not a
+  parallel reimplementation
+✅ Feature 10's existing outbound payload shape is unchanged when the new optional parameter is
+  omitted — no regression
+✅ Backend tests passing, no regression in the existing Feature 06/10/11 suites
+
+====================================================================
+
 END OF IMPLEMENTATION PLAN

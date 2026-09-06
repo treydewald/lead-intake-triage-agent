@@ -1,7 +1,21 @@
 # Portfolio Reference — Lead Intake Triage Agent
 
-**Last Updated:** 2026-09-06 (Continued Development — Feature 18, Aggregate Lead Funnel & Reviewer
-Throughput Dashboard, COMPLETED. New `GET /analytics/funnel` (new `analytics.py` router/schema pair,
+**Last Updated:** 2026-09-06 (Continued Development — Feature 19, Interactive Slack Review Actions,
+COMPLETED. New `POST /slack/interactions`, a genuine inbound trust boundary verifying Slack's own
+HMAC-SHA256 request signature before trusting anything in the payload; a valid Approve/Reject click
+routes through `apply_review_action()` — the exact same logic `POST /reviews/{run_id}/action` uses,
+extracted out of `routers/reviews.py` into `orchestrator/review_actions.py` so both transports call
+one implementation, not two. `deliver_webhook_notification()` (Feature 10) gained an optional
+interactive-buttons payload so the outbound message a reviewer already receives now carries working
+buttons. Live-verified end-to-end against the real running backend, deliberately consuming the
+project's one real `awaiting_review` item (see `.claude/seed-data.md`'s updated note) rather than
+only a synthetic example — a forged signature and a stale timestamp were both rejected before
+touching the review, and a real signed click actually approved the real lead, resuming it through the
+real orchestrator. 171/171 backend tests (including the pre-existing `test_router_reviews.py` suite
+passing completely unmodified, proving the extraction was behavior-preserving), no regressions. Ships
+S-04 from `scope-expansion.md`'s Round 1 — only S-05 (P3) remains unshipped from that round. Prior
+update: Continued Development — Feature 18, Aggregate Lead Funnel & Reviewer Throughput Dashboard,
+COMPLETED. New `GET /analytics/funnel` (new `analytics.py` router/schema pair,
 justified since this aggregation spans both `PipelineRun` and `ReviewQueueItem`, two existing
 routers' domains) plus a new `FunnelDashboardPage.tsx` at a persistent `/analytics` nav route and a
 fourth `HomePage.tsx` section card. Pure read-path aggregation computed in Python over existing rows
@@ -106,7 +120,7 @@ portfolio gate (Mode: STANDARD).
 | Path | Purpose |
 |---|---|
 | `backend/main.py` | FastAPI app entrypoint — CORS, router registration |
-| `backend/app/core/config.py` | Pydantic settings (env-driven): DB URL, Ollama config, HubSpot token, confidence threshold, `notification_webhook_url` (Feature 10, unset by default) |
+| `backend/app/core/config.py` | Pydantic settings (env-driven): DB URL, Ollama config, HubSpot token, confidence threshold, `notification_webhook_url` (Feature 10, unset by default), `slack_signing_secret` (Feature 19, unset by default — every `/slack/interactions` request rejects with no secret configured) |
 | `backend/app/database/session.py` | SQLAlchemy engine/session/Base (SQLite dev DB: `backend/leads.db`) |
 | `backend/app/models/` | SQLAlchemy ORM models (lead records, stage traces, review queue — populated in Step 6) |
 | `backend/app/schemas/` | Pydantic request/response schemas (populated in Step 6) |
@@ -115,21 +129,23 @@ portfolio gate (Mode: STANDARD).
 | `backend/app/orchestrator/state.py` | `LeadPipelineState` — one Pydantic slice per stage (intake, classification, enrichment, crm_write, review, notification) + run metadata |
 | `backend/app/orchestrator/tool_scope.py` | `ToolRegistry`/`ScopedToolProxy` — the enforced per-stage tool-access boundary; a stage only ever reaches a tool through its scoped proxy |
 | `backend/app/orchestrator/errors.py` | `OutOfScopeToolError`, `StageExecutionError`, `StateValidationError` |
-| `backend/app/orchestrator/graph.py` | LangGraph `StateGraph` wiring the 6 stages, `run_pipeline()`/`resume_pipeline()` entry points; `persist_outcome_notification()` fires the notification stage directly for the three terminal transitions (failure, awaiting-review, reject) that never reach the graph's own `notify_stage` node; `_mark_completed_if_still_running()` is the sole place `RunStatus.COMPLETED` is assigned; also where Feature 10's external delivery hook lives, gated to `outcome_type == "awaiting_review"` only, calling `webhook_tools.py` directly (bypassing `ToolRegistry`/`ScopedToolProxy` — see Key Decisions); Feature 16 added `build_retry_graph()`/`retry_pipeline()` — continues a FAILED run from the stage that raised, into a new `PipelineRun` row, by replaying earlier stages' `StageTrace.output_snapshot` values rather than a stored full-state snapshot |
+| `backend/app/orchestrator/graph.py` | LangGraph `StateGraph` wiring the 6 stages, `run_pipeline()`/`resume_pipeline()` entry points; `persist_outcome_notification()` fires the notification stage directly for the three terminal transitions (failure, awaiting-review, reject) that never reach the graph's own `notify_stage` node; `_mark_completed_if_still_running()` is the sole place `RunStatus.COMPLETED` is assigned; also where Feature 10's external delivery hook lives, gated to `outcome_type == "awaiting_review"` only, calling `webhook_tools.py` directly (bypassing `ToolRegistry`/`ScopedToolProxy` — see Key Decisions), passing `run_id` since Feature 19 so the delivered message can carry interactive buttons; Feature 16 added `build_retry_graph()`/`retry_pipeline()` — continues a FAILED run from the stage that raised, into a new `PipelineRun` row, by replaying earlier stages' `StageTrace.output_snapshot` values rather than a stored full-state snapshot |
+| `backend/app/orchestrator/review_actions.py` | Feature 19: `apply_review_action()` — extracted from `routers/reviews.py`'s `action_review` so a second transport (the new Slack callback) calls the exact same logic rather than a parallel reimplementation; see Key Decisions |
 | `backend/app/orchestrator/stages/intent_classification.py` | Feature 03's `IntentClassificationStage` — calls `ollama_classify` via the scoped tool proxy, retry-once-then-fail-closed |
 | `backend/app/orchestrator/stages/data_enrichment.py` | Feature 04's `DataEnrichmentStage` — calls `hubspot_search_contact` via the scoped tool proxy; exact-key phone/email match or `difflib`-scored fuzzy name match, merges only fields Intake left null, never raises |
 | `backend/app/orchestrator/stages/hubspot_crm_write.py` | Feature 05's `HubSpotCrmWriteStage` — write-only (`hubspot_write` alone); reads both `intake` and `enrichment` via `input_slices`; calls `tools.call("hubspot_write", ...)` with no try/except so a write failure halts the run |
 | `backend/app/orchestrator/stages/human_review.py` | Feature 06's `HumanReviewStage` — pure gate, no tool access; unconditionally returns `ReviewSlice(queued=True, ...)` (the routing decision was already made by `_route_after_enrich`) |
 | `backend/app/orchestrator/stages/outcome_notification.py` | Feature 07's `OutcomeNotificationStage` — pure signaling, no tool access; maps `run.status` to one of `auto_processed`/`awaiting_review`/`rejected`/`failed` and builds `message`/`detail_link` |
 | `backend/app/orchestrator/tools/` | Real tool bindings for external systems, one module per system (`ollama_tools.py`, `hubspot_tools.py`, `webhook_tools.py`), wired by `register_default_tools()`; `hubspot_tools.py` holds both `search_contact` (read-only) and `write_contact` (write-only, retry-with-backoff) |
-| `backend/app/orchestrator/tools/webhook_tools.py` | Feature 10's `deliver_webhook_notification()` — single-attempt, never-raising POST of a Slack-compatible payload to an operator-configured incoming webhook; NOT registered through `ToolRegistry` (called directly by `persist_outcome_notification()` — see Key Decisions); `error` built from status code/exception type only, never the webhook URL itself |
+| `backend/app/orchestrator/tools/webhook_tools.py` | Feature 10's `deliver_webhook_notification()` — single-attempt, never-raising POST of a Slack-compatible payload to an operator-configured incoming webhook; NOT registered through `ToolRegistry` (called directly by `persist_outcome_notification()` — see Key Decisions); `error` built from status code/exception type only, never the webhook URL itself; Feature 19 added an optional `run_id` parameter that adds a Slack Block Kit interactive-buttons block (Approve/Reject) when provided, payload shape unchanged otherwise |
 | `backend/app/models/pipeline_run.py` | `PipelineRun`/`StageTrace` SQLAlchemy models — every stage transition's persisted trace |
 | `backend/app/models/review_queue.py` | Feature 06's `ReviewQueueItem` — a reviewer's actionable task for one paused run, carrying its own full-state resume snapshot (`state_snapshot`), distinct from the `PipelineRun`/`StageTrace` execution log; Feature 11 added a nullable `reviewer_name` column (self-reported, no auth model — see Key Decisions) |
 | `backend/app/models/notification.py` | Feature 07's `Notification` — a persisted in-app notification per outcome event; `run_id` FK is not unique (a run can produce more than one over its lifetime); no addressee field (no `User`/auth model exists); Feature 10 added two nullable columns, `external_delivery_status`/`external_delivery_error` (`None` = never attempted — every outcome type other than `awaiting_review`) |
 | `backend/app/schemas/pipeline.py` | Pydantic request/response schemas for triggering/querying a pipeline run; Feature 11 added `TimelineEntryOut`/`LeadHistoryOut` — one flat entry shape carrying both stage and review-action fields as optional |
 | `backend/app/schemas/review.py` | Feature 06's `ReviewActionRequest`/`ReviewQueueItemOut` — reviewer-facing request/response shapes; Feature 11 added `ReviewActionRequest.reviewer_name` (optional); Step 12 (portfolio backlog P1-01) added `ReviewQueueItemOut.message_body` (optional) |
 | `backend/app/schemas/notification.py` | Feature 07's `NotificationOut` — response shape for `GET /notifications`; Feature 10 added `external_delivery_status`/`external_delivery_error` (optional, `null` for pre-Feature-10 rows) |
-| `backend/app/routers/reviews.py` | Feature 06: `GET /reviews`, `GET /reviews/{run_id}`, `POST /reviews/{run_id}/action` — concurrency-safe claim via an atomic `UPDATE ... WHERE status='PENDING'`; approve/edit re-enter the orchestrator via `resume_pipeline()`, reject sets `RunStatus.REJECTED` directly and also calls `persist_outcome_notification()`; Feature 11's `reviewer_name` is persisted in the same atomic `UPDATE`, no second write; Step 12 added `_to_review_out()`, parsing `message_body` out of `state_snapshot` for both GET endpoints (read-only projection, not a new source of truth — see Key Decisions) |
+| `backend/app/routers/reviews.py` | Feature 06: `GET /reviews`, `GET /reviews/{run_id}`, `POST /reviews/{run_id}/action`; Step 12 added `_to_review_out()`, parsing `message_body` out of `state_snapshot` for both GET endpoints (read-only projection, not a new source of truth — see Key Decisions); Feature 19 moved `action_review`'s body into `orchestrator/review_actions.py::apply_review_action()` — this router now calls it as a thin wrapper (concurrency-safe atomic claim, resume-graph re-entry, reject-path notification all live there now) |
+| `backend/app/routers/slack.py` | Feature 19: `POST /slack/interactions` — verifies Slack's HMAC-SHA256 request signature (`verify_slack_signature()`, fails closed on any missing/invalid input) before parsing anything, maps `approve_lead`/`reject_lead` button clicks to `apply_review_action()`, translates 404/409 business outcomes into a `200` response with explanatory text (Slack's own retry-on-non-2xx semantics would otherwise misfire against the idempotent claim) |
 | `backend/app/routers/notifications.py` | Feature 07: `GET /notifications` (list, newest first) |
 | `backend/app/routers/analytics.py` | Feature 18: `GET /analytics/funnel` — aggregate lead funnel / reviewer throughput, computed in Python over all `PipelineRun`/`ReviewQueueItem` rows at request time (no new columns/tables, no caching) |
 | `backend/app/schemas/analytics.py` | Feature 18: `FunnelDashboardOut` and its nested shapes (`FunnelStatusCountOut`, `FunnelChannelStatOut`, `ReviewerThroughputOut`) |
@@ -548,3 +564,24 @@ that doesn't exist yet.)*
   (`backend/app/orchestrator/graph.py`) exactly — a future change to either boundary should grep for
   the other before shipping, since nothing else enforces them staying in sync. Set by Feature 17's
   implementation plan (`architecture-plan-feature-17.md`).
+- **Domain logic reachable from more than one transport-layer entry point (an HTTP router, a Slack/
+  webhook callback, a future CLI or scheduled job) lives in `app/orchestrator/` as a plain function
+  each transport calls — never duplicated per-transport, and never left inside whichever router
+  happened to need it first.** Feature 19 is the first feature with two transport-layer entry points
+  into the same action (`POST /reviews/{run_id}/action` and `POST /slack/interactions` both need to
+  "act on a queued review") — `apply_review_action()` (`orchestrator/review_actions.py`) was extracted
+  out of `routers/reviews.py` specifically so Slack calls the exact same implementation, verified
+  behavior-preserving by `test_router_reviews.py` passing completely unmodified after the extraction.
+  This generalizes, rather than contradicts, the existing "reuse at the Python function level" pattern
+  (Feature 05's `write_contact`/`search_contact` reuse) to a new trigger — a second *inbound* transport,
+  not just a second internal caller. Set by Feature 19's implementation plan
+  (`architecture-plan-feature-19.md`).
+- **A genuine inbound trust boundary (verifying a request actually originated from an external system,
+  not just calling out to one) fails closed on every missing or invalid input — an unconfigured secret,
+  a missing signature header, a missing timestamp header, or a non-numeric timestamp all reject exactly
+  like a wrong signature does, never treated as "skip the check."** `routers/slack.py`'s
+  `verify_slack_signature()` uses `hmac.compare_digest` (constant-time) rather than `==`, and enforces a
+  5-minute replay window independent of signature validity. This is the project's first inbound
+  (as opposed to outbound) external-system trust boundary — a durable pattern for any future inbound
+  webhook/callback this project adds. Set by Feature 19's implementation plan
+  (`architecture-plan-feature-19.md`).

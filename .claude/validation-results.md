@@ -974,3 +974,75 @@ live-verified against real accumulated data, visually confirmed with real browse
 four target viewports (closing the category of gap Feature 17 left `UNVERIFIED`), and regression-free.
 Per `scope-expansion.md`'s Round 1 tie-break decision, S-04 (Interactive Slack Review Actions) follows
 next in this same session as Feature 19.
+
+---
+
+## CD-4 — Feature 19 (Interactive Slack Review Actions), 2026-09-06
+
+**Backend tests:** 171/171 passed (was 154/154 — +17 new: 8 in `test_slack_signature.py`, 8 in
+`test_router_slack_interactions.py`, 1 in `test_webhook_tools.py`), no regressions. Critically,
+`test_router_reviews.py` passed **completely unmodified** — the regression gate proving the
+`apply_review_action()` extraction changed zero observable behavior of the existing, already-live-
+verified HTTP endpoint. Coverage held at 98% (unchanged).
+
+**Frontend:** not touched — this feature has no UI surface (a Slack message is its only interface,
+entirely outside this project's own React app). Frontend suite/build/lint not re-run since nothing
+in `frontend/` changed.
+
+**Live verification against the real running backend and the real accumulated dev database** (not
+just mocks — deliberately consuming the project's one real `awaiting_review` item rather than only
+testing against a synthetic one, via a disposable second `uvicorn` instance on port 8001 sharing the
+same `leads.db` file, the exact technique `.claude/seed-data.md` already documents):
+1. A forged signature (wrong secret) → real `401`, confirmed via `GET /reviews` that the targeted
+   item was untouched.
+2. A stale (10-minute-old) timestamp with an otherwise-correct signature → real `401`.
+3. A real, correctly-signed `approve_lead` click (HMAC-SHA256 computed the same way a genuine Slack
+   app would) on the real pending review (lead `7b0d3af5-cb33-4eab-9a15-14763ea70855`) → `200`,
+   `GET /reviews` went from 1 item to empty, `GET /leads/{lead_id}` showed the run resumed through the
+   real orchestrator into `hubspot_crm_write`, failing there for the expected, already-documented
+   reason (no `HUBSPOT_ACCESS_TOKEN` configured — same limitation Feature 05's live verification
+   already established). `reviewer_name` correctly recorded as `"morgan-in-slack"`, the payload's
+   `user.username`.
+4. A second identical click on the now-actioned item → `200` with "Could not process this action:
+   Review item already actioned" — not a raw `409`, confirming the Slack-facing error-translation
+   behavior.
+5. With no `SLACK_SIGNING_SECRET` configured (the documented default), a request with a syntactically
+   plausible but unverifiable signature → real `401`, confirmed on the main dev instance (port 8000)
+   after it was restarted with current code and a clean, default (unset) secret.
+
+**Acceptance criteria coverage (architecture-plan-feature-19.md / `implementation_plan.md`'s
+Feature 19 spec):**
+1. Correctly-signed valid action reaches the same logic as the HTTP endpoint → live check #3 above +
+   `test_approve_via_slack_resumes_the_run`/`test_reject_via_slack_sets_rejected_status`, both
+   asserting identical `PipelineRun`/`ReviewQueueItem` state to what `test_router_reviews.py`'s
+   equivalent tests already assert for the HTTP path.
+2. Bad signature / stale timestamp / no secret configured all rejected with `401` before any parsing
+   → live checks #1-2, #5 above + `test_invalid_signature_is_rejected_before_touching_the_review`
+   (asserts the DB row is untouched, not just the status code).
+3. Feature 10's outbound payload gains buttons only when `run_id` is passed, unchanged otherwise →
+   `test_deliver_webhook_notification_includes_interactive_buttons_when_run_id_given` +
+   every pre-existing `test_webhook_tools.py` test passing unmodified (none pass `run_id`).
+4. Already-actioned/nonexistent run → `200` with explanatory text; unrecognized `action_id` → `400`
+   → live check #4 above + `test_already_actioned_review_returns_200_with_explanatory_text`/
+   `test_nonexistent_run_returns_200_with_explanatory_text`/`test_unrecognized_action_id_returns_400`.
+
+**Architectural fidelity (`docs/implementation-planning.md` §14):** implementation matched
+`architecture-plan-feature-19.md` exactly, including its proposed Architecture Rule Change (multi-
+transport domain logic lives in `app/orchestrator/`, not duplicated per-router) — now applied to
+`.claude/portfolio-reference.md`'s Key Decisions (see below). Actual Footprint recorded in the plan
+file: 11/11 predicted files changed, no unplanned files, no rework cycle.
+
+**Honestly recorded limitation:** a real Slack workspace/app actually delivering a real button click
+to this endpoint was not tested — no Slack app credentials exist in this environment. Everything
+this endpoint does after receiving Slack's documented request shape was verified live against real
+data (checks #1-4 above); only Slack's own delivery of that shape was not — the same category of
+limitation Feature 05's real-HubSpot-write verification already established a precedent for stating
+plainly.
+
+Verdict: Feature 19 (Interactive Slack Review Actions) is implementation-complete, behavior-preserving
+for the existing HTTP review-action path (proven by an unmodified regression suite), live-verified
+end-to-end against real accumulated data including the genuine cryptographic trust boundary, and
+regression-free. This ships S-04, the last of `scope-expansion.md`'s Round 1 P1/P2 candidates — only
+S-05 (P3, Exportable Audit Trail CSV) remains unshipped from that round. A future idle session should
+run `docs/next-action-selection.md`'s Dynamic Next-Action Selection rather than defaulting straight
+back to another Scope Expansion round.
