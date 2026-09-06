@@ -1,118 +1,134 @@
 CONTINUAL REFINEMENT AUDIT
 ===========================
 
-Round: 1
-Date: 2026-09-05
+Round: 2
+Date: 2026-09-06
 
 DIMENSION SCORES
 
-1. Functional Completeness & Differentiation: 9/10
-   Tier 1 (8 features) and Tier 2 (3 features) from `roadmap.md` are fully shipped and independently
-   verified (Gate 2 passed twice; Gate 1 passed at 9/10). Tier 3 (Multi-Agent Orchestration, Swappable
-   CRM Interface, Multi-Channel Intake Expansion) sits deliberately deferred per the source
-   specification's own adversarial resolution — a conscious scope boundary, not an oversight or thin
-   feature set. The value proposition (confident-case automation with a genuine human-in-the-loop
-   escalation path) is realized end-to-end, not just claimed.
+1. Functional Completeness & Differentiation: 9/10 (unchanged)
+   `roadmap.md` Tier 1/2 remain fully shipped; Tier 3 remains a deliberate, documented deferral. Scope
+   Expansion Round 1 (`scope-expansion.md`) closed 4 of its 5 candidates (S-01 through S-04, shipped as
+   Features 16-19); only S-05 (P3, CSV export) remains, and both the prior In-App Cohesion Audit and this
+   round's own re-check agree it is not a credible gap, not something left undone. Traceability
+   spot-check on 3 recently-shipped feature IDs (Features 16, 18, 19): each has an
+   `architecture-plan-feature-NN.md` entry with a completed Actual Footprint, each is covered by its own
+   CD-4 verification recorded in `.claude/validation-results.md` (this project's post-initial-build
+   equivalent of `qa-report.md`'s per-feature coverage, since CD rounds postdate Step 9), and each is
+   named in `.claude/pipeline-reference.md`'s round history — no feature found to have silently dropped
+   out of its own traceability chain.
 
-2. Visual & UI/UX Polish: 9/10 (from Step 11, evaluated 2026-09-05, Round 6)
-   Not re-derived — this is Step 11 Round 6's OVERALL SCORE, which already folds in Responsiveness,
-   Accessibility, and In-App Cohesion per `docs/ui-audit-refinement.md` §5 / `docs/in-app-cohesion.md`
-   §8. All four Step 11 dimensions (Visual & UI/UX, Feature Signaling, Professional Readiness, Client
-   Impact) cleared 9/10 for the first time that round.
+2. Visual & UI/UX Polish: 9/10 (from In-App Cohesion Audit Round 1, evaluated 2026-09-06)
+   Not re-derived — carried directly from the freshest possible source. Both UI Audit & Refinement Round 1
+   and In-App Cohesion Audit Round 1 ran this same calendar day, each re-verifying against Features 16-19's
+   new surfaces (Threshold Simulator, Analytics dashboard) rather than an older baseline. All four Step 11
+   dimensions (Visual & UI/UX, Feature Signaling, Professional Readiness, Client Impact) remain ≥9/10.
 
-3. Architecture & Code Quality: 9/10
-   Every `architecture-plan-feature-NN.md`'s Actual Footprint vs. Predicted Footprint (14 feature plans
-   checked) shows zero-to-minor deviations and no "Rework required" entry of substance — the closest to
-   a real miss is Feature 06's `resume_pipeline` status-reset gap, caught and fixed before any test run.
-   This round's own named architectural-drift spot-check (layer violations, circular dependencies,
-   direct DB access bypassing a service layer, state duplication, service-boundary violations) found
-   nothing: no pipeline stage imports another stage's tool module directly (grep-verified across
-   `orchestrator/stages/*.py`), matching the enforced tool-scoping boundary `portfolio-reference.md`'s
-   Architecture Map describes. Routers querying SQLAlchemy `Session` directly is this project's own
-   intended architecture (no repository layer was ever planned at this scale), not a violation of it.
+3. Architecture & Code Quality: 9/10 (unchanged)
+   All 4 `architecture-plan-feature-NN.md` files for Features 16-19 report "Deviations from plan: none" or
+   "none of substance" — Feature 18's one N+1-shaped query was self-caught and fixed pre-commit, before any
+   test ran against it, which is itself a positive signal about review discipline, not a finding.
+   Architectural-drift spot-check (layer violations, circular dependencies, unapproved direct DB access,
+   state duplication, service-boundary violations) on the two newest cross-cutting modules —
+   `orchestrator/review_actions.py` (Feature 19's extraction) and `routers/slack.py` — found nothing:
+   neither imports a stage's tool binding directly, `slack.py` reaches domain logic only through
+   `apply_review_action()`, and `verify_slack_signature()` is pure/dependency-free and independently unit
+   tested. One trivial, non-actionable observation: `BenchmarkPage.tsx`'s `CaseStatusBadge`'s `item.correct`
+   branch is unreachable in its one actual call site (the table only ever renders ambiguous-or-incorrect
+   cases) — dead code in context, zero risk, not worth a scoped fix for a generic display component.
 
-4. Test Coverage: 8/10 (up from an unmeasured "no coverage tool configured" baseline)
-   This round installed `pytest-cov` and `@vitest/coverage-v8` and ran both — the first time either has
-   ever run on this project. Backend: 98% statement coverage (138/138 tests passing). Frontend: found
-   and fixed a real gap (RB-006) — `LeadDetailPage.tsx`, the page `portfolio-description.md` itself
-   names as the project's core differentiator, had 5.55% coverage and no dedicated test file, unlike
-   every sibling page. Fixed same round: added `LeadDetailPage.test.tsx` (6 tests), raising that file to
-   90.74% and project-wide frontend coverage from 70.64% to 81.65% (24/24 tests passing, was 18/18).
-   Scored 8, not 9-10, because RB-008 (api.ts client layer, LeadListPage, NotFoundPage) remains
-   genuinely under-covered — routine debt, deliberately left for a future round per batch discipline.
+4. Test Coverage: 9/10 (up from 8/10)
+   Backend: 98% statement coverage, steady, 171/171 tests (unchanged since Feature 19). Frontend: found and
+   fixed a real gap this round — `BenchmarkPage.tsx` (77.27%) and `ReviewQueuePage.tsx` (80.55%) had
+   fallen below the rest of the codebase's ~90%+ norm, specifically on newly-added interactive/async
+   surfaces (Feature 17's Threshold Simulator run/switch-run success and failure paths; the
+   `recentlyResolved` leads fetch success path and the review-queue-load failure path) that had never been
+   exercised by a test, only visually verified via Playwright per those features' own sessions. Fixed same
+   round: 6 new tests across `BenchmarkPage.test.tsx` (run-list failure, run-benchmark success/failure,
+   switch-run failure) and `ReviewQueuePage.test.tsx` (queue-load failure, Recently Processed panel
+   render) — `BenchmarkPage.tsx` 77.27%→93.93%, `ReviewQueuePage.tsx` 80.55%→97.22%, project-wide frontend
+   statement coverage 88.86%→92.13% (66/66 tests, was 60/60). Scored 9, not 10, because `api.ts` (80%) and
+   a handful of other files still carry minor untested branches — routine residual debt, not a standout
+   gap on the scale RB-006 or this round's own finding were.
 
-5. Robustness: 8/10
-   Verified in code, not just claimed: `reviews.py`'s review-action endpoint returns 404/422/409 with
-   the 409 explicitly covering the "already actioned by someone else" concurrency case the README's
-   "concurrency-safe atomic claim" describes — confirmed at the code level, not only in the frontend
-   test that exercises it (`ReviewDetailPage.test.tsx`'s "shows an already-actioned message on a 409
-   response"). Webhook delivery failures are recorded as notification data, never raised as exceptions
-   (verified in `webhook_tools.py`/`outcome_notification.py`). Not a 9-10 because this is a
-   reviewer-level skim, not an exhaustive edge-case audit of every endpoint.
+5. Robustness: 8/10 (unchanged, reinforced by new evidence)
+   Feature 19's new inbound trust boundary (`POST /slack/interactions`) shows strong edge-case handling
+   under direct code review: fails closed on any missing signing secret/timestamp/signature rather than
+   treating a missing value as "skip the check," rejects stale timestamps outside a 5-minute replay
+   window, uses `hmac.compare_digest` (constant-time) rather than `==`, and handles malformed
+   payload/missing-action/unrecognized-action-id cases with explicit 400s — all independently unit-tested
+   in `test_slack_signature.py`/`test_router_slack_interactions.py` (91-100% module coverage). The
+   business-outcome-vs-transport-error distinction (a 404/409 from `apply_review_action()` is translated
+   to a 200 with explanatory text, since Slack retries on non-2xx and would otherwise misfire against the
+   idempotent claim) is a genuinely thoughtful piece of robustness design. Held at 8, not raised, because
+   this dimension's own standard is a reviewer-level skim across the whole app, not a single endpoint —
+   this is reinforcing evidence, not a project-wide re-audit.
 
-6. Performance: 8/10 (up from an unquantified prior skim)
-   Re-measured the frontend bundle this round: 337.92 kB / 104.84 kB gzip, vs. the Step 9.5 baseline of
-   307.21 kB / 97.89 kB gzip — a ~10% increase, under the 15%-material threshold `docs/
-   continued-development.md` CD-4 defines, and explained by legitimate feature/page growth across the
-   Step 6/CD rounds that landed after Step 9.5 first measured it (Step 9.5 ran before Feature
-   15/Review-workflow work), not a regression from this round. Found and fixed one genuine issue: an N+1
-   query in `GET /leads/{lead_id}/history` (RB-007) — one `StageTrace` query per pipeline run instead of
-   a single batched query. Fixed same round (`StageTrace.run_id.in_(...)`, grouped in Python); full
-   backend suite re-verified at 138/138 with no regressions.
+6. Performance: 8/10 (unchanged)
+   Bundle: 348.28 kB / 106.97 kB gzip vs. the original Step 9.5 baseline (307.21 kB / 97.89 kB) — a ~13.4%
+   cumulative increase across 4 CD rounds' worth of new pages/features, still under the 15%-material
+   threshold but closer to it than Round 1's ~10% reading. Explained entirely by legitimate feature growth
+   (Retry banner, Threshold Simulator, Analytics dashboard, Slack integration has no frontend footprint) —
+   not a regression from this round, and each individual CD-4 check already confirmed its own increment
+   was immaterial. No new N+1 or obvious bottleneck found in this round's own skim of Features 16-19's
+   read paths (Feature 18's one N+1-shaped query was already caught and fixed pre-commit, per Dimension 3
+   above). Noted as a forward-looking watch item: the cumulative bundle trend is worth a look if 1-2 more
+   substantial UI features ship before this is next revisited.
 
-7. Security: 7/10 (weakest dimension this round — see Overall Readiness)
-   Re-ran both dependency-audit commands fresh (not trusting the Step 9.5 scan result from a prior
-   round): `pip-audit` still reports the same 19 known advisories across 6 transitive backend packages
-   (`starlette`, `langgraph`, `langgraph-checkpoint`, `langchain-core`, `python-dotenv`, `pytest`) — no
-   new findings, no drift; `npm audit` still reports 0 frontend vulnerabilities. These were already
-   individually assessed in `qa-report.md` (CVSS/exploit-path-verified, not just description text) as
-   Moderate and non-exploitable given this project's actual local/demo deployment (no configured cache
-   backend, no proxy-based Host-header trust logic, single local user) — the rigor of that original
-   assessment holds up on re-check. Scored 7, not higher, because real unpatched CVEs sitting in
-   transitive production dependencies are a legitimate reviewer concern for a portfolio piece
-   demonstrating production-readiness, even when soundly assessed as non-exploitable today; `qa-report.md`
-   already names the correct remediation path (a dedicated compatibility-verification round to bump
-   `langgraph`/`langchain-core`/`starlette` to their fixed major versions) — not repeated as a new
-   backlog entry since it's already tracked there with no new information this round.
+7. Security: 7/10 (unchanged — weakest dimension, same reasoning, now re-verified rather than assumed)
+   Re-ran both dependency-audit commands fresh rather than trusting Round 1's scan: `pip-audit` now
+   reports **26 advisories across 7 packages** (was 19 across 6) — the same `starlette`/`langgraph`/
+   `langgraph-checkpoint`/`langchain-core`/`python-dotenv`/`pytest` versions as Round 1 (no dependency
+   version changed), with the higher count reflecting new CVEs disclosed against those same pinned
+   versions since 2026-09-05, plus `pip` itself newly flagged (a packaging tool, not a shipped runtime
+   dependency — outside this project's actual attack surface). `npm audit`: still 0. This is genuine drift,
+   confirmed with real numbers rather than assumed stale, and `qa-report.md` has been updated to record it
+   (see its Remaining Issues §1). Held at 7, not lowered further, because the underlying exploitability
+   assessment from Round 1 — CVSS/exploit-path-verified as non-exploitable in this project's actual
+   deployment (no configured cache backend, no proxy Host-header trust logic, single local user) — still
+   holds for every one of the newly-added advisories on inspection; nothing here represents a new,
+   unassessed exploit path. Separately, and positively: the one genuinely new attack surface this project
+   has added since Round 1 (Feature 19's inbound Slack webhook) was built with real security discipline —
+   see Dimension 5 — which is exactly the kind of new-surface risk a Security-dimension re-check exists to
+   catch, and it held up under review.
 
-8. Documentation Accuracy: 10/10
-   `README.md` (Step 14), `portfolio-description.md` (Step 15), and `linkedin-entry.md` (Step 16) were
-   all read fresh and cross-checked this very session (Step 16's own Step 6.5), then updated together
-   this round to reflect the new 162-test count (138 backend + 24 frontend, up from 156) after RB-006's
-   fix — verified consistent across all three files, not just individually traced to the code.
+8. Documentation Accuracy: 10/10 (unchanged)
+   `README.md`, `portfolio-description.md`, and `linkedin-entry.md` were refreshed same-day as Feature 19
+   (CD-9, 2026-09-06) and independently re-verified this round: stated test counts (171 backend / 60
+   frontend, pre-this-round's fix) and coverage percentages (98% backend / 89% frontend) both matched the
+   actual `pytest --collect-only`/`npx vitest list`/coverage-tool output exactly before this round's own
+   6 new tests were added. Updated again after this round's fix to reflect 171/66 (237 total) and the
+   refreshed frontend coverage figure.
 
 GAPS FOUND (this round)
 
-- RB-006 [Dimension 4]: `LeadDetailPage.tsx` (the project's own named differentiator page) had zero
-  dedicated tests, 5.55% coverage → Routes to: Scoped re-entry to Step 6 (add tests) → Step 7 (verify) |
-  Priority: P1 | Status: Completed
-- RB-007 [Dimension 6]: N+1 query in `GET /leads/{lead_id}/history` (one `StageTrace` query per
-  pipeline run) → Routes to: Scoped re-entry to Step 6 (implement fix) → Step 7 (verify no regression) |
-  Priority: P2 | Status: Completed
-- RB-008 [Dimension 4]: Residual frontend coverage gaps below RB-006's severity (`api.ts` 21%,
-  `LeadListPage.tsx` 71%, `NotFoundPage.tsx` 0%) → Routes to: Scoped re-entry to Step 6 (add tests) →
-  Step 7 (verify) | Priority: P3 | Status: Open
-- RB-009 [Dimension 3]: Pre-existing `react(set-state-in-effect)` lint warning in 5 pages (already
-  logged in `qa-report.md`, formally backlogged now that Continual Refinement has run) → Routes to:
-  Scoped re-entry to Step 6 (refactor fetch pattern) → Step 7 (verify) | Priority: P3 | Status: Open
+- RB-010 [Dimension 4]: `BenchmarkPage.tsx` (77.27%) and `ReviewQueuePage.tsx` (80.55%) frontend statement
+  coverage had fallen below the codebase's ~90%+ norm, on newly-added interactive/async paths (Threshold
+  Simulator run/switch-run success+failure, recently-resolved-leads fetch, review-queue-load failure) never
+  exercised by a test → Routes to: Scoped re-entry to Step 6 (add tests) → Step 7 (verify) | Priority: P3 |
+  Status: Completed (fixed same round)
 
 OVERALL READINESS
-This project is not a 10/10 today, but it is close, and its single weakest dimension (Security, 7/10)
-is a soundly-assessed, deliberately-deferred residual risk rather than an active defect — 19 known
-transitive-dependency advisories, individually CVSS/exploit-path-verified as non-exploitable in this
-project's actual deployment, with a clear, already-documented remediation path for a future round.
-Every other dimension now sits at 8-10/10, up from an untested baseline on two of them (Test Coverage,
-Performance) that this round measured for the first time and found real, fixable gaps in — both closed
-same-session rather than left as "someday" backlog. The biggest single thing that was true before this
-round and nobody had checked: no coverage tool had ever been run on this project, so a P1-severity gap
-(the flagship differentiator page shipping with effectively no test) went undetected through 6 rounds of
-visual evaluation and 2 Gate 2 passes, both of which score what a screenshot or a pass/fail test suite
-shows, neither of which surfaces an untested-but-passing page.
+This project remains close to, but short of, a genuine 10/10 — the gap is the same one Round 1 identified
+and nothing has regressed: real, unpatched CVEs sitting in transitive production dependencies (now 26
+across 7 packages, up from 19, confirmed via a fresh re-scan rather than assumed stale), individually
+verified as non-exploitable in this project's actual deployment but still a legitimate reviewer concern for
+a portfolio piece demonstrating production-readiness. Everything this round actually re-audited held steady
+or improved: Test Coverage rose to 9/10 after closing a real coverage gap on two files whose newest
+interactive features had shipped without direct tests (visual verification alone isn't test coverage), and
+the one genuinely new attack surface added since Round 1 — a real inbound webhook trust boundary — was
+built with strong security discipline and held up under this round's own scrutiny. The single biggest thing
+this round confirms that nobody had re-checked since 2026-09-05: dependency advisories age even when no
+dependency version changes, and a Security dimension needs a fresh scan each round to say so with numbers
+rather than carry forward an assumption.
 
 NEXT ROUND NEEDED?
-YES
-RB-008 (residual coverage gaps) and RB-009 (lint style nit) remain `OPEN` in
-`.claude/refinement-backlog.md` — both consciously deferred as P3 batch discipline this round, not
-forgotten. A future round should also re-check Security for dependency-audit drift (advisories age)
-and consider whether the now-tracked `langgraph`/`langchain-core`/`starlette` upgrade path from
-`qa-report.md` is worth a dedicated Continued Development round.
+NO (for this round's own findings) — RB-010 was fixed same-session and `.claude/refinement-backlog.md` now
+has zero `OPEN`/`IN_PROGRESS` entries again, so the two-part exit condition (an honest zero this round AND
+an empty backlog) is met on its own terms. This is not, however, a claim that the project is at a genuine
+10/10: Security remains capped at 7/10 by a real, already-documented, deliberately-deferred residual risk
+(the `langgraph`/`langchain-core`/`starlette` major-version compatibility-verification round `qa-report.md`
+has named as the correct remediation path since Round 1). A future round — or a dedicated Continued
+Development round taking on that upgrade directly — is the honest next step for that specific gap; nothing
+about today's re-scan makes it more urgent than Round 1 already assessed it to be, but the growing advisory
+count (19→26) is worth weighing next time this project goes idle.

@@ -41,4 +41,48 @@ describe('ReviewQueuePage', () => {
 
     await waitFor(() => expect(screen.getByText('No leads awaiting review')).toBeInTheDocument())
   })
+
+  it('shows an error state when the review queue fails to load', async () => {
+    vi.spyOn(api, 'listReviews').mockRejectedValue(new Error('network error'))
+
+    render(
+      <MemoryRouter>
+        <ReviewQueuePage />
+      </MemoryRouter>,
+    )
+
+    await waitFor(() =>
+      expect(screen.getByText('Failed to load the review queue.')).toBeInTheDocument(),
+    )
+  })
+
+  it('renders the Recently processed panel from resolved leads', async () => {
+    vi.spyOn(api, 'listReviews').mockResolvedValue([])
+    vi.spyOn(api, 'listLeads').mockResolvedValue({
+      items: [
+        {
+          lead_id: 'lead-resolved1',
+          run_id: 'run-resolved1',
+          status: 'auto_processed',
+          source_channel: 'web_form',
+          confidence_score: 0.92,
+          created_at: '2026-09-05T12:00:00Z',
+          updated_at: '2026-09-05T12:00:00Z',
+        },
+      ],
+      total: 1,
+      page: 1,
+      page_size: 20,
+    })
+
+    render(
+      <MemoryRouter>
+        <ReviewQueuePage />
+      </MemoryRouter>,
+    )
+
+    await waitFor(() => expect(screen.getByText('Recently processed')).toBeInTheDocument())
+    expect(screen.getByText('lead-resolved1'.slice(0, 8))).toBeInTheDocument()
+    expect(screen.getByText('auto processed')).toBeInTheDocument()
+  })
 })

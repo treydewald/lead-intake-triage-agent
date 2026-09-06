@@ -525,3 +525,34 @@ edit to that same entry once the round they belong to is scored, not a new entry
   under live re-verification. This is reassuring evidence that cohesion regressions in this project
   come from *new* surfaces shipped without a dedicated check, not from drift in previously-fixed ones.
 - Agent: claude/claude_code
+
+### 2026-09-06 — continual_refinement (Round 2)
+- Trigger: idle Step 2 ran `docs/next-action-selection.md`'s Dynamic Next-Action Selection (no
+  Suggestion, zero `OPEN` backlog entries, no in-progress round). Selected Continual Project Refinement
+  over the other three registered operations: Scope Expansion's only remaining candidate (S-05, P3 CSV
+  export) was already judged non-credible; UI Audit & Refinement and In-App Cohesion Audit had both just
+  run this same day (Rounds/sessions immediately prior). Round 1's own audit (2026-09-05) predates
+  Features 16-19, including a brand-new inbound trust boundary (Slack HMAC signature verification) never
+  assessed by a full refinement pass, and Round 1's weakest dimension was Security. Offered to the user
+  directly with this reasoning; confirmed to proceed.
+- Expected effect: an 8-dimension re-audit focused on what changed since Round 1, with a fresh
+  dependency-audit re-scan (Dimension 7) as the specific evidence-driven focus.
+- Outcome: 7 of 8 dimensions held steady (9/9/9/8/8/7/10); Test Coverage rose 8→9 after finding and
+  fixing a real gap (RB-010: `BenchmarkPage.tsx`/`ReviewQueuePage.tsx` had fallen to 77%/81% coverage on
+  newly-added interactive paths visually verified but never unit-tested — fixed same round with 6 new
+  tests, now 94%/97%, project-wide frontend coverage 88.86%→92.13%). Security's fresh `pip-audit` re-scan
+  found real drift (19→26 advisories across the same 6 packages, plus `pip` itself — new CVE disclosures
+  against unchanged pinned versions, not a new dependency), confirmed non-exploitable on the same
+  per-package assessment as Round 1; `qa-report.md` updated with the current count. The one genuinely new
+  attack surface added since Round 1 (Feature 19's Slack webhook) was independently re-reviewed and held
+  up: fail-closed on missing input, constant-time signature comparison, a replay-protection window, all
+  unit-tested. `refinement-audit.md` rewritten (Round 2); `.claude/project-metrics.md` gained a
+  `PROJECT_MIDPOINT (Round 2)` entry; `.claude/refinement-backlog.md`'s RB-010 logged and marked
+  `COMPLETED` same session — backlog is empty again. `README.md`/`portfolio-description.md`/
+  `linkedin-entry.md` updated to the new 237-test count and 92% frontend coverage figure.
+- Surprise: dependency-advisory counts drift upward over calendar time even with zero dependency-version
+  changes on this project's own part (19→26 advisories against the exact same pinned versions, roughly
+  24 hours later) — confirming Round 1's own closing note ("advisories age") with a real, larger number
+  rather than a hypothetical, and validating re-running the audit command fresh each round instead of
+  trusting a prior scan result even a single day later.
+- Agent: claude/claude_code

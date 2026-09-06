@@ -1,6 +1,12 @@
 # Portfolio Reference — Lead Intake Triage Agent
 
-**Last Updated:** 2026-09-06 (UI Audit & Refinement — Round 1, trigger 4 (full-app pass; no full-app
+**Last Updated:** 2026-09-06 (Continual Project Refinement — Round 2: closed a frontend test-coverage
+gap on two newer pages' interactive paths (RB-010, now 237 tests / 92% frontend statement coverage) and
+re-confirmed the new Slack-signature trust boundary holds up under a dedicated security re-check; no
+architecture changes. Full detail: `refinement-audit.md`'s Round 2, `.claude/pipeline-reference.md`'s
+matching entry.)
+
+Prior update: UI Audit & Refinement — Round 1, trigger 4 (full-app pass; no full-app
 UI Audit had been recorded since Step 11 Round 6, and Features 16-19 shipped UI-facing changes since).
 Closed Feature 17's `UNVERIFIED` visual gap by actually expanding and screenshotting the Threshold
 Simulator panel; extended screenshot/no-scroll/axe coverage to Feature 18's `/analytics` route for the

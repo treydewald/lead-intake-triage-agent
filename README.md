@@ -99,21 +99,23 @@ not just convention (`backend/app/tests/test_orchestrator_tool_scope.py`).
   history page, which can scroll for a lead with an unusually long history by design.
 
 ### Quality & Accessibility
-- **171 backend tests / 60 frontend tests**, all passing; `tsc -b` and `vite build` clean.
-- **Measured test coverage** — 98% backend statement coverage (`pytest-cov`); 89% frontend statement
+- **171 backend tests / 66 frontend tests**, all passing; `tsc -b` and `vite build` clean.
+- **Measured test coverage** — 98% backend statement coverage (`pytest-cov`); 92% frontend statement
   coverage (`@vitest/coverage-v8`), up from 71% before Continual Refinement Round 1: it first found
   `LeadDetailPage.tsx` — the page `portfolio-description.md` names as this project's core
   differentiator — had no dedicated test, then its own deferred backlog item (RB-008) closed the
-  remaining named gaps (`lib/api.ts`, `LeadListPage.tsx`, `NotFoundPage.tsx`), and RB-009's fetch-
-  pattern refactor added 3 more covering the reset-on-navigation branch it introduced. Held steady
-  through four later Continued Development rounds (Features 16-19), including a real inbound
+  remaining named gaps (`lib/api.ts`, `LeadListPage.tsx`, `NotFoundPage.tsx`), RB-009's fetch-pattern
+  refactor added 3 more covering the reset-on-navigation branch it introduced, and Continual Refinement
+  Round 2's RB-010 closed a further gap on two newer pages' interactive success/failure paths. Held
+  steady through four later Continued Development rounds (Features 16-19), including a real inbound
   Slack-signature trust boundary whose cryptographic core is fully unit-tested independent of any
   live external service.
 - **0 accessibility violations** (axe-core, all severities) across every primary page.
 - **Dependency vulnerability scanning** (`npm audit`, `pip-audit`) run and findings triaged during
-  QA — see `qa-report.md`; re-run during Continual Refinement with no new findings (frontend: 0
-  vulnerabilities; backend: same 19 pre-assessed Moderate transitive advisories, still non-exploitable
-  as this project is deployed).
+  QA — see `qa-report.md`; re-run in each Continual Refinement round (frontend: 0 vulnerabilities;
+  backend: same 6 transitive packages, 26 pre-assessed Moderate advisories as of Round 2 — the count
+  grows as new CVEs are disclosed against the same pinned versions, not from any dependency change
+  this project made — still non-exploitable as this project is deployed).
 
 ## Setup Instructions
 

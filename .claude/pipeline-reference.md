@@ -1,9 +1,11 @@
 # Pipeline Reference — Lead Intake Triage Agent
 
-**Last Updated:** 2026-09-06 (In-App Cohesion Audit — Round 1, trigger 4 (full-app pass, first ever
-run on this project). OVERALL SCORE unchanged at 9/10, Feature Signaling 9/10 re-verified — one real
-gap found (Analytics' unlinked channel table) and fixed same round. Full detail: `portfolio-
-evaluation.md`'s Round 8 entry, `.claude/intervention-log.md`'s `in_app_cohesion_audit` entry.)
+**Last Updated:** 2026-09-06 (Continual Project Refinement — Round 2. 7 of 8 dimensions held steady;
+Test Coverage rose 8→9/10 after fixing RB-010 (two newer pages' coverage gaps on interactive paths);
+Security's fresh dependency-audit re-scan found real drift (19→26 advisories, same packages, non-
+exploitable per the same assessment) and confirmed the new Slack webhook attack surface holds up under
+review. Full detail: `refinement-audit.md`'s Round 2 entry, `.claude/intervention-log.md`'s
+`continual_refinement (Round 2)` entry.)
 
 How *this project* is using the Upwork Portfolio Project Pipeline. Distinct from
 `portfolio-reference.md`, which is about the product — this file is about pipeline state.
@@ -12,7 +14,80 @@ How *this project* is using the Upwork Portfolio Project Pipeline. Distinct from
 
 ## Current Step
 
-**This session (2026-09-06, thirty-third session) — In-App Cohesion Audit, Round 1 (trigger:
+**This session (2026-09-06, thirty-fourth session) — Continual Project Refinement, Round 2 (no
+Suggestion queued, `.claude/refinement-backlog.md` had zero `OPEN` entries, project idle — Steps 1-16
+all complete, no in-progress CD/audit round):**
+
+Selected via `docs/next-action-selection.md`'s Dynamic Next-Action Selection. Evidence: Scope
+Expansion's only remaining candidate (S-05, P3 CSV export) was already judged non-credible by the prior
+session's own Cohesion Audit; UI Audit & Refinement (session 32) and In-App Cohesion Audit (session 33)
+had both just run this same day, so their trigger-4 condition ("no full-app pass recorded recently")
+didn't hold again yet; Continual Refinement's own Round 1 (`refinement-audit.md`, 2026-09-05) predates
+Features 16-19 — including Feature 19's new inbound Slack-signature trust boundary — and Round 1's
+weakest dimension was Security (7/10), never re-checked against that new surface. Offered to the user
+directly with this reasoning; confirmed to proceed.
+
+Ran the full 8-dimension audit per `docs/continual-refinement.md`, re-deriving only the dimensions with
+real change since Round 1 (Functional Completeness, Architecture & Code Quality, Test Coverage,
+Robustness, Performance, Security) and carrying Visual & UI/UX forward from the freshest source (In-App
+Cohesion Audit Round 1, same day) per the loop's own "re-score cheaply" rule.
+
+**Scores:** 9/9/9/9/8/8/7/10 (Functional Completeness / Visual & UI/UX / Architecture & Code Quality /
+Test Coverage / Robustness / Performance / Security / Documentation Accuracy) — Test Coverage up from
+8/10, everything else unchanged in number from Round 1.
+
+**One gap found and fixed same round:** RB-010 (P3, Dimension 4) — `BenchmarkPage.tsx` (77.27%) and
+`ReviewQueuePage.tsx` (80.55%) frontend statement coverage had fallen below the codebase's ~90%+ norm,
+specifically on newly-shipped interactive/async paths (Feature 17's Threshold Simulator run/switch-run
+success+failure, the review queue's recently-resolved-leads fetch and load-failure paths) that had only
+ever been visually verified via Playwright, never unit-tested. Fixed: 6 new tests across
+`BenchmarkPage.test.tsx`/`ReviewQueuePage.test.tsx`. Verified: frontend suite 66/66 (was 60/60),
+`BenchmarkPage.tsx` 93.93%, `ReviewQueuePage.tsx` 97.22%, project-wide frontend statement coverage
+88.86%→92.13%. `tsc -b`/`vite build` (348.28 kB, unchanged)/`oxlint` all clean. Backend unaffected,
+171/171 (no backend files touched).
+
+**Security dimension re-check (this round's primary focus):** re-ran `pip-audit`/`npm audit` fresh
+rather than trusting Round 1's scan. Found real drift: 26 advisories across 7 packages (was 19 across
+6) — same `starlette`/`langgraph`/`langgraph-checkpoint`/`langchain-core`/`python-dotenv`/`pytest`
+versions as Round 1 (no dependency changed), the higher count reflecting newly-disclosed CVEs against
+those same pinned versions over the last day, plus `pip` itself newly flagged (a packaging tool, not a
+shipped runtime dependency). `npm audit` still 0. `qa-report.md`'s Remaining Issues §1 updated with the
+current count and re-verified non-exploitability. Separately reviewed the one genuinely new attack
+surface added since Round 1 — Feature 19's `POST /slack/interactions` — and confirmed it holds up:
+fail-closed on any missing signing secret/timestamp/signature, constant-time (`hmac.compare_digest`)
+comparison, a 5-minute replay-protection window, and explicit handling of malformed/unrecognized input,
+all independently unit-tested (`test_slack_signature.py`/`test_router_slack_interactions.py`,
+91-100% module coverage). Held Security at 7/10 (not lowered) since the underlying non-exploitability
+assessment holds for every newly-added advisory on inspection, and not raised since real unpatched CVEs
+in transitive production dependencies remain a legitimate reviewer concern — same reasoning as Round 1,
+now re-verified with current numbers instead of assumed stale.
+
+**Documentation kept consistent (Dimension 8):** test count 231→237 (171 backend + 66 frontend),
+frontend coverage 89%→92%, updated together across `README.md`/`portfolio-description.md`/
+`linkedin-entry.md`; `qa-report.md`'s dependency-count note refreshed to 26/7.
+
+**Record:** `refinement-audit.md` rewritten (Round 2); `.claude/refinement-backlog.md` gained RB-010
+(logged and marked `COMPLETED` same session — backlog is empty again, satisfying Continual Refinement's
+two-part exit condition for this round's own findings); `.claude/project-metrics.md` gained a
+`PROJECT_MIDPOINT (Round 2)` entry; `.claude/intervention-log.md` gained this round's own entry.
+
+**Per `docs/continual-refinement.md`'s Loop Mechanics, this round's own exit condition is met** (zero
+actionable gaps left after RB-010's same-session fix, zero `OPEN`/`IN_PROGRESS` backlog entries) — but
+this is not a claim of a genuine project-wide 10/10: Security remains capped at 7/10 by the same
+already-documented, deliberately-deferred residual risk (`langgraph`/`langchain-core`/`starlette`
+major-version compatibility-verification round) `qa-report.md` has named since Round 1, now with a
+larger, re-confirmed advisory count as the reason to weigh it more seriously next time this project
+goes idle.
+
+Pipeline-level friction check: none found this session — `docs/continual-refinement.md`'s "re-score
+cheaply" rule and Dimension 7's re-run-the-audit-command instruction both worked exactly as documented;
+this was also the first round on this project where a fresh dependency-audit re-scan actually found real
+count drift (rather than confirming no change), validating why the doc requires re-running the command
+each round instead of trusting a prior result.
+
+---
+
+**Prior update (2026-09-06, thirty-third session) — In-App Cohesion Audit, Round 1 (trigger:
 `docs/in-app-cohesion.md` §9.1, trigger 4 — no full-app Cohesion Audit had ever been recorded on this
 project, and three Continued Development rounds (Features 16-18) shipped new UI surfaces since the
 last piecemeal cohesion fix, RB-004; scope: full-app; Feature Signaling 9→9, Overall 9→9 — score held,

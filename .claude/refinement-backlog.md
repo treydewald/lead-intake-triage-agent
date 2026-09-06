@@ -350,3 +350,36 @@ renumber.]
     swapping "179" for "182"). Frontend coverage stated as 89% in all three docs both before and after
     (88.53%→89.03% both round to 89 at the whole-number precision those docs use).
   - The refinement backlog now has **zero `OPEN` entries** — this was the last one.
+
+### RB-010 — `BenchmarkPage.tsx`/`ReviewQueuePage.tsx` frontend coverage gaps on newly-added interactive paths
+- **Status:** COMPLETED
+- **Dimension:** 4 (Test Coverage)
+- **Priority:** P3
+- **Discovered:** Continual Project Refinement, Round 2, 2026-09-06 — a fresh coverage run as part of
+  this round's Dimension 4 re-audit, triggered by the project going idle with no Suggestion queued and
+  `docs/next-action-selection.md`'s evidence pointing at Continual Refinement as stale relative to
+  Features 16-19.
+- **Finding:** `npx vitest run --coverage` showed `BenchmarkPage.tsx` at 77.27% and `ReviewQueuePage.tsx`
+  at 80.55% statement coverage, both noticeably below the rest of the codebase's ~90%+ norm. Both gaps
+  traced to the same root cause: newly-added interactive/async branches (Feature 17's Threshold Simulator
+  run-benchmark and switch-run success/failure paths; the review queue's `recentlyResolved` leads-fetch
+  success path and the queue-load failure path) had only ever been verified visually via Playwright when
+  their owning features shipped, never exercised by a unit/component test.
+- **Rationale / Evidence:** Coverage report's own uncovered-line numbers pointed directly at
+  `handleRunBenchmark`/`handleSelectRun`'s `.then`/`.catch` bodies (`BenchmarkPage.tsx` lines 67, 78-86,
+  95) and the `listReviews` catch branch plus the `listLeads` success branch (`ReviewQueuePage.tsx` lines
+  31, 45, 168) — not ambiguous, directly actionable from the tool's own output.
+- **Routes to:** Scoped re-entry to Step 6 (add tests for the named files) → Step 7 (verify) — per the
+  Routing Table's Dimension 4 row.
+- **Implementation notes:** Fixed same round. Added 4 tests to `BenchmarkPage.test.tsx` (run-list load
+  failure, run-benchmark success, run-benchmark failure, switch-run failure) and 2 tests to
+  `ReviewQueuePage.test.tsx` (queue-load failure, Recently Processed panel render from real `listLeads`
+  data — previously unmocked in every existing test in this file). Verified: frontend suite 66/66 passing
+  (was 60/60, +6 tests). Coverage: `BenchmarkPage.tsx` 77.27%→93.93% (the 2 remaining uncovered lines are
+  `CaseStatusBadge`'s `item.correct` branch, unreachable at this component's one actual call site — a
+  dead-code note, not a test gap), `ReviewQueuePage.tsx` 80.55%→97.22%; project-wide frontend statement
+  coverage 88.86%→92.13%. `tsc -b`, `vite build` (348.28 kB, unchanged — test-only change), and `oxlint`
+  all re-confirmed clean. Backend suite unaffected, 171/171 (no backend files touched).
+  `README.md`/`portfolio-description.md`/`linkedin-entry.md` test counts updated 231→237 (171 backend +
+  66 frontend) per Dimension 8's cross-document discipline. The refinement backlog again has **zero
+  `OPEN` entries**.

@@ -123,6 +123,57 @@ describe('BenchmarkPage', () => {
     expect(readCandidateCount('Wrong, auto-approved')).toBe('1')
   })
 
+  it('shows an error state when the run list fails to load', async () => {
+    vi.spyOn(api, 'listBenchmarkRuns').mockRejectedValue(new Error('network error'))
+
+    render(<BenchmarkPage />)
+
+    await waitFor(() =>
+      expect(screen.getByText('Failed to load benchmark runs.')).toBeInTheDocument(),
+    )
+  })
+
+  it('runs a new benchmark and displays its result on success', async () => {
+    vi.spyOn(api, 'listBenchmarkRuns').mockResolvedValue([])
+    vi.spyOn(api, 'runBenchmark').mockResolvedValue(RUN)
+
+    render(<BenchmarkPage />)
+
+    await waitFor(() => expect(screen.getByText(/No benchmark runs yet/)).toBeInTheDocument())
+    await userEvent.click(screen.getByRole('button', { name: /Run Benchmark/ }))
+
+    await waitFor(() => expect(screen.getAllByText('50.0%').length).toBeGreaterThan(0))
+    expect(api.runBenchmark).toHaveBeenCalledTimes(1)
+  })
+
+  it('shows an error state when running a new benchmark fails', async () => {
+    vi.spyOn(api, 'listBenchmarkRuns').mockResolvedValue([])
+    vi.spyOn(api, 'runBenchmark').mockRejectedValue(new Error('server error'))
+
+    render(<BenchmarkPage />)
+
+    await waitFor(() => expect(screen.getByText(/No benchmark runs yet/)).toBeInTheDocument())
+    await userEvent.click(screen.getByRole('button', { name: /Run Benchmark/ }))
+
+    await waitFor(() => expect(screen.getByText('Benchmark run failed.')).toBeInTheDocument())
+  })
+
+  it('shows an error state when switching to a different run fails', async () => {
+    vi.spyOn(api, 'listBenchmarkRuns').mockResolvedValue([RUN, OLDER_RUN])
+    vi.spyOn(api, 'getBenchmarkRun').mockImplementation((runId: string) =>
+      runId === OLDER_RUN.id ? Promise.reject(new Error('not found')) : Promise.resolve(RUN),
+    )
+
+    render(<BenchmarkPage />)
+
+    await waitFor(() => expect(screen.getByText('Run History & Trend')).toBeInTheDocument())
+    await userEvent.click(screen.getByText(new Date(OLDER_RUN.created_at).toLocaleString()))
+
+    await waitFor(() =>
+      expect(screen.getByText('Failed to load that benchmark run.')).toBeInTheDocument(),
+    )
+  })
+
   it('re-bases the Threshold Simulator on the newly-selected run after switching', async () => {
     vi.spyOn(api, 'listBenchmarkRuns').mockResolvedValue([RUN, OLDER_RUN])
     vi.spyOn(api, 'getBenchmarkRun').mockImplementation((runId: string) =>

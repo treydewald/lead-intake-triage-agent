@@ -5,7 +5,7 @@ REFINED TITLE (70 chars max)
 AI Lead Triage Agent: Auto-Acts When Confident, Escalates to Human
 
 REFINED DESCRIPTION (600 chars max)
-A six-stage LangGraph agent that ingests inbound sales leads (web form, email, or callback), classifies intent via a local LLM (Ollama), enriches missing contact data, and writes an idempotent, dedupe-safe update to a HubSpot CRM sandbox, with each stage tool-scoped to only the external systems it needs. Confident runs complete automatically; low-confidence ones pause for human review — approved, edited, or rejected in-app or via Slack — with retryable failures, a full audit trail, and a funnel dashboard. FastAPI/SQLAlchemy backend, React/TypeScript frontend, 231 passing tests.
+A six-stage LangGraph agent that ingests inbound sales leads (web form, email, or callback), classifies intent via a local LLM (Ollama), enriches missing contact data, and writes an idempotent, dedupe-safe update to a HubSpot CRM sandbox, with each stage tool-scoped to only the external systems it needs. Confident runs complete automatically; low-confidence ones pause for human review — approved, edited, or rejected in-app or via Slack — with retryable failures, a full audit trail, and a funnel dashboard. FastAPI/SQLAlchemy backend, React/TypeScript frontend, 237 passing tests.
 
 SKILLS & DELIVERABLES (max 5)
 - Multi-stage AI agent orchestration with LangGraph (per-stage tool scoping, resumable paused-run state)
@@ -72,3 +72,8 @@ Description re-measured at 584/600 chars after trimming "signature-verified" and
 the new claims without cutting any existing verified one. Skills list left unchanged (still accurate;
 a 6th "Slack API integration" skill would require dropping one of the existing 5, not clearly
 warranted by one addendum feature among many).
+
+**Updated 2026-09-06 (Continual Project Refinement, Round 2):** Test count refreshed 231 → 237 after
+this round added 6 frontend tests closing a coverage gap on `BenchmarkPage.tsx`/`ReviewQueuePage.tsx`
+(RB-010). Description re-measured, still 584/600 chars (same digit count: 231→237 is still 3 digits).
+See `.claude/refinement-backlog.md`'s RB-010 entry and `refinement-audit.md`'s Round 2 for full detail.
