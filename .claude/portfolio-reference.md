@@ -639,3 +639,14 @@ that doesn't exist yet.)*
   (as opposed to outbound) external-system trust boundary — a durable pattern for any future inbound
   webhook/callback this project adds. Set by Feature 19's implementation plan
   (`architecture-plan-feature-19.md`).
+- **An aggregate table row that summarizes entities another page already lets you filter/list must link
+  to that page pre-filtered to match — using the same query-param shape that page's own filters already
+  read, not a new mechanism.** `FunnelDashboardPage.tsx`'s "By Source Channel" table linked to nothing
+  before In-App Cohesion Audit Round 1 (2026-09-06) found it, despite `LeadListPage.tsx` already
+  supporting `?channel=<source_channel>` with matching values. Fixed by wrapping the channel-name cell
+  in a `<Link to={\`/leads?channel=${row.source_channel}\`}>`, reusing `LeadListPage.tsx`'s own
+  `searchParams` contract rather than inventing a new one. **General rule:** any future aggregate/summary
+  table (a per-status count, a per-reviewer count, etc.) should link to the corresponding filtered list
+  view the same way, whenever that filter already exists — and should stay unlinked, per
+  `docs/in-app-cohesion.md` §4, when no such destination exists yet (e.g. Reviewer Throughput's
+  reviewer names, correctly left unlinked this round since no reviewer-detail view exists).

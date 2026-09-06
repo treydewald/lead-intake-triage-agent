@@ -2,118 +2,92 @@ PORTFOLIO EVALUATION REPORT
 ===========================
 
 Project: Lead Intake Triage Agent
-Evaluation Date: 2026-09-06 (Round 7 — sourced from a **UI Audit & Refinement pass**, trigger 4
-(`docs/ui-audit-refinement.md` §3.4: no full-app UI Audit had been recorded since Round 6, and
-Features 16-19 shipped UI-facing changes since then), full-app scope. Distinguish from Rounds 1-6,
-which were ordinary Step 10/11/12 passes, not UI-Audit-sourced.)
+Evaluation Date: 2026-09-06 (Round 8 — sourced from an **In-App Cohesion Audit**, trigger 4
+(`docs/in-app-cohesion.md` §9.1: no full-app cohesion/reachability pass had ever been recorded on this
+project, and three Continued Development rounds shipped new UI surfaces since the last piecemeal
+cohesion fix — RB-004, 2026-09-05), full-app scope. Selected via `docs/next-action-selection.md`'s
+Dynamic Next-Action Selection at an idle Step 2, over Continual Refinement and Scope Expansion.
+Distinguish from Round 7, which was UI-Audit-sourced (responsiveness/accessibility/visual), a
+genuinely different concern from this round's reachability focus.)
 
 OVERALL SCORE: 9/10
 
 Score Justification:
-This round closed the one deliberately-left-open gap from prior sessions — Feature 17's Threshold
-Simulator panel was never visually verified (recorded `UNVERIFIED` in its own build session) — by
-actually expanding and screenshotting it this time, and extended screenshot/no-scroll/axe coverage to
-Feature 18's `/analytics` route, which had never been checked by any of these mechanisms before. Doing
-so surfaced real, previously-undetected defects: 2 serious + 2 moderate axe-core violations (a
-color-contrast failure, a non-keyboard-focusable scrollable region, and two heading-order breaks), plus
-a genuine mobile density regression on Lead Detail's failed-state banner (Feature 16's Retry button
-pushed the documented mobile exception from 15px to 50px, only visible when testing an actual
-multi-run/failed lead rather than the single-run lead the routine screenshot pass happens to sample).
-All of these were fixed and independently re-verified this round (one Step 12 batch, capped per this
-audit's own rule): axe-core now reports 0 critical/serious/moderate violations across all 9 route
-states (up from 2 serious + 2 moderate), and the Lead Detail mobile exception is reduced to 43px
-(down from 50px, still above the stale 15px figure but reflecting genuinely added value — a real retry
-action — not carelessness, consistent with this page's existing accepted-exception precedent). One
-small, cosmetically negligible finding remains open: a 10px mobile vertical overflow specific to
-Benchmark's Threshold Simulator panel in its expanded state, investigated in depth (four rounds of
-targeted CSS reduction removing over 70px of the panel's own content height had zero measurable effect
-on the flagged number, indicating a flex-sizing floor elsewhere on the page rather than the panel's own
-content being the constraint) and accepted as a documented exception rather than chased further, per
-this audit's own effort-cap discipline. With the two mechanical (axe) violations fully closed and every
-other dimension holding at Round 6's level, Overall and Visual & UI/UX both clear the 9.0 gate.
+Unchanged from Round 7 — this round's scope is narrower than a full re-score: it specifically
+click-through-verifies every summary/entity-reference/aggregate/status element in the app against
+`docs/in-app-cohesion.md` §2's checklist, rather than re-deriving all four dimensions from scratch.
+The full-app pass covered all 9 routes (Home, Lead List, Lead Detail, Lead History, Review Queue,
+Review Detail, Benchmark incl. Threshold Simulator, Analytics, Not Found) and found the app's existing
+cohesion wiring (Home's section cards, Lead Detail <-> Lead History <-> back, Review Detail -> source
+lead, Review Queue -> Review Detail) genuinely intact and live-navigable — with one real, previously
+undetected gap: Feature 18's `/analytics` dashboard (the newest UI surface, shipped after RB-004's last
+cohesion fix) displayed its "By Source Channel" aggregate table with no path to the matching filtered
+lead list, even though `/leads?channel=X` already exists as exactly that destination. Fixed and
+re-verified live this round (see the dedicated log below). Feature Signaling holds at 9/10 — the
+existing wiring was already strong, this round replaced "assumed intact" with "actually verified,"
+and closed the one gap that verification found.
 
 STRENGTHS:
-- Feature 17's Threshold Simulator panel, actually expanded and visually inspected for the first time
-  this round, reads as a fully-designed, on-brand comparison panel (live-vs-candidate two-column stat
-  cards, a labeled slider, consistent with the rest of the app's card/typography system) — closing the
-  category of `UNVERIFIED` visual gap this project had carried since Feature 17 shipped
-- Feature 18's `/analytics` dashboard, screenshotted, whitespace-measured, no-scroll-checked, and
-  axe-scanned for the first time this round, holds to the exact same standard as the other 7 pages:
-  2.0% empty space (identical to Round 6's other pages, confirming the page-shell fill pattern
-  generalizes to new pages built after it was established), zero scroll at all four viewports, zero
-  accessibility violations
-- Zero critical or serious accessibility violations project-wide after this round's fixes (was 2
-  serious + 2 moderate, entirely undetected until this round ran axe-core against the three new
-  Feature 16-19 surfaces for the first time)
-- The no-scroll invariant holds at 35 of 36 checked page/viewport combinations (9 routes × 4
-  viewports), including every route at every viewport in the two most common desktop resolutions
-  (1920×1080, 1440×900) with zero exceptions
-- In-app cohesion remains fully wired: Home's Analytics card link, the persistent nav's Analytics
-  entry, and Benchmark's Run History row-switching were all live-verified via real in-app navigation
-  (not just visual presence) during this round's screenshot capture
+- Every pre-existing cross-page link (Home's 4 section cards, Lead Detail <-> Lead History <-> back to
+  lead, Review Detail -> source lead + full history, Review Queue -> Review Detail, Lead List row ->
+  Lead Detail) was live-clicked this round, not just visually assumed from a screenshot — all resolved
+  to the correct destination with no dead links found
+- Feature 18's Analytics dashboard, Feature 17's Threshold Simulator, and Feature 16's Retry action —
+  the three UI surfaces shipped since RB-004 with no dedicated cohesion pass — were specifically
+  targeted by this round's full-app scope, closing a real trigger-4 gap rather than assuming recent
+  work was fine because nothing had flagged it
+- The one concrete gap this round found (Analytics' unlinked channel-aggregate table) was fixed and
+  live-re-verified in the same session: clicking a channel row now lands on `/leads?channel=X` with the
+  correct filter pre-applied and the correct filtered rows rendered
+- Correctly avoided over-navigation (`docs/in-app-cohesion.md` §4): the Reviewer Throughput table's
+  reviewer names were deliberately left unlinked — no reviewer-detail page or filter-by-reviewer
+  capability exists anywhere in the app, so a link there would point nowhere real
 
 WEAKNESSES:
-- Lead Detail's mobile density exception (documented since Round 6 at 15px) is now 43px for a lead
-  that has actually failed and shows Feature 16's Retry banner with an error message — the 15px figure
-  was stale, measured before Feature 16 shipped. Genuinely tried to compress it (icon/padding/spacing
-  tightening, saved 7px) before accepting the updated figure; further reduction would mean removing
-  real content (the error message or the retry action itself), which this audit judged not worth it
-  for a page already accepted as an exception under the same "genuinely data-heavy" reasoning.
-- Benchmark's Threshold Simulator panel has a 10px mobile vertical overflow when expanded — small,
-  reachable only by manually opening a collapsed-by-default disclosure at exactly one viewport width,
-  and not tied to any single identifiable element (investigated directly; removing over 70px of the
-  panel's own content had no effect on the number, meaning some other part of the page's flex layout
-  sets the real floor). Accepted as a new, small documented exception rather than continuing to chase a
-  fix with poor ROI.
-- No dark mode, saved-view indicator, or first-visit onboarding cue exists yet (P3s carried forward
-  unchanged since Round 2) — genuine nice-to-haves, not gating issues.
+- Analytics' "Awaiting review" stat card has no direct link to the Review Queue — flagged as a P3 for
+  a future round, not fixed this round. It's the same non-linked-StatCard pattern already present,
+  unchanged, on Home and Lead List (both previously reviewed across 6 Step 11 rounds without being
+  flagged), so this round treated it as a pre-existing, accepted convention rather than a new
+  regression specific to Analytics — worth a future consistency pass, not urgent.
+- Same carried items as Round 7 (unchanged, none touched by this round's scope): Lead Detail's 43px
+  mobile density exception, Benchmark's 10px mobile overflow on the expanded Threshold Simulator, no
+  dark mode / saved-view indicator / onboarding cue.
 
 DETAILED ANALYSIS:
 
 Visual & UI/UX: 9/10
-Unchanged from Round 6. Feature 17's panel and Feature 18's page both integrate cleanly into the
-established visual system (typography, card treatment, the confidence-meter signature visual) with no
-regression found anywhere previously verified. No new Visual & UI/UX defect was found this round beyond
-the accessibility/responsiveness items folded into Professional Readiness below.
+Unchanged from Round 7 — out of this round's scope (cohesion/reachability, not visual presentation).
 
 Feature Signaling: 9/10
-Unchanged from Round 6. The Threshold Simulator (once actually visible) and the Analytics dashboard
-both communicate real value clearly — the simulator ties a genuine model-accuracy finding (3 of 21
-auto-processed cases at the live 0.70 threshold are actually wrong) directly to an adjustable control,
-and the dashboard's by-channel/reviewer-throughput tables read real aggregated data, not placeholders.
-In-app cohesion (Home → Analytics, Lead Detail → Full History → back, Review Detail → source lead)
-live-verified with no broken links found.
+Re-verified this round, not carried forward unexamined. Every element in `docs/in-app-cohesion.md`
+§2's checklist ("summarizes data with its own detailed view," "displays an aggregate explorable in
+more detail," "shows a status tied to an actionable workflow," etc.) was evaluated against a live
+click-through across all 9 routes, not just the screenshot-implied presentation Round 7's own pass
+sampled. Found and fixed one real gap: Analytics' By-Source-Channel table linked to nothing, despite
+`/leads`'s existing channel filter being an exact-match destination. Everything else checked out intact
+— Home -> Analytics/Leads/Reviews/Benchmark cards, Lead Detail -> Lead History -> back, Review Detail
+-> source lead + full history, Review Queue -> Review Detail, Lead List row -> Lead Detail all
+confirmed live, not just visually present. One item deliberately left unlinked and one deferred as a
+P3 — see Weaknesses.
 
 Professional Readiness: 9/10
-This is where this round's findings landed and were fixed. Before this round's fixes: 2 serious axe-core
-violations (a 2.63:1 color-contrast failure on the Threshold Simulator's collapsed hint text against a
-4.5:1 requirement; a scrollable Run History table region with no keyboard focus path) and 2 moderate
-violations (heading-order breaks on Lead History and Review Detail, where a `<h3>` timeline-entry
-heading followed the page's `<h1>` with no `<h2>` in between because two section labels were styled
-`<div>`s rather than real headings). All four fixed this round and independently re-scanned: 0 critical/
-serious/moderate violations project-wide, across all 9 route states including the two newly-added ones
-(Analytics, Threshold Simulator expanded). Responsiveness re-verified fresh (not re-trusted from Round
-6): 35/36 page×viewport combinations at zero scroll; Lead Detail's mobile exception updated from a
-stale 15px to a verified-current 43px (still small in absolute terms, and now reflects a real feature's
-content rather than an unaccounted-for regression); Benchmark's expanded panel carries a new 10px mobile
-exception, investigated and documented rather than silently accepted. Empty/loading/error/success
-states, realistic data, and validation feedback are all unregressed from Round 6.
+Unchanged from Round 7 — out of this round's scope (responsiveness/accessibility, not reachability).
+Full backend (171/171) and frontend (60/60) suites, lint, and build re-confirmed clean after this
+round's own change (see log below), so nothing regressed.
 
 Client Impact: 9/10
-Unchanged from Round 6. A client scanning any of the 9 now-current screenshots (including the two new
-ones) would see the same cohesive, fully-filled dashboard impression Round 6 established, with the
-Threshold Simulator and Analytics dashboard reading as genuine additional depth rather than bolted-on
-features — both fit the existing visual system well enough that a viewer wouldn't guess they were added
-across three separate Continued Development rounds after the original build.
+Unchanged from Round 7. A client clicking through the Analytics dashboard now finds the by-channel
+table behaves the way a real BI tool would — every aggregate row leads somewhere real — rather than
+presenting numbers that dead-end at the table itself.
 
 PRIORITIZED IMPROVEMENT BACKLOG:
 
 P1 (Critical - High Impact):
-[None — all four dimensions clear the 9.0 gate this round.]
+[None.]
 
 P2 (High Priority):
-[None — the two concrete P2-equivalent findings this round surfaced (accessibility violations, Lead
-Detail mobile density regression) were fixed within this round's own Step 12 batch, not deferred.]
+[None — this round's one concrete finding (Analytics' unlinked channel table) was fixed within this
+round's own pass, not deferred.]
 
 P3 (Nice-to-Have):
 - P3-01: Add a first-visit onboarding cue on Home (e.g., pointing at the one pending review item) | Est.
@@ -124,59 +98,74 @@ P3 (Nice-to-Have):
 - P3-04: A more distinctive typographic scale (beyond the current consistent-but-conventional hierarchy)
   as a second signature visual characteristic, if pursuing 9.5-10 rather than stopping at the gate |
   Est. Effort: 2-3 hours
-- P3-05 (new, UI Audit Round 1): Close Benchmark's 10px mobile overflow when the Threshold Simulator is
-  expanded — root cause not yet isolated to a single element; a future session should try disabling page
-  sections one at a time to find the actual flex-sizing floor before attempting another CSS tweak | Est.
-  Effort: 1-2 hours
-- P3-06 (new, UI Audit Round 1): Further reduce Lead Detail's 43px mobile exception for failed/retried
-  leads, if pursuing full per-page parity — would likely require collapsing the error message behind a
-  disclosure similar to the per-stage decision JSON pattern already used elsewhere on this page, rather
-  than further spacing tightening (already attempted, yielded only 7px) | Est. Effort: 1 hour
+- P3-05: Close Benchmark's 10px mobile overflow when the Threshold Simulator is expanded — root cause
+  not yet isolated to a single element | Est. Effort: 1-2 hours
+- P3-06: Further reduce Lead Detail's 43px mobile exception for failed/retried leads, if pursuing full
+  per-page parity | Est. Effort: 1 hour
+- P3-07 (new, In-App Cohesion Audit Round 1): Link Analytics' (and, for consistency, Home's and Lead
+  List's) "Awaiting review" StatCard to `/reviews` — currently reachable only via primary nav, which
+  `docs/in-app-cohesion.md` §1 treats as insufficient on its own. Deferred rather than fixed this round
+  since it's a pre-existing, previously-unflagged convention repeated across three pages, not a new
+  regression on the newest surface alone — a future round should treat it as one consistency fix across
+  all three pages at once, not just Analytics | Est. Effort: 1 hour
 
 SCORE PATH TO 10/10:
-Unchanged reasoning from Round 6: this round clears the 9.0 gate on all four dimensions. The P3 backlog
-above (two new small mobile-exception polish items plus the four items carried from Round 6) is the
-realistic path from 9 to 9.5; a genuine 10 would still need a data-visualization or information-
-architecture detail distinctive enough that a client would point at a specific screen and call it out,
-which nothing here yet does.
+Unchanged reasoning from Round 7: this round doesn't change the Overall score (already at the 9.0
+gate); it verifies and hardens Feature Signaling rather than moving it. The P3 backlog above (now 7
+items) remains the realistic path from 9 to 9.5.
 
-UI AUDIT & REFINEMENT — ROUND-SPECIFIC VERIFICATION LOG:
-- Step 10 re-run, full app, all viewports: `.claude/skills/capture-screenshots.mjs` extended to cover
-  `/analytics` (new `08-analytics.png`) and Feature 17's Threshold Simulator expanded state (new
-  `07b-benchmark-threshold-expanded.png`, via a real `<summary>` click, not a static screenshot of the
-  collapsed state) — closing the `UNVERIFIED` gap Feature 17's own session left open. 11 screenshots
-  captured total (was 9): `01-home`, `02-lead-list`, `03-lead-detail`, `04-lead-history`,
-  `05-review-queue`, `06-review-detail`, `07-benchmark`, `07b-benchmark-threshold-expanded`,
-  `08-analytics`, `09-mobile-home`, `10-mobile-lead-list`.
-- Fresh `awaiting_review` item regenerated (lead `b5a847c8`, confidence 0.80) via the documented
-  disposable-second-`uvicorn`-instance technique (`.claude/seed-data.md`), since Feature 19's own
-  verification had consumed the project's only prior item down to an empty queue.
-- `.claude/skills/measure-page-whitespace.py` re-run against all 11 current screenshots: 2.0-2.9%
-  desktop, 2.3-2.4% mobile — matches Round 6's figures exactly, confirming the established
-  fill-remaining-space pattern generalizes to Feature 18's new page without rework.
-- New reusable `.claude/skills/check-no-scroll.mjs` (Step 9's responsive checklist, mechanized for the
-  first time on this project) — measures `main.scrollWidth/scrollHeight` vs `clientWidth/clientHeight`
-  at 1920×1080/1440×900/1366×768/390×844 across all 9 route states. Before this round's fixes: 1
-  flagged combination (Benchmark expanded, mobile, 10px). After: unchanged at 1/36 (this specific
-  overflow resisted fix attempts — see Weaknesses). Separately, a worst-case multi-run/failed lead
-  (`a1fcf264`) was checked directly (outside the standard 9-route sweep, which samples only the first
-  lead in the list) and found 50px mobile overflow on Lead Detail — reduced to 43px this round, see
-  Professional Readiness above.
-- New reusable `.claude/skills/check-axe.mjs` (Step 9.5, mechanized for the first time on this project)
-  — `@axe-core/playwright` installed as a real declared `devDependency` (was previously undeclared per
-  this project's own documented pattern of prior `--no-save` installs getting pruned) and run against
-  all 9 route states. Before fixes: 2 serious (color-contrast, scrollable-region-focusable), 2 moderate
-  (heading-order ×2). After fixes: 0 critical/serious/moderate, all 9 route states.
-- Full backend (171/171) and frontend (60/60) test suites, lint (0 warnings), and build all re-run
-  clean after the Step 12 batch's 6 code changes (contrast fix, keyboard-focus fix, 2 heading-order
-  fixes, Benchmark mobile spacing tightening, Lead Detail mobile banner tightening).
+IN-APP COHESION AUDIT — ROUND 1 — VERIFICATION LOG:
+- Trigger: `docs/next-action-selection.md`'s Dynamic Next-Action Selection, run at an idle Step 2 (no
+  Suggestion queued, zero `OPEN` refinement-backlog entries, no in-progress CD/Refinement round).
+  Evidence favored this operation over Continual Refinement (last full round predates Features 16-19,
+  but each of those features' own CD-4 already re-ran regression/coverage/security checks, leaving
+  less genuinely unchecked there) and over Scope Expansion (only S-05, a P3 CSV-export candidate,
+  remains — not a credible functional gap per the guardrail in `docs/next-action-selection.md` §5).
+  Offered to the user directly, naming the operation and reason; confirmed to proceed.
+- Inspect (§9.2 step 1): read every page component's source directly (`HomePage.tsx`,
+  `LeadListPage.tsx`, `LeadDetailPage.tsx`, `LeadHistoryPage.tsx`, `ReviewQueuePage.tsx`,
+  `ReviewDetailPage.tsx`, `BenchmarkPage.tsx`, `FunnelDashboardPage.tsx`, `NotFoundPage.tsx`,
+  `Layout.tsx`) against `docs/in-app-cohesion.md` §2's checklist, then live-verified with both dev
+  servers running against the real accumulated dev database (34 leads, 1 awaiting review) — not just a
+  screenshot read.
+- Evaluate (§9.2 step 2): confirmed via a real Playwright/Chromium session (not just source-reading)
+  that Analytics' "By Source Channel" table rows had no anchor ancestor and `cursor: auto` (not a
+  clickable affordance) before the fix — `GET /analytics/funnel`'s live response showed real per-channel
+  counts (`web_form`: 31, `callback`: 1, `email`: 1, `unknown`: 1) with no way to reach the underlying
+  leads from that page.
+- Identify (§9.2 step 3): one concrete gap — Analytics' by-channel table has no link to
+  `/leads?channel=X`, despite that filter already existing on `LeadListPage.tsx` with matching
+  `source_channel` values. Considered and declined: Reviewer Throughput rows (no reviewer-detail
+  destination exists — correctly left unlinked per §4's over-navigation guardrail); Analytics'
+  "Awaiting review" stat (same unlinked pattern already accepted on Home/Lead List across 6 prior Step
+  11 rounds — deferred as P3-07, not treated as this round's regression).
+- Prioritize (§9.2 step 4): P2-equivalent (a dashboard's primary purpose is exploring aggregates; a
+  dead-ending aggregate row undercuts that purpose) — fixed within this round's own pass rather than
+  deferred, consistent with this project's established batch discipline for small, contained fixes.
+- Implement (§9.2 step 5, Step 12 mechanism): `frontend/src/pages/FunnelDashboardPage.tsx` — wrapped
+  each channel-name cell in a real `<Link to={\`/leads?channel=${encodeURIComponent(row.source_channel)}\`}>`,
+  styled identically to the established primary-link-cell convention already used on
+  `LeadListPage.tsx`/`ReviewQueuePage.tsx` (`text-teal-700 hover:underline`), plus row hover affordance.
+  `frontend/src/pages/FunnelDashboardPage.test.tsx` updated: added the `MemoryRouter` wrapper this
+  page's tests were missing (needed once the component renders a real `<Link>`), and asserted the new
+  links' `href` values via `getByRole('link', ...).toHaveAttribute('href', ...)` — the same convention
+  `LeadDetailPage.test.tsx`/`ReviewDetailPage.test.tsx`/`NotFoundPage.test.tsx` already use.
+- Re-run the audit after changes (§9.2 step 6): live-clicked the new link in a real Playwright session
+  — lands on `/leads?channel=web_form`, the channel `<select>` shows "Web form" correctly selected, and
+  the table renders the 31 real `web_form` leads (10 shown per page), confirming the fix resolves to
+  the right destination with the right filter applied, not just that a link exists.
+- Verify no regressions (§9.2 step 7): full frontend suite 60/60 (unchanged count — an existing test
+  was extended, not a new one added), full backend suite 171/171 (unaffected — no backend files
+  touched), lint 0 warnings, build clean (348.28 kB, negligible change from the 337.92-338.09 kB
+  baseline — a one-line JSX change). No other page's links were touched, so no other cohesion path was
+  at risk of regressing.
+- Record (§9.2 step 8): this entry; `.claude/pipeline-reference.md`'s round-tracking log;
+  `.claude/intervention-log.md` (trigger, expected effect, outcome).
 
 Backlog Status:
-- Completed (this round's Step 12 batch, single round per this audit's cap): color-contrast fix
-  (Benchmark), scrollable-region keyboard-focus fix (Benchmark), heading-order fix (Lead History),
-  heading-order fix (Review Detail), Benchmark mobile spacing tightening, Lead Detail mobile banner
-  tightening
-- Not Started: 6 P3 (4 carried forward from Round 6 unchanged, 2 new — both small, investigated,
-  documented mobile-exception polish items)
-- **Gate status: PASSED — clears ≥9.0 Overall and ≥9.0 Visual & UI/UX. No further Step 12 round run
-  this session, per this audit's one-round cap and the gate already clearing on the first re-evaluation.**
+- Completed (this round): Analytics by-channel table row links.
+- Not Started: 7 P3 (6 carried forward from Round 6/7 unchanged, 1 new — the Awaiting-review StatCard
+  consistency item).
+- **Gate status: unaffected — Overall and Visual & UI/UX both remain ≥9.0 (unchanged from Round 7).
+  No further Step 12 round needed this session; this round's own single fix was already applied and
+  re-verified within the same pass.**

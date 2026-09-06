@@ -1,8 +1,9 @@
 # Pipeline Reference — Lead Intake Triage Agent
 
-**Last Updated:** 2026-09-06 (UI Audit & Refinement — Round 1, trigger 4 (full-app pass). OVERALL
-SCORE 9/10, Visual & UI/UX 9/10 — gate re-confirmed cleared. Full detail: `portfolio-evaluation.md`'s
-Round 7 entry, `.claude/portfolio-reference.md`'s Key Decisions.)
+**Last Updated:** 2026-09-06 (In-App Cohesion Audit — Round 1, trigger 4 (full-app pass, first ever
+run on this project). OVERALL SCORE unchanged at 9/10, Feature Signaling 9/10 re-verified — one real
+gap found (Analytics' unlinked channel table) and fixed same round. Full detail: `portfolio-
+evaluation.md`'s Round 8 entry, `.claude/intervention-log.md`'s `in_app_cohesion_audit` entry.)
 
 How *this project* is using the Upwork Portfolio Project Pipeline. Distinct from
 `portfolio-reference.md`, which is about the product — this file is about pipeline state.
@@ -11,7 +12,69 @@ How *this project* is using the Upwork Portfolio Project Pipeline. Distinct from
 
 ## Current Step
 
-**This session (2026-09-06, thirty-second session) — UI Audit & Refinement, Round 1 (trigger:
+**This session (2026-09-06, thirty-third session) — In-App Cohesion Audit, Round 1 (trigger:
+`docs/in-app-cohesion.md` §9.1, trigger 4 — no full-app Cohesion Audit had ever been recorded on this
+project, and three Continued Development rounds (Features 16-18) shipped new UI surfaces since the
+last piecemeal cohesion fix, RB-004; scope: full-app; Feature Signaling 9→9, Overall 9→9 — score held,
+but this round found and fixed a real, previously-undetected gap the unchanged score hadn't reflected):**
+
+Selected via `docs/next-action-selection.md`'s Dynamic Next-Action Selection at an idle Step 2 (no
+Suggestion queued, `.claude/refinement-backlog.md` had zero `OPEN` entries, no in-progress round).
+Evidence favored In-App Cohesion Audit over Continual Refinement (last full round predates Features
+16-19, but each feature's own CD-4 already re-ran regression/coverage/security checks) and over Scope
+Expansion (only S-05, a P3 CSV-export candidate, remains — not a credible gap per the guardrail).
+Offered to the user directly with this reasoning; confirmed to proceed.
+
+1. **Inspect (§9.2 step 1):** Read all 9 page components' source (`HomePage.tsx` through
+   `NotFoundPage.tsx` plus `Layout.tsx`) against `docs/in-app-cohesion.md` §2's checklist, then started
+   both dev servers and live-verified with a real Playwright/Chromium session against the actual
+   accumulated dev database (34 leads, 1 awaiting review) rather than trusting the source read alone.
+2. **Evaluate (§9.2 step 2):** Confirmed live that `FunnelDashboardPage.tsx`'s ("/analytics") "By
+   Source Channel" table rows had no anchor ancestor and `cursor: auto` — a real, unlinked aggregate
+   table — while every other cross-page link (Home's section cards, Lead Detail <-> Lead History <->
+   back, Review Detail -> source lead + history, Review Queue -> Review Detail, Lead List row -> Lead
+   Detail) resolved correctly under the same live click-through.
+3. **Identify (§9.2 step 3):** One concrete gap: Analytics' by-channel table has no link to
+   `/leads?channel=X`, despite that exact filter already existing on `LeadListPage.tsx`. Considered and
+   declined: Reviewer Throughput's reviewer names (no reviewer-detail destination exists anywhere in
+   the app — correctly left unlinked per §4's over-navigation guardrail); Analytics' "Awaiting review"
+   stat (same unlinked-StatCard pattern already present, unflagged, on Home/Lead List across 6 prior
+   Step 11 rounds — logged as a new P3 rather than this round's own regression, since it's a
+   pre-existing convention, not new drift).
+4. **Prioritize:** the one finding treated as P2-equivalent (a dashboard's core purpose is exploring
+   aggregates) — fixed within this round's own pass rather than deferred.
+5. **Implement (§9.2 step 5, Step 12 mechanism):** `frontend/src/pages/FunnelDashboardPage.tsx` —
+   wrapped each channel-name cell in a real `<Link to="/leads?channel=...">`, styled identically to the
+   established primary-link-cell convention (`LeadListPage.tsx`/`ReviewQueuePage.tsx`).
+   `frontend/src/pages/FunnelDashboardPage.test.tsx` — added the `MemoryRouter` wrapper this page's
+   tests were missing (needed once it renders a real `<Link>`) and asserted the new links' `href`
+   values via the same `getByRole('link', ...).toHaveAttribute('href', ...)` convention already used in
+   `LeadDetailPage.test.tsx`/`ReviewDetailPage.test.tsx`/`NotFoundPage.test.tsx`.
+6. **Re-run the audit after changes (§9.2 step 6):** Live-clicked the new link in Playwright — lands on
+   `/leads?channel=web_form`, the channel `<select>` shows "Web form" selected, and the table renders
+   the 31 real matching leads. Confirms the fix resolves to the right destination with the right filter
+   applied, not just that a link exists.
+7. **Verify no regressions (§9.2 step 7):** Full frontend suite 60/60 (unchanged count — an existing
+   test extended, not a new one added), full backend suite 171/171 (unaffected, no backend files
+   touched), lint 0 warnings, build clean (348.28 kB, negligible change from the 337.92-338.09 kB
+   baseline).
+8. **Record:** `portfolio-evaluation.md` rewritten (Round 8, Cohesion-Audit-sourced);
+   `.claude/intervention-log.md` gained this round's own entry.
+
+**Gate status: unaffected — Overall and Visual & UI/UX both remain ≥9.0 (unchanged from Round 7). No
+further Step 12 round needed — this round's one fix was already applied and re-verified within the
+same pass.** Feature Signaling 9/10 (re-verified via live click-through, not carried forward
+unexamined). 7 P3 items remain (6 carried from Rounds 6/7, 1 new — the Awaiting-review StatCard
+consistency item, P3-07).
+
+Pipeline-level friction check: none found this session — `docs/in-app-cohesion.md`'s §9.2 process and
+`docs/next-action-selection.md`'s selection procedure both worked exactly as documented; this was also
+the first time this project's Step 2 selected In-App Cohesion Audit over Continual Refinement in a
+genuine (not forced) evidence-based comparison, which resolved cleanly.
+
+---
+
+**Prior update (2026-09-06, thirty-second session) — UI Audit & Refinement, Round 1 (trigger:
 `docs/ui-audit-refinement.md` §3.4, trigger 4 — no full-app UI Audit had been recorded since Step 11
 Round 6, and three Continued Development rounds shipped UI-facing changes since (Feature 16's Retry
 button, Feature 17's Threshold Simulator panel, Feature 18's `/analytics` dashboard); scope: full-app;

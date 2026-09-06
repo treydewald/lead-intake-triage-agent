@@ -489,3 +489,39 @@ edit to that same entry once the round they belong to is scored, not a new entry
   since `docs/ui-audit-refinement.md` doesn't currently call this out as something a UI Audit pass
   should specifically re-check.
 - Agent: claude/claude_code
+
+### 2026-09-06 — in_app_cohesion_audit (Round 1)
+- Trigger: `docs/in-app-cohesion.md` §9.1, trigger 4 (full-app pass) — no In-App Cohesion Audit round
+  had ever been recorded on this project, and three Continued Development rounds shipped new UI
+  surfaces since the last piecemeal cohesion fix (RB-004, 2026-09-05): Feature 16's Retry action,
+  Feature 17's Threshold Simulator panel, Feature 18's `/analytics` dashboard. Selected via
+  `docs/next-action-selection.md`'s Dynamic Next-Action Selection at an idle Step 2 (no Suggestion, no
+  `OPEN` backlog entries, no in-progress round), over Continual Refinement and Scope Expansion —
+  offered to the user directly with the selection reasoning; confirmed to proceed.
+- Expected effect: click-through-verify every summary/entity-reference/aggregate/status element across
+  all 9 routes against `docs/in-app-cohesion.md` §2's checklist, and fix any genuine gap found within
+  the same pass.
+- Outcome: found one real, previously undetected gap — `FunnelDashboardPage.tsx`'s ("/analytics") "By
+  Source Channel" aggregate table had no link to the matching filtered lead view, despite
+  `/leads?channel=X` already existing as an exact-match destination on `LeadListPage.tsx`. Fixed:
+  wrapped each channel-name cell in a real `<Link>`, styled consistent with the existing
+  `LeadListPage.tsx`/`ReviewQueuePage.tsx` primary-link-cell convention. Live-re-verified via
+  Playwright: clicking a channel row lands on `/leads?channel=web_form` with the filter correctly
+  applied and the 31 real matching leads rendered. Everything else checked out already correctly
+  wired (Home's section cards, Lead Detail <-> Lead History <-> back, Review Detail -> source lead,
+  Review Queue -> Review Detail) — no other dead links found. Two items considered and deliberately
+  left unlinked/deferred: Reviewer Throughput's reviewer names (no reviewer-detail destination exists
+  anywhere in the app — correctly excluded per §4's over-navigation guardrail) and Analytics'
+  "Awaiting review" stat (same unlinked-StatCard pattern already present, unflagged, on Home and Lead
+  List across 6 prior Step 11 rounds — logged as a new P3, not treated as this round's own regression).
+  Full frontend suite 60/60 (an existing test extended with the `MemoryRouter` wrapper it was missing,
+  plus new href assertions — not a new test), full backend suite 171/171 (unaffected), lint 0
+  warnings, build clean (348.28 kB, negligible change). `portfolio-evaluation.md` rewritten (Round 8,
+  tagged Cohesion-Audit-sourced); OVERALL SCORE unchanged at 9/10 (Feature Signaling re-verified, not
+  moved).
+- Surprise: the gap landed specifically on the newest UI surface (Feature 18's dashboard, the exact
+  shape `docs/in-app-cohesion.md` §1's own worked example describes) while every older page's cohesion
+  wiring — including two pages fixed by name in RB-002/RB-004 over a week earlier — held up perfectly
+  under live re-verification. This is reassuring evidence that cohesion regressions in this project
+  come from *new* surfaces shipped without a dedicated check, not from drift in previously-fixed ones.
+- Agent: claude/claude_code

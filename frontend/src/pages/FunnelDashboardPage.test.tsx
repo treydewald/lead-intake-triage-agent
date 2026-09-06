@@ -1,4 +1,5 @@
 import { render, screen, waitFor } from '@testing-library/react'
+import { MemoryRouter } from 'react-router-dom'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { FunnelDashboardPage } from './FunnelDashboardPage'
 import * as api from '../lib/api'
@@ -25,14 +26,18 @@ describe('FunnelDashboardPage', () => {
   it('renders stat tiles and both tables from a full response', async () => {
     vi.spyOn(api, 'getFunnelDashboard').mockResolvedValue(FULL_DASHBOARD)
 
-    render(<FunnelDashboardPage />)
+    render(
+      <MemoryRouter>
+        <FunnelDashboardPage />
+      </MemoryRouter>,
+    )
 
     await waitFor(() => expect(screen.getByText('5')).toBeInTheDocument())
     expect(screen.getByText('1')).toBeInTheDocument() // awaiting review stat
     expect(screen.getByText('2m 5s')).toBeInTheDocument() // avg resolution
 
-    expect(screen.getByText('web form')).toBeInTheDocument()
-    expect(screen.getByText('email')).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: 'web form' })).toHaveAttribute('href', '/leads?channel=web_form')
+    expect(screen.getByRole('link', { name: 'email' })).toHaveAttribute('href', '/leads?channel=email')
 
     expect(screen.getByText('Alice')).toBeInTheDocument()
     expect(screen.getByText('1m 30s')).toBeInTheDocument()
@@ -47,7 +52,11 @@ describe('FunnelDashboardPage', () => {
       reviewer_throughput: [],
     })
 
-    render(<FunnelDashboardPage />)
+    render(
+      <MemoryRouter>
+        <FunnelDashboardPage />
+      </MemoryRouter>,
+    )
 
     await waitFor(() =>
       expect(screen.getByText(/No leads have entered the pipeline yet/i)).toBeInTheDocument(),
@@ -63,7 +72,11 @@ describe('FunnelDashboardPage', () => {
       reviewer_throughput: [],
     })
 
-    render(<FunnelDashboardPage />)
+    render(
+      <MemoryRouter>
+        <FunnelDashboardPage />
+      </MemoryRouter>,
+    )
 
     await waitFor(() => expect(screen.getByText(/No reviews actioned yet/i)).toBeInTheDocument())
     // Page-level empty state must not also render when leads exist.
@@ -73,7 +86,11 @@ describe('FunnelDashboardPage', () => {
   it('shows an error state when the request fails', async () => {
     vi.spyOn(api, 'getFunnelDashboard').mockRejectedValue(new Error('boom'))
 
-    render(<FunnelDashboardPage />)
+    render(
+      <MemoryRouter>
+        <FunnelDashboardPage />
+      </MemoryRouter>,
+    )
 
     await waitFor(() => expect(screen.getByText(/Failed to load the funnel dashboard/i)).toBeInTheDocument())
   })

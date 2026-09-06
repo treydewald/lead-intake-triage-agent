@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { Link } from 'react-router-dom'
 import { BarChart3, ClipboardCheck, Clock3, Users } from 'lucide-react'
 import { getFunnelDashboard, type FunnelDashboard } from '../lib/api'
 import { PageHeader } from '../components/ui/PageHeader'
@@ -93,9 +94,17 @@ export function FunnelDashboardPage() {
                   </thead>
                   <tbody>
                     {dashboard.by_source_channel.map((row) => (
-                      <tr key={row.source_channel} className="border-b border-slate-100 last:border-0">
-                        <td className="px-4 py-2.5 font-medium capitalize text-slate-800">
-                          {row.source_channel.replace('_', ' ')}
+                      <tr
+                        key={row.source_channel}
+                        className="border-b border-slate-100 transition-colors last:border-0 hover:bg-slate-50"
+                      >
+                        <td className="px-4 py-2.5 font-medium capitalize">
+                          <Link
+                            to={`/leads?channel=${encodeURIComponent(row.source_channel)}`}
+                            className="text-teal-700 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-600 focus-visible:ring-offset-1"
+                          >
+                            {row.source_channel.replace('_', ' ')}
+                          </Link>
                         </td>
                         <td className="px-4 py-2.5 text-slate-600">{row.count}</td>
                         <td className="px-4 py-2.5">
