@@ -99,7 +99,7 @@ not just convention (`backend/app/tests/test_orchestrator_tool_scope.py`).
   history page, which can scroll for a lead with an unusually long history by design.
 
 ### Quality & Accessibility
-- **171 backend tests / 66 frontend tests**, all passing; `tsc -b` and `vite build` clean.
+- **184 backend tests / 66 frontend tests**, all passing; `tsc -b` and `vite build` clean.
 - **Measured test coverage** — 98% backend statement coverage (`pytest-cov`); 92% frontend statement
   coverage (`@vitest/coverage-v8`), up from 71% before Continual Refinement Round 1: it first found
   `LeadDetailPage.tsx` — the page `portfolio-description.md` names as this project's core

@@ -1,6 +1,11 @@
 # Pipeline Reference — Lead Intake Triage Agent
 
-**Last Updated:** 2026-09-06 (Continued Development round — Confidence Scoring robustness).
+**Last Updated:** 2026-09-06 (CD-9 confirmation pass — closed out the Confidence Scoring round's
+deferred docs refresh: `README.md`/`portfolio-description.md`/`linkedin-entry.md` test counts refreshed
+237→250 (184 backend + 66 frontend, re-measured live), no feature-list changes needed. Project remains
+idle with no Suggestion queued and zero `OPEN` backlog entries.)
+
+Prior update: 2026-09-06 (Continued Development round — Confidence Scoring robustness).
 User-supplied Suggestion, explicitly framed as the project's last feature addition. CD-1 scoped this
 as deepening Feature 03 (no new Feature ID — no new route/UI surface); CD-2.5 produced
 `architecture-plan-2026-09-06.md` (Deep tier). `IntentClassificationStage.confidence_score` is now a
@@ -29,7 +34,50 @@ How *this project* is using the Upwork Portfolio Project Pipeline. Distinct from
 
 ## Current Step
 
-**This session (2026-09-06, thirty-sixth session) — Continued Development: Confidence Scoring
+**This session (2026-09-06, thirty-seventh session) — CD-9 confirmation pass (docs refresh) closing
+out the prior session's Confidence Scoring CD round:**
+
+Per that session's own "Next Step" note (below, dated entry now superseded by this one) and per Master
+Prompt Step 2: no Suggestion was queued this session and `.claude/refinement-backlog.md` had zero
+`OPEN` entries. Rather than treating the project as freshly idle and running
+`docs/next-action-selection.md`'s Dynamic Next-Action Selection, this session first finished the
+specific unfinished work the prior session's own Next Step section named — CD-9 (docs refresh) and
+CD-10 (re-publish) for the Confidence Scoring round, which that session explicitly deferred rather than
+skipped. This is "continue that loop instead of starting a new one" per Step 2's routing rule, not a
+new operation.
+
+**CD-9 (docs refresh):** Re-measured both suites live rather than trusting the prior session's recorded
+figures: `pytest --collect-only -q` → 184 backend (confirmed, matches the prior session's own count of
+171+13 new), `npx vitest list` → 66 frontend (unchanged, confirmed). Re-ran `pytest --cov=app` fresh:
+98% backend statement coverage, unchanged. Updated `README.md` ("171 backend tests / 66 frontend
+tests" → "184 backend tests / 66 frontend tests"), `portfolio-description.md` (584-char description's
+"237 passing tests" → "250 passing tests", same digit count so length unaffected; added a dated
+changelog entry), and `linkedin-entry.md` (bullet's "237 passing automated tests (171 backend, 66
+frontend...)" → "250 passing automated tests (184 backend, 66 frontend...)"; added a dated changelog
+entry). No feature-list, skills-list, or architecture claims needed changing in any of the three
+docs — confirmed by re-reading each in full first — since the Confidence Scoring round deepened an
+existing capability (Feature 03's classification confidence) with no new route or UI surface for any of
+these docs to describe, exactly as the prior session's own Next Step note predicted.
+
+**CD-10 (re-publish):** This project has no separate deploy/publish target beyond the git repository
+itself (Step 14-16 produced README/description/LinkedIn text, not a hosted deployment) — "re-publish"
+for this project means committing and pushing the refreshed docs, done as this session's own commit.
+
+**Project status:** idle again, no Suggestion queued, zero `OPEN` backlog entries. Per the prior
+session's own framing (the user described the Confidence Scoring round as the project's last planned
+feature addition), a future idle session should run `docs/next-action-selection.md`'s Dynamic
+Next-Action Selection (Scope Expansion, Continual Project Refinement, UI Audit & Refinement, or In-App
+Cohesion Audit) rather than assume there is nothing left to do — polish/audit rounds remain in scope
+even after feature additions stop, per that doc's own framing.
+
+Pipeline-level friction check: none found this session — Step 2's "continue the named unfinished work
+before treating the project as idle" routing worked exactly as the Master Prompt describes; this is the
+first time this project's Step 2 has resumed a specific prior session's own deferred CD-9/CD-10 note
+rather than either a Suggestion, an open backlog entry, or a fresh idle-branch selection.
+
+---
+
+**Prior session (2026-09-06, thirty-sixth session) — Continued Development: Confidence Scoring
 robustness (user-supplied Suggestion, explicitly framed as the project's last feature addition):**
 
 Per Master Prompt Step 2, checked `.claude/refinement-backlog.md` (zero `OPEN` entries) and
@@ -1663,7 +1711,21 @@ Tier section, STANDARD mode with Tier 2/3 features present falls back to full ti
 
 ## Next Step
 
-**This session (2026-09-06, thirty-sixth session):** Continued Development — Confidence Scoring
+**This session (2026-09-06, thirty-seventh session):** CD-9 confirmation pass COMPLETED — the prior
+session's own deferred docs refresh for the Confidence Scoring round is done (see Current Step above).
+`README.md`/`portfolio-description.md`/`linkedin-entry.md` test counts now correctly read 250 (184
+backend + 66 frontend); no feature-list changes were needed. **Next step for a future session:** no
+Suggestion is queued and no backlog entry is open — this project is idle again. Per Master Prompt Step
+2, run `docs/next-action-selection.md`'s Dynamic Next-Action Selection (Scope Expansion, Continual
+Project Refinement, UI Audit & Refinement, or In-App Cohesion Audit) rather than assuming there is
+nothing to do. Given the user's "last feature" framing on the prior round, Scope Expansion should only
+be selected if the evidence surfaces a genuinely credible new gap — a refinement/audit round is more
+likely the higher-value pick at this point, but the selection procedure itself should still make that
+call from evidence, not from this note's guess.
+
+---
+
+**Prior session (2026-09-06, thirty-sixth session):** Continued Development — Confidence Scoring
 robustness round COMPLETED (CD-1 through CD-4; CD-5–CD-8 skipped, no UI surface changed) — see Current
 Step above for full detail. **The user explicitly framed this as the project's last feature addition.**
 CD-9 (regenerate README/description/LinkedIn) and CD-10 (re-publish) were **not** run this session —

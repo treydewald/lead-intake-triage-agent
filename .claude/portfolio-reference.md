@@ -1,6 +1,11 @@
 # Portfolio Reference — Lead Intake Triage Agent
 
-**Last Updated:** 2026-09-06 (Dependency Upgrade round — `langgraph`/`langchain-core`/`starlette`
+**Last Updated:** 2026-09-06 (CD-9 confirmation pass — `README.md`/`portfolio-description.md`/
+`linkedin-entry.md` test counts refreshed 237→250 (184 backend + 66 frontend, re-measured live) to
+close out the prior Confidence Scoring round's deferred docs refresh. No architecture or Key Decision
+changes. Full detail: `.claude/pipeline-reference.md`'s matching entry.)
+
+Prior update: 2026-09-06 (Dependency Upgrade round — `langgraph`/`langchain-core`/`starlette`
 carried across major-version boundaries (`langgraph` 0.2→1.2, `starlette` 0.38→1.6) to resolve the
 security residual risk Round 2 flagged. Zero application code changes needed — grep-confirmed no direct
 `langchain_core` import anywhere in `app/`, and the orchestrator's `StateGraph` usage configures no
