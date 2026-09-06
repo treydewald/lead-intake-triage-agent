@@ -36,6 +36,13 @@ wrong signature.
 This ships S-04 — the last of `scope-expansion.md`'s Round 1 P1/P2 tie-break candidates. Only S-05
 (P3, Exportable Audit Trail CSV) remains unshipped from that round.
 
+**CD-9 (docs refresh) also run this session, unprompted:** noticed `README.md`/
+`portfolio-description.md`/`linkedin-entry.md` hadn't been updated since before Feature 16 — four CD
+rounds' worth of new capability (retry, threshold simulator, funnel dashboard, Slack actions) were
+entirely absent from all three, and stated test counts were stale (182 vs. the real 231). Refreshed
+all three, re-verifying counts live (`pytest --collect-only -q` → 171, `npx vitest list` → 60) rather
+than trusting the prior figure. Full detail in each file's own dated changelog entry.
+
 Pipeline-level friction check (Feature 19): none found — `docs/continued-development.md`'s CD-1
 through CD-4 sequence and `docs/implementation-planning.md`'s Deep-tier planning depth (used here for
 the first time on this project, for a security-sensitive inbound trust boundary) both worked exactly
