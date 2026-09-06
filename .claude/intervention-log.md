@@ -369,3 +369,88 @@ edit to that same entry once the round they belong to is scored, not a new entry
 - Surprise: none beyond the endpoint-elimination finding already noted in this round's
   `implementation_planning_standard` entry above.
 - Agent: claude/claude_code
+
+### 2026-09-06 — scope_expansion (Round 1 continuation: S-03/S-04 tie-break)
+- Trigger: idle Step 2 ran `docs/next-action-selection.md`'s Dynamic Next-Action Selection (no
+  Suggestion, zero `OPEN` backlog entries, no CD round queued). Evidence favored UI Audit &
+  Refinement (Feature 17's expanded panel left visually `UNVERIFIED`, and this session had just
+  confirmed working browser automation is actually available) — offered first per §6's mandatory
+  confirmation step; user explicitly redirected to Scope Expansion instead, to continue S-03/S-04
+  (the two P2 candidates left in `scope-expansion.md`'s Round 1 after S-01/S-02 shipped). Per §4's
+  tie-break rule, asked which of S-03/S-04 to pursue first; answer: "both, in sequence."
+- Expected effect: S-03 (Aggregate Lead Funnel & Reviewer Throughput Dashboard) into CD-1 first,
+  S-04 (Interactive Slack Review Actions) immediately after.
+- Outcome: both shipped same session as Feature 18 and Feature 19 respectively — see their own
+  `continued_development` entries below.
+- Surprise: the confirmation step's phrasing (§6 step 4) assumes a binary yes/no to the *selected*
+  operation; the user's actual answer named a *different* registered operation entirely. Handled
+  cleanly by presenting all four registry operations and proceeding with the user's choice, but
+  logged as a pipeline-level insight (`meta/PIPELINE_INSIGHTS_LOG.md`, 2026-09-06 entry) since the
+  doc's own text doesn't explicitly name this as an expected outcome.
+- Agent: claude/claude_code
+
+### 2026-09-06 — implementation_planning_standard (Feature 18)
+- Trigger: CD-2.5 for Feature 18 (Aggregate Lead Funnel & Reviewer Throughput Dashboard) — classified
+  Standard tier (touches 2-3 existing systems: `PipelineRun`, `ReviewQueueItem`, nav/HomePage).
+- Expected effect (Predicted Footprint, `architecture-plan-feature-18.md`): 10 files across a new
+  `analytics.py` router/schema pair, `main.py`, `api.ts`, a new `FunnelDashboardPage.tsx`/`.test.tsx`,
+  `App.tsx`, `Layout.tsx`, `HomePage.tsx`.
+- Outcome (Actual Footprint, same file): 9/10 predicted files changed (one fewer — no dedicated
+  `HomePage.test.tsx` exists in this project, so nothing there needed touching). Full backend
+  (154/154) and frontend (60/60) suites passed on the first full run; bundle +2.9%, coverage -0.17pp,
+  both under CD-4's material thresholds.
+- Surprise: a real pre-commit self-catch, not a plan deviation — the reviewer-throughput computation
+  was initially written with an O(reviewers) nested re-query inside a list comprehension; rewritten
+  to a single pass before any test ran against it.
+- Agent: claude/claude_code
+
+### 2026-09-06 — continued_development (Feature 18, CD-1 through CD-4)
+- Trigger: `scope-expansion.md` Round 1's S-03, entering CD-1 per this round's tie-break decision
+  ("both, in sequence — S-03 first").
+- Expected effect: a new `/analytics` dashboard aggregating lead funnel/reviewer throughput from
+  already-persisted data, per `roadmap-addendum-2026-09-06-round2.md`.
+- Outcome: COMPLETED. Live-verified against the real accumulated dev database (33 real
+  `PipelineRun` rows, 8 real `ReviewQueueItem` actions) — `by_status` counts summed exactly to
+  `total_leads`, a real `None` source_channel row correctly bucketed as "unknown". Also visually
+  verified with real Playwright/Chromium (confirmed available this session) at all four target
+  viewports — zero overflow, closing the category of `UNVERIFIED` gap Feature 17's session left open.
+  154/154 backend + 60/60 frontend tests passed. Full detail: `.claude/validation-results.md`'s
+  2026-09-06 Feature 18 CD-4 entry.
+- Surprise: none beyond the pre-commit self-catch already noted in this round's
+  `implementation_planning_standard` entry above.
+- Agent: claude/claude_code
+
+### 2026-09-06 — implementation_planning_deep (Feature 19)
+- Trigger: CD-2.5 for Feature 19 (Interactive Slack Review Actions) — classified Deep tier despite
+  touching only 2-3 existing systems, because a new *inbound* trust boundary (Slack request-signature
+  verification) is security-sensitive per `docs/implementation-planning.md` §3's own Planning Depth
+  table — this project's first Deep-tier CD-2.5 plan.
+- Expected effect (Predicted Footprint, `architecture-plan-feature-19.md`): 11 files, including
+  extracting `action_review`'s logic into a new shared `orchestrator/review_actions.py`, a new
+  `routers/slack.py`, and an optional interactive-buttons payload on Feature 10's existing webhook.
+- Outcome (Actual Footprint, same file): 11/11 predicted files changed, no unplanned files, no
+  rework. Full backend suite 171/171 passed (+17 new), critically including `test_router_reviews.py`
+  passing **completely unmodified** — the regression gate this plan's own Implementation Order
+  required, proving the extraction was behavior-preserving.
+- Surprise: none — the plan's proposed Architecture Rule Change (multi-transport domain logic lives
+  in `app/orchestrator/`) applied cleanly with zero deviation, and the Risk section's honest
+  "cannot live-verify against a real Slack workspace" caveat held exactly as predicted (everything
+  else was live-verified; that one leg specifically could not be).
+- Agent: claude/claude_code
+
+### 2026-09-06 — continued_development (Feature 19, CD-1 through CD-4)
+- Trigger: `scope-expansion.md` Round 1's S-04, immediately after Feature 18 in the same session per
+  this round's tie-break decision ("both, in sequence").
+- Expected effect: a signature-verified Slack interactive-component endpoint routing Approve/Reject
+  clicks through the existing review-action logic, per `roadmap-addendum-2026-09-06-round3.md`.
+- Outcome: COMPLETED. Live-verified end-to-end against the real running backend, deliberately
+  consuming the project's one real `awaiting_review` item via a genuinely computed HMAC signature
+  (not a synthetic example) — a forged signature and a stale timestamp were both rejected before
+  touching the review; the real signed click actually approved the real lead, resuming it through the
+  real orchestrator into the same expected HubSpot-write limitation Feature 05 already established.
+  171/171 backend tests passed. Full detail: `.claude/validation-results.md`'s 2026-09-06 Feature 19
+  CD-4 entry.
+- Surprise: none beyond what's already noted in this round's `implementation_planning_deep` entry
+  above. This ships the last of `scope-expansion.md`'s Round 1 P1/P2 candidates — only S-05 (P3)
+  remains.
+- Agent: claude/claude_code

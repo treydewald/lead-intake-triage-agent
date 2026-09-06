@@ -5,7 +5,7 @@ REFINED TITLE (70 chars max)
 AI Lead Triage Agent: Auto-Acts When Confident, Escalates to Human
 
 REFINED DESCRIPTION (600 chars max)
-A six-stage LangGraph agent that ingests inbound sales leads (web form, email, or callback), classifies intent via a local LLM (Ollama), enriches missing contact data, and writes an idempotent, dedupe-safe update to a HubSpot CRM sandbox. Each stage is tool-scoped to only the external systems it needs. Confident runs complete automatically; low-confidence ones pause in a human review queue for approve, edit, or reject, with a full per-lead audit trail and notifications. FastAPI/SQLAlchemy backend, React/TypeScript frontend, 182 passing tests, and a measured classification-accuracy benchmark.
+A six-stage LangGraph agent that ingests inbound sales leads (web form, email, or callback), classifies intent via a local LLM (Ollama), enriches missing contact data, and writes an idempotent, dedupe-safe update to a HubSpot CRM sandbox, with each stage tool-scoped to only the external systems it needs. Confident runs complete automatically; low-confidence ones pause for human review — approved, edited, or rejected in-app or via Slack — with retryable failures, a full audit trail, and a funnel dashboard. FastAPI/SQLAlchemy backend, React/TypeScript frontend, 231 passing tests.
 
 SKILLS & DELIVERABLES (max 5)
 - Multi-stage AI agent orchestration with LangGraph (per-stage tool scoping, resumable paused-run state)
@@ -44,7 +44,7 @@ Improvements:
 
 Character Counts:
 - Title: 66/70 chars
-- Description: 598/600 chars
+- Description: 584/600 chars
 - Skills: 5/5 items
 
 Next Step:
@@ -61,3 +61,14 @@ named differentiator page) — description re-measured at 598/600 chars, still u
 closing the round's remaining named frontend coverage gaps (`lib/api.ts`, `LeadListPage.tsx`,
 `NotFoundPage.tsx` — 17 new tests). Description re-measured, still 598/600 chars (same digit count). See
 `.claude/refinement-backlog.md`'s RB-008 entry for full detail.
+
+**Updated 2026-09-06 (Continued Development, Features 16-19):** Description rewritten to name four
+capabilities shipped across four CD rounds since the last refresh — retryable failed runs (Feature
+16), Slack-based approve/reject (Feature 19), and a funnel dashboard (Feature 18) — none of which
+this doc had ever mentioned (RB-009's own refresh only updated the test count, not the feature list).
+Test count refreshed 182 → 231 (171 backend + 60 frontend), re-measured live via
+`pytest --collect-only -q` and `npx vitest list`, not copied from README without re-checking.
+Description re-measured at 584/600 chars after trimming "signature-verified" and "aggregate" to fit
+the new claims without cutting any existing verified one. Skills list left unchanged (still accurate;
+a 6th "Slack API integration" skill would require dropping one of the existing 5, not clearly
+warranted by one addendum feature among many).

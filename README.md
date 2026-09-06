@@ -16,9 +16,11 @@ normalizes it → **Intent Classification** (a local LLM via Ollama) scores inte
 **Data Enrichment** looks up the contact in HubSpot and fills in anything Intake left blank →
 **HubSpot CRM Write** upserts the contact record → if confidence cleared the configured threshold,
 the run completes automatically; if it didn't, the run pauses and lands in a **Human Review** queue,
-where an operator approves, edits, or rejects it → an **Outcome Notification** stage records what
-happened (in-app, plus an optional external webhook) and every step is preserved on a per-lead
-history timeline.
+where an operator approves, edits, or rejects it — from the app itself, or directly from a Slack
+message's Approve/Reject buttons — an **Outcome Notification** stage records what happened (in-app,
+plus an optional external webhook) and every step is preserved on a per-lead history timeline. A run
+that fails partway (e.g. a CRM write error) isn't a dead end — it can be retried from the stage that
+failed, without re-running the whole pipeline from scratch.
 
 **Architecture:** each stage above is a real, isolated unit — its own Pydantic input/output schema,
 its own slice of a shared `LeadPipelineState`, and its own explicit tool allowlist enforced by a
@@ -42,6 +44,9 @@ not just convention (`backend/app/tests/test_orchestrator_tool_scope.py`).
 - **Idempotent CRM writes** — HubSpot upserts address the contact by its own dedupe-key value
   (phone or email) via HubSpot's `idProperty` query parameter, so re-processing a lead never creates
   a duplicate contact.
+- **Retryable failed runs** — a run that fails partway (e.g. a CRM write error) resumes from the
+  failed stage via a second compiled graph, reusing the same `Stage`/`ToolRegistry` machinery as the
+  primary run and Feature 06's own resume pattern, rather than restarting the lead from scratch.
 
 ### Backend (FastAPI + SQLAlchemy + LangGraph)
 - **Three intake channels** — `POST /leads/webform`, `POST /leads/email`, `POST /leads/callback` —
@@ -49,32 +54,43 @@ not just convention (`backend/app/tests/test_orchestrator_tool_scope.py`).
 - **Observability API** — `GET /leads` (paginated, filterable by status/channel), `GET
   /leads/{lead_id}` (full per-lead stage-trace timeline), `GET /leads/{lead_id}/history` (merged
   history across every pipeline run and human review action for that lead — never assumes exactly
-  one run per lead).
+  one run per lead), `POST /leads/{lead_id}/retry` (retry the most recent failed run).
 - **Human review workflow** — `GET /reviews` (pending queue), `GET /reviews/{run_id}` (item detail,
   including the original message content), `POST /reviews/{run_id}/action` (approve/edit/reject),
-  with a concurrency-safe atomic claim so two reviewers can't double-action the same item.
+  with a concurrency-safe atomic claim so two reviewers can't double-action the same item. The same
+  action logic is also reachable from `POST /slack/interactions` — a signature-verified Slack
+  interactive-component callback letting a reviewer approve/reject directly from Slack.
 - **Classification accuracy benchmark** — `POST /benchmark/run` executes the Intent Classification
   stage standalone against a 22-item labeled dataset (`backend/app/benchmark/dataset.py`) and
   computes attempt-level accuracy and item-level consistency across repeats; `GET /benchmark/runs` /
-  `GET /benchmark/runs/{run_id}` retrieve past runs.
+  `GET /benchmark/runs/{run_id}` retrieve past runs; `GET /benchmark/confidence-threshold` exposes the
+  live confidence-gate setting so a candidate threshold can be simulated against real benchmark data
+  before ever changing the real setting.
+- **Aggregate funnel & reviewer throughput** — `GET /analytics/funnel` computes lead counts by
+  outcome status and source channel, average time-to-resolution, and per-reviewer throughput,
+  entirely from already-persisted `PipelineRun`/`ReviewQueueItem` rows — no new tables, no caching.
 - **In-app + external notifications** — every terminal outcome (auto-processed, awaiting review,
   rejected, failed) is recorded via `GET /notifications`; an optional Slack-compatible incoming
-  webhook additionally delivers `awaiting_review` outcomes externally, gated by
-  `NOTIFICATION_WEBHOOK_URL` and never able to affect pipeline state (delivery failure is recorded as
-  data on the notification row, never raised).
+  webhook additionally delivers `awaiting_review` outcomes externally (with interactive Approve/Reject
+  buttons wired to `POST /slack/interactions`), gated by `NOTIFICATION_WEBHOOK_URL` and never able to
+  affect pipeline state (delivery failure is recorded as data on the notification row, never raised).
 - **Free-by-default stack** — SQLite for local dev (a Postgres DSN swap-in is a config change, no
   code change), a local open-weight model via Ollama by default, HubSpot's free developer sandbox;
   any paid LLM API is an explicitly opt-in fallback only.
 
 ### Frontend (React 19 + TypeScript + Vite + Tailwind v4)
 - **Lead observability** — a searchable/filterable/paginated lead list, a per-lead detail view with
-  a collapsible full stage-trace timeline, and a dedicated lead history page merging multi-run and
-  review-action events chronologically.
+  a collapsible full stage-trace timeline and a "Retry" action on any failed run's banner, and a
+  dedicated lead history page merging multi-run and review-action events chronologically.
 - **Human review console** — a pending-queue view and a per-item detail page showing the original
   message, the model's classification/confidence, and an approve/edit/reject action form (with an
   optional self-reported reviewer name, since this is a single-operator workflow with no auth model).
 - **Benchmark dashboard** — trigger a fresh accuracy run, see accuracy/consistency/model stat tiles,
-  a trend chart across prior runs, and a table of ambiguous or misclassified cases.
+  a trend chart across prior runs, a table of ambiguous or misclassified cases, and a collapsible
+  "Threshold Simulator" panel showing how many cases would land on each side of a candidate
+  confidence threshold before ever touching the real setting.
+- **Funnel & reviewer throughput dashboard** — aggregate stat tiles, a by-source-channel breakdown,
+  and a reviewer-throughput table, all computed from data the app already persists.
 - **Designed for every state** — a shared UI kit (`frontend/src/components/ui/`) gives every page a
   consistent type scale, card depth, and dedicated empty/loading/error states instead of bare text.
 - **Fully responsive, no unintended scroll** — every page fits common desktop viewports
@@ -83,13 +99,16 @@ not just convention (`backend/app/tests/test_orchestrator_tool_scope.py`).
   history page, which can scroll for a lead with an unusually long history by design.
 
 ### Quality & Accessibility
-- **138 backend tests / 44 frontend tests**, all passing; `tsc -b` and `vite build` clean.
+- **171 backend tests / 60 frontend tests**, all passing; `tsc -b` and `vite build` clean.
 - **Measured test coverage** — 98% backend statement coverage (`pytest-cov`); 89% frontend statement
   coverage (`@vitest/coverage-v8`), up from 71% before Continual Refinement Round 1: it first found
   `LeadDetailPage.tsx` — the page `portfolio-description.md` names as this project's core
   differentiator — had no dedicated test, then its own deferred backlog item (RB-008) closed the
   remaining named gaps (`lib/api.ts`, `LeadListPage.tsx`, `NotFoundPage.tsx`), and RB-009's fetch-
-  pattern refactor added 3 more covering the reset-on-navigation branch it introduced.
+  pattern refactor added 3 more covering the reset-on-navigation branch it introduced. Held steady
+  through four later Continued Development rounds (Features 16-19), including a real inbound
+  Slack-signature trust boundary whose cryptographic core is fully unit-tested independent of any
+  live external service.
 - **0 accessibility violations** (axe-core, all severities) across every primary page.
 - **Dependency vulnerability scanning** (`npm audit`, `pip-audit`) run and findings triaged during
   QA — see `qa-report.md`; re-run during Continual Refinement with no new findings (frontend: 0
@@ -141,6 +160,9 @@ Backend (`backend/.env`, see `backend/.env.example` for the full list):
   (default `0.7`)
 - `NOTIFICATION_WEBHOOK_URL` — optional Slack-compatible webhook for external `awaiting_review`
   delivery, unset by default
+- `SLACK_SIGNING_SECRET` — Slack app signing secret, required for `POST /slack/interactions` to
+  accept any request (unset by default — with no secret configured, that endpoint rejects every
+  request rather than trusting an unverified payload)
 - `CORS_ORIGINS` — allowed frontend origins
 
 Frontend (`frontend/.env`, see `frontend/.env.example`):
@@ -186,13 +208,14 @@ backend/
   app/core/config.py            # Pydantic settings (env-driven)
   app/database/session.py       # SQLAlchemy engine/session
   app/models/                   # ORM models (pipeline_run, review_queue, notification, benchmark)
-  app/schemas/                  # Pydantic request/response schemas
-  app/routers/                  # FastAPI routers (leads, reviews, notifications, benchmark, health)
+  app/schemas/                  # Pydantic request/response schemas (incl. analytics)
+  app/routers/                  # FastAPI routers (leads, reviews, notifications, benchmark, analytics, slack, health)
   app/orchestrator/
     contracts.py                # Stage ABC every pipeline stage implements
     state.py                    # LeadPipelineState — one slice per stage
     tool_scope.py                # ToolRegistry / ScopedToolProxy — the enforced tool boundary
-    graph.py                    # LangGraph StateGraph wiring, run/resume entry points
+    graph.py                    # LangGraph StateGraph wiring, run/resume/retry entry points
+    review_actions.py           # apply_review_action() — shared by the HTTP and Slack transports
     stages/                     # One module per pipeline stage
     tools/                      # Real external-system bindings (Ollama, HubSpot, webhook)
   app/benchmark/                # Labeled dataset + benchmark harness
@@ -216,16 +239,26 @@ frontend/
 - `GET /leads` — paginated lead list, filterable by status/source channel
 - `GET /leads/{lead_id}` — lead detail with full stage-trace timeline
 - `GET /leads/{lead_id}/history` — merged history across all runs and review actions for a lead
+- `POST /leads/{lead_id}/retry` — retry the lead's most recent failed run from the stage that failed
 
 **Human Review:**
 - `GET /reviews` — pending review queue
 - `GET /reviews/{run_id}` — review item detail (includes original message content)
 - `POST /reviews/{run_id}/action` — approve, edit, or reject a paused run
 
+**Slack:**
+- `POST /slack/interactions` — signature-verified Slack interactive-component callback; routes an
+  Approve/Reject button click through the same logic as `POST /reviews/{run_id}/action`
+
 **Benchmark:**
 - `POST /benchmark/run` — run the classification-accuracy benchmark against the labeled dataset
 - `GET /benchmark/runs` — list past benchmark runs
 - `GET /benchmark/runs/{run_id}` — benchmark run detail, including per-case results
+- `GET /benchmark/confidence-threshold` — the live confidence-gate setting
+
+**Analytics:**
+- `GET /analytics/funnel` — aggregate lead counts by status/channel, average time-to-resolution, and
+  per-reviewer throughput
 
 **Notifications:**
 - `GET /notifications` — list outcome notifications, newest first
@@ -234,7 +267,7 @@ frontend/
 - `GET /health` — service health check
 
 **Frontend routes:** `/` (home), `/leads`, `/leads/:leadId`, `/leads/:leadId/history`, `/reviews`,
-`/reviews/:runId`, `/benchmark`.
+`/reviews/:runId`, `/benchmark`, `/analytics`.
 
 ## Contributing
 
