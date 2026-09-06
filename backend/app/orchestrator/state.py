@@ -54,8 +54,10 @@ class CrmWriteSlice(BaseModel):
     """Feature 05's slice: HubSpot write result."""
 
     hubspot_record_id: str | None = None
-    write_status: str | None = None  # "created" | "updated" — never "failed": a failed
-    # write raises instead of returning a slice, see architecture-plan-feature-05.md
+    write_status: str | None = None  # "created" | "updated" | "simulated" — never "failed":
+    # a real (token-present) write failure raises instead of returning a slice (see
+    # architecture-plan-feature-05.md); "simulated" means no HUBSPOT_ACCESS_TOKEN was
+    # configured, so no live write was attempted (see hubspot_tools.write_contact).
     dedupe_key_used: str | None = None
     dedupe_uncertain: bool = False
     retry_count: int = 0

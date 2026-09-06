@@ -1,11 +1,33 @@
 # Pipeline Reference — Lead Intake Triage Agent
 
-**Last Updated:** 2026-09-06 (CD-9 confirmation pass — closed out the Confidence Scoring round's
-deferred docs refresh: `README.md`/`portfolio-description.md`/`linkedin-entry.md` test counts refreshed
-237→250 (184 backend + 66 frontend, re-measured live), no feature-list changes needed. Project remains
-idle with no Suggestion queued and zero `OPEN` backlog entries.)
+**Last Updated:** 2026-09-06 (Continued Development — CRM Write Simulated-Success Fallback,
+deepens Feature 05). User-reported problem, not a Suggestion phrased as a feature: leads showed
+`status: failed` for ~89% of the dev DB, the review queue's processed items all ended in failure
+regardless of the reviewer's decision, and benchmark confidence scores looked poor (many under 78%).
+Root-caused via direct DB/code inspection (not assumption) before proposing anything: every failure
+traced to one already-documented dev-environment gap (`HUBSPOT_ACCESS_TOKEN` unset → `hubspot_write`
+raises → halt-on-write-failure design, per Feature 05's own Key Decision), and the low confidence
+scores traced to a real buyer/browser label-confusion in the classification prompt, not a scoring-math
+bug. Asked the user to choose the CRM-write fix's direction (simulated-write fallback vs. a real
+sandbox token vs. both) since it changes a recorded architecture decision — chose the simulated
+fallback. Implemented `hubspot_tools.write_contact`'s blank-token → `status="simulated"` short-circuit
+(read-path `search_contact` deliberately unchanged), tightened `ollama_tools._SYSTEM_PROMPT`'s
+buyer/browser distinction with definitions + few-shot examples, added a UI note on `LeadDetailPage.tsx`
+when a stage's write was simulated. 185/185 backend tests (net +1), 68/68 frontend tests (net +2), no
+regressions. Live-verified end-to-end (not just tests): backed up and reset `backend/leads.db`,
+regenerated the dev dataset through the real fixed pipeline (16 completed/simulated-write leads, 1
+pending review item, 1 approved, 1 rejected), then triggered a fresh live `run_benchmark(repeats=3)`
+against the real local `llama3.2:3b` model: **accuracy 87.0%→100.0%, consistency 90.9%→95.5%**, the 3
+previously-misclassified `browser→buyer` cases now all correct. One new Key Decision amendment in
+`.claude/portfolio-reference.md` (narrow carve-out, not a reversal, of the halt-on-write-failure rule).
+Full detail: `.claude/intervention-log.md`'s new entry; `.claude/seed-data.md`'s rewritten Leads/Review
+Queue/Benchmark Runs sections.
 
-Prior update: 2026-09-06 (Continued Development round — Confidence Scoring robustness).
+Prior update: 2026-09-06 (CD-9 confirmation pass — closed out the Confidence Scoring round's
+deferred docs refresh: `README.md`/`portfolio-description.md`/`linkedin-entry.md` test counts refreshed
+237→250 (184 backend + 66 frontend, re-measured live), no feature-list changes needed).
+
+Prior to that: 2026-09-06 (Continued Development round — Confidence Scoring robustness).
 User-supplied Suggestion, explicitly framed as the project's last feature addition. CD-1 scoped this
 as deepening Feature 03 (no new Feature ID — no new route/UI surface); CD-2.5 produced
 `architecture-plan-2026-09-06.md` (Deep tier). `IntentClassificationStage.confidence_score` is now a
@@ -34,7 +56,105 @@ How *this project* is using the Upwork Portfolio Project Pipeline. Distinct from
 
 ## Current Step
 
-**This session (2026-09-06, thirty-seventh session) — CD-9 confirmation pass (docs refresh) closing
+**This session (2026-09-06, thirty-eighth session) — Continued Development: CRM Write
+Simulated-Success Fallback (user-reported problem, deepens Feature 05):**
+
+The user reported the project "nearly finished, but the information doesn't look good" — leads showing
+`status: failed` often, confidence scores on the benchmark all under 78%, and the review queue entirely
+failed — and asked for a plan to either fix the functionality or improve how the data looks.
+
+**Diagnosis before proposing anything:** rather than trust `.claude/pipeline-reference.md`'s own
+recorded 87.0%/90.9% baseline (stale, per below) or guess at a fix, queried the live `backend/leads.db`
+directly: 31/35 `PipelineRun` rows `FAILED`, every one at `hubspot_crm_write`, with
+`stage_trace.error` reading `HubSpot access token is not configured`. Read
+`hubspot_crm_write.py`/`hubspot_tools.py` and confirmed this is exactly Feature 05's own documented,
+intentional "halt on write failure" design (`.claude/seed-data.md` had already called the ~89% failure
+rate out as expected, not a bug) — reacting to a genuinely *unconfigured* CRM, not a *failing* one.
+Separately queried `benchmark_case` rows: only 1 of 7 stored benchmark runs actually used the CD round's
+new composite confidence scoring (the other 6 predate it and still show the old clustered 0.8/0.9), and
+that one real run showed accuracy ~83% (not the 87% this file had recorded) with confidence ranging
+0.47-0.90, several genuinely low on cases where the local model misclassified `browser→buyer` — a real
+prompt-level label confusion, not a defect in `confidence_scoring.combine()`'s math.
+
+**Direction check:** the CRM-write fix touches a recorded architecture Key Decision (Feature 05's
+halt-on-write-failure rule), so asked the user directly rather than deciding unilaterally, per this
+project's own established pattern for decisions like RB-002. Presented three options — a permanent
+simulated-write fallback, a real free HubSpot sandbox token, or both. **User chose the simulated
+fallback.**
+
+**Implementation (backend):**
+- `backend/app/orchestrator/tools/hubspot_tools.py` — `write_contact()` now short-circuits at the top
+  when `token` is blank: returns `{"id": f"simulated-{uuid4()}", "status": "simulated",
+  "dedupe_key_used": ..., "dedupe_uncertain": ..., "retry_count": 0}` with zero HTTP calls, instead of
+  raising via `_require_token`. `search_contact()` (a read) is deliberately unchanged — still raises on
+  a missing token, since a read has no equivalent honest "nothing happened" fallback. A write that
+  fails with a token *present* (401/403, rejected 4xx, retries exhausted) still raises
+  `HubSpotWriteError` and still halts the run exactly as before — this is a narrow carve-out for the
+  "no CRM configured at all" case, not a reversal of the halt-on-failure design.
+- `backend/app/orchestrator/state.py` — `CrmWriteSlice.write_status` comment updated: `"created"` |
+  `"updated"` | `"simulated"`.
+- `backend/app/orchestrator/tools/ollama_tools.py` — `_SYSTEM_PROMPT` rewritten with explicit
+  buyer-vs-browser label definitions and 3 few-shot examples (the ambiguity the benchmark's own
+  Failure & Ambiguous Cases table had already flagged repeatedly across prior sessions: a factual
+  question or hedging language alone reads as `browser`, not `buyer`, without an actual commitment
+  signal like pricing/scheduling/contract language).
+
+**Implementation (frontend):** `LeadDetailPage.tsx` — when the `hubspot_crm_write` stage's decision
+has `write_status === 'simulated'`, an amber note now reads "Simulated write — no live HubSpot token
+configured, so this record was not actually sent to HubSpot," directly under that stage's card. Honest
+labeling, not a silent success.
+
+**Verification:** `backend/app/tests/test_orchestrator_tools.py`'s
+`test_write_contact_raises_clear_error_when_token_missing` replaced with 2 tests asserting the new
+simulated-success shape (including the no-phone/no-email `dedupe_uncertain=True` case).
+`frontend/src/pages/LeadDetailPage.test.tsx` gained 2 tests (note shown when simulated, absent for a
+real `created`/`updated` write). **185/185 backend tests (net +1), 68/68 frontend tests (net +2),
+`tsc -b`/`vite build`/`oxlint` all clean, no regressions.**
+
+**Live end-to-end verification (not just unit tests) — the actual point of this round:** confirmed the
+fix live against a real running `uvicorn` instance before touching any data: a fresh webform
+submission that previously halted `FAILED` at `hubspot_crm_write` now completes `COMPLETED` end-to-end.
+Then, with the user's explicit go-ahead (the DB reset was flagged as destructive and blocked by the
+sandbox's own safety classifier on the first attempt — asked the user directly rather than working
+around it), backed up `backend/leads.db` to
+`backend/leads.db.pre-simulated-write-backup-2026-09-06` (gitignored, local-only — no data lost) and
+rebuilt it from scratch via `alembic upgrade head` + 16 real leads submitted through the live fixed
+pipeline (13 from `benchmark/dataset.py`'s message pool, 3 near-boundary messages via this project's
+already-documented disposable-second-`uvicorn`-instance/`CONFIDENCE_THRESHOLD=0.95` technique to land
+reliably in Human Review — 1 approved, 1 rejected, 1 left pending). Result: **16 `COMPLETED` (all via
+simulated write), 1 `AWAITING_REVIEW`, 1 `REJECTED`** — a 94% completion rate, up from the prior
+dataset's ~89% failure rate, and every outcome earned by a real pipeline run, not edited into the DB.
+
+Triggered one fresh `POST /benchmark/run` (`repeats=3`) against the real local `llama3.2:3b` model to
+prove the prompt fix, not just assert it: **accuracy 87.0%→100.0% (all 18 labeled buyer/browser/spam
+cases correct; the 3 previously-misclassified `browser→buyer` cases now all correct), consistency
+90.9%→95.5%.** Confidence now ranges 0.72-0.90 across every case — continuous, not clustered, and no
+longer dragged down by the label-confusion cases. One genuine `classification_failed` remains on the
+single near-content-free ambiguous case ("Okay thanks.") — a pre-existing edge case excluded from
+accuracy scoring by design, not a new regression.
+
+**Documentation:** `.claude/portfolio-reference.md`'s halt-on-write-failure Key Decision amended in
+place (not overwritten) to record the narrow simulated-write carve-out and why. `.claude/seed-data.md`
+rewritten (Leads/Pipeline Runs, Review Queue item, Benchmark Runs, and "How it was seeded" sections) to
+describe the regenerated dataset, with the prior dataset kept as a superseded historical note rather
+than deleted. `README.md`'s HubSpot setup instructions reworded (sandbox token now explicitly optional,
+simulated mode explained). `README.md`/`portfolio-description.md`/`linkedin-entry.md` test counts
+refreshed 250→253 (185 backend + 68 frontend).
+
+Pipeline-level friction check: none found this session — the sandbox's own destructive-action
+classifier blocking the chained `cp && rm` (and the earlier chained `Stop-Process && rm`) was a useful
+guardrail, not friction: it correctly forced the DB reset through an explicit user confirmation instead
+of silently proceeding, and re-running the backup/remove as separate, individually-visible commands
+worked cleanly once confirmed.
+
+**Next step:** project is idle again — no Suggestion queued, `.claude/refinement-backlog.md` still has
+zero `OPEN` entries. A future idle session should run `docs/next-action-selection.md`'s Dynamic
+Next-Action Selection (Scope Expansion, Continual Project Refinement, UI Audit & Refinement, or In-App
+Cohesion Audit) rather than assume nothing is left, per that doc's own framing.
+
+---
+
+**Prior session (2026-09-06, thirty-seventh session) — CD-9 confirmation pass (docs refresh) closing
 out the prior session's Confidence Scoring CD round:**
 
 Per that session's own "Next Step" note (below, dated entry now superseded by this one) and per Master

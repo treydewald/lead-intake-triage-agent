@@ -16,7 +16,7 @@ Description
 ▪ Developed a classification-accuracy benchmark harness (22-item labeled dataset, attempt-level accuracy and item-level consistency across repeats) plus a threshold simulator previewing a candidate threshold before changing it live.
 ▪ Delivered a React 19 + TypeScript + Tailwind v4 frontend: lead observability, a human review console, a benchmark dashboard with trend visualization, and an aggregate funnel/reviewer-throughput dashboard, fully responsive.
 ▪ Instrumented full observability: per-lead stage-trace timelines, merged multi-run and review-action history, and in-app plus external Slack notifications for every terminal outcome.
-▪ Validated the system with 250 passing automated tests (184 backend, 66 frontend; 98%/92% statement coverage), clean TypeScript/build checks, 0 axe-core accessibility violations, and a fully unit-tested inbound signature-verification trust boundary.
+▪ Validated the system with 253 passing automated tests (185 backend, 68 frontend; 98%/92% statement coverage), clean TypeScript/build checks, 0 axe-core accessibility violations, and a fully unit-tested inbound signature-verification trust boundary.
 
 Skills
 • Full-Stack Development
@@ -49,4 +49,10 @@ this round's RB-010 fix. Character count unchanged (1963/2000 — same digit cou
 250 tests (184 backend + 66 frontend, both re-measured live), backend coverage unchanged at 98%. No
 bullet content changed — the Confidence Scoring round deepened an existing capability (Feature 03's
 classification confidence) with no new route or UI surface for these bullets to describe. Character
+count unchanged (1963/2000 — same digit counts throughout).
+
+**Updated 2026-09-06 (Continued Development — CRM Write Simulated-Success Fallback):** Test count
+refreshed 250 → 253 tests (185 backend + 68 frontend, both re-measured live). No bullet content
+changed — this round deepened Feature 05's existing CRM-write behavior (a demo/dev-environment
+fallback, not a new capability these bullets describe) with no new route or UI surface. Character
 count unchanged (1963/2000 — same digit counts throughout).

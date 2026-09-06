@@ -188,6 +188,13 @@ export function LeadDetailPage() {
                   </span>
                 </div>
                 {stage?.error && <p className="mt-1.5 text-sm text-red-700">{stage.error}</p>}
+                {key === 'hubspot_crm_write' &&
+                  (stage?.decision as { write_status?: string } | undefined)?.write_status === 'simulated' && (
+                    <p className="mt-1.5 text-xs font-medium text-amber-700">
+                      Simulated write — no live HubSpot token configured, so this record was not
+                      actually sent to HubSpot.
+                    </p>
+                  )}
                 {stage?.decision && (
                   <details className="mt-1.5">
                     <summary className="cursor-pointer text-xs font-medium text-slate-500 hover:text-slate-700">

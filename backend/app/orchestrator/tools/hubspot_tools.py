@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import time
+import uuid
 from typing import Callable, Protocol
 
 import httpx
@@ -122,8 +123,24 @@ def write_contact(
     Risks). A 429/5xx response retries up to `max_retries` times with backoff (`sleep`
     injected so tests never incur real delay); 401/403 raises immediately, no retry; any
     other 4xx raises immediately, no retry; retries exhausted on a retryable error raises.
+
+    A blank/unset `token` is treated as "no live CRM configured" rather than an error: no
+    HTTP call is made (there's nothing to authenticate), and the write is recorded as
+    `status="simulated"` so the pipeline completes end-to-end instead of halting — see
+    `.claude/portfolio-reference.md`'s Key Decisions. This only applies to the write path;
+    `search_contact` (a real external read) still raises on a missing token via
+    `_require_token`, since it has no equivalent honest fallback.
     """
-    token = _require_token(token)
+    if not token:
+        dedupe_key_used = "phone" if phone is not None else ("email" if email is not None else None)
+        return {
+            "id": f"simulated-{uuid.uuid4()}",
+            "status": "simulated",
+            "dedupe_key_used": dedupe_key_used,
+            "dedupe_uncertain": dedupe_key_used is None,
+            "retry_count": 0,
+        }
+
     headers = {"Authorization": f"Bearer {token}"}
     retry_count = 0
 

@@ -590,6 +590,42 @@ edit to that same entry once the round they belong to is scored, not a new entry
   needed to change — only pinned versions.
 - Agent: claude/claude_code
 
+### 2026-09-06 — implementation_planning_deep (CRM Write Simulated-Success Fallback, CD round)
+- Trigger: user-reported problem, not a phrased feature Suggestion — leads showing `status: failed`
+  often, benchmark confidence scores under 78%, and the review queue's processed items entirely
+  ending in failure. Diagnosed via direct DB/code inspection (not guessed): 31/35 `PipelineRun` rows
+  `FAILED` at `hubspot_crm_write` due to the already-documented unconfigured-`HUBSPOT_ACCESS_TOKEN`
+  halt (Feature 05's own Key Decision), and low confidence traced to a real buyer/browser
+  classification-prompt confusion, not a scoring-math defect. The CRM-write fix changes a recorded
+  architecture decision, so the user was asked to choose a direction (simulated fallback / real
+  sandbox token / both) before CD-2.5 planning began; chose the simulated fallback.
+- Expected effect: `hubspot_write` short-circuits to a labeled `status="simulated"` success on a
+  blank token instead of raising, so pipelines complete end-to-end in a dev/demo environment; a
+  tightened classification prompt resolves the `browser→buyer` misclassifications the benchmark had
+  flagged; a regenerated dev dataset shows a materially healthier status mix without editing any
+  data directly.
+- Outcome: COMPLETED. `hubspot_tools.write_contact()` blank-token carve-out (read-path
+  `search_contact` deliberately unchanged); `ollama_tools._SYSTEM_PROMPT` gained explicit
+  buyer/browser label definitions + 3 few-shot examples; `LeadDetailPage.tsx` gained an honest
+  "Simulated write" note. 185/185 backend (net +1), 68/68 frontend (net +2), no regressions.
+  Live-verified end-to-end: a real webform submission that previously halted `FAILED` now completes
+  `COMPLETED`. With the user's explicit go-ahead (the DB reset was flagged destructive and blocked by
+  the sandbox's safety classifier on the first attempt — asked rather than working around it),
+  backed up and rebuilt `backend/leads.db` from scratch through 16 real leads run through the live
+  fixed pipeline: 16 `COMPLETED` (simulated write), 1 `AWAITING_REVIEW`, 1 `REJECTED` — up from the
+  prior dataset's ~89% failure rate. A fresh live `run_benchmark(repeats=3)` against the real local
+  `llama3.2:3b` model: **accuracy 87.0%→100.0%, consistency 90.9%→95.5%**, all 3 previously
+  misclassified `browser→buyer` cases now correct; confidence now ranges 0.72-0.90 (continuous, not
+  clustered). One Key Decision amended in place in `.claude/portfolio-reference.md` (narrow
+  carve-out, not a reversal).
+- Surprise: the project's own recorded 87.0%/90.9% benchmark baseline turned out to be stale — a
+  direct DB query found 6 of the 7 stored benchmark runs still predated the earlier Confidence
+  Scoring CD round entirely (still showing the old clustered 0.8/0.9 values), and the one run that
+  did use the new scoring measured closer to 83% accuracy, not 87%. Trusting the recorded figure
+  instead of querying the live data directly would have led to fixing the wrong thing (the scoring
+  math) instead of the right one (the classification prompt).
+- Agent: claude/claude_code
+
 ### 2026-09-06 — implementation_planning_deep (Confidence Scoring robustness, CD round)
 - Trigger: user-supplied Suggestion, explicitly framed as the project's last feature addition —
   "establish a more robust confidence scoring system so the project has more diversity than 80, 85, and

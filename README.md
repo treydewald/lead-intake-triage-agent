@@ -99,7 +99,7 @@ not just convention (`backend/app/tests/test_orchestrator_tool_scope.py`).
   history page, which can scroll for a lead with an unusually long history by design.
 
 ### Quality & Accessibility
-- **184 backend tests / 66 frontend tests**, all passing; `tsc -b` and `vite build` clean.
+- **185 backend tests / 68 frontend tests**, all passing; `tsc -b` and `vite build` clean.
 - **Measured test coverage** — 98% backend statement coverage (`pytest-cov`); 92% frontend statement
   coverage (`@vitest/coverage-v8`), up from 71% before Continual Refinement Round 1: it first found
   `LeadDetailPage.tsx` — the page `portfolio-description.md` names as this project's core
@@ -124,8 +124,10 @@ not just convention (`backend/app/tests/test_orchestrator_tool_scope.py`).
 - Python 3.11+
 - Node.js 20+
 - [Ollama](https://ollama.com) (for local LLM classification)
-- A free [HubSpot developer account](https://developers.hubspot.com/) with a sandbox (optional for
-  read-only exploration; required for the CRM-write stage to succeed)
+- A free [HubSpot developer account](https://developers.hubspot.com/) with a sandbox (optional —
+  without one, the CRM-write stage runs in **simulated mode**: it completes the pipeline normally
+  and clearly labels the write as simulated rather than sending anything to a real HubSpot account.
+  Add a token later for a genuine live write.)
 
 ### Installation
 
@@ -140,7 +142,7 @@ cd backend
 python -m venv .venv
 .venv\Scripts\Activate.ps1   # PowerShell; .venv/Scripts/activate.bat for cmd.exe, source .venv/Scripts/activate for Git Bash
 pip install -r requirements.txt
-copy .env.example .env       # fill in HUBSPOT_ACCESS_TOKEN once you have a sandbox account
+copy .env.example .env       # optional: fill in HUBSPOT_ACCESS_TOKEN for a real write; blank simulates it
 alembic upgrade head
 ```
 

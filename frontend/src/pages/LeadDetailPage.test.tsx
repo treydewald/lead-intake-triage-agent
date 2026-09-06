@@ -58,6 +58,51 @@ describe('LeadDetailPage', () => {
     expect(screen.getByText('No activity recorded yet.')).toBeInTheDocument()
   })
 
+  it('shows a simulated-write note on the CRM Write stage when no live HubSpot token is configured', async () => {
+    vi.spyOn(api, 'getLeadDetail').mockResolvedValue({
+      ...BASE_LEAD,
+      status: 'auto_processed',
+      stages: [
+        {
+          stage_key: 'hubspot_crm_write',
+          stage_label: 'HubSpot CRM Write',
+          status: 'COMPLETED',
+          decision: { hubspot_record_id: 'simulated-abc123', write_status: 'simulated' },
+          error: null,
+          created_at: '2026-09-04T12:00:01Z',
+        },
+      ],
+    })
+    vi.spyOn(api, 'getLeadHistory').mockResolvedValue({ lead_id: 'lead-abc12345', entries: [] })
+
+    renderDetail()
+
+    expect(await screen.findByText(/Simulated write/i)).toBeInTheDocument()
+  })
+
+  it('does not show the simulated-write note for a real created/updated CRM write', async () => {
+    vi.spyOn(api, 'getLeadDetail').mockResolvedValue({
+      ...BASE_LEAD,
+      status: 'auto_processed',
+      stages: [
+        {
+          stage_key: 'hubspot_crm_write',
+          stage_label: 'HubSpot CRM Write',
+          status: 'COMPLETED',
+          decision: { hubspot_record_id: 'hs-123', write_status: 'created' },
+          error: null,
+          created_at: '2026-09-04T12:00:01Z',
+        },
+      ],
+    })
+    vi.spyOn(api, 'getLeadHistory').mockResolvedValue({ lead_id: 'lead-abc12345', entries: [] })
+
+    renderDetail()
+
+    expect(await screen.findByText('HubSpot CRM Write')).toBeInTheDocument()
+    expect(screen.queryByText(/Simulated write/i)).not.toBeInTheDocument()
+  })
+
   it('shows the failed-pipeline banner with the failed stage and error message', async () => {
     vi.spyOn(api, 'getLeadDetail').mockResolvedValue({
       ...BASE_LEAD,

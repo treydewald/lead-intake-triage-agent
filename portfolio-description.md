@@ -5,7 +5,7 @@ REFINED TITLE (70 chars max)
 AI Lead Triage Agent: Auto-Acts When Confident, Escalates to Human
 
 REFINED DESCRIPTION (600 chars max)
-A six-stage LangGraph agent that ingests inbound sales leads (web form, email, or callback), classifies intent via a local LLM (Ollama), enriches missing contact data, and writes an idempotent, dedupe-safe update to a HubSpot CRM sandbox, with each stage tool-scoped to only the external systems it needs. Confident runs complete automatically; low-confidence ones pause for human review — approved, edited, or rejected in-app or via Slack — with retryable failures, a full audit trail, and a funnel dashboard. FastAPI/SQLAlchemy backend, React/TypeScript frontend, 250 passing tests.
+A six-stage LangGraph agent that ingests inbound sales leads (web form, email, or callback), classifies intent via a local LLM (Ollama), enriches missing contact data, and writes an idempotent, dedupe-safe update to a HubSpot CRM sandbox, with each stage tool-scoped to only the external systems it needs. Confident runs complete automatically; low-confidence ones pause for human review — approved, edited, or rejected in-app or via Slack — with retryable failures, a full audit trail, and a funnel dashboard. FastAPI/SQLAlchemy backend, React/TypeScript frontend, 253 passing tests.
 
 SKILLS & DELIVERABLES (max 5)
 - Multi-stage AI agent orchestration with LangGraph (per-stage tool scoping, resumable paused-run state)
@@ -87,3 +87,11 @@ re-measured, still 584/600 chars (same digit count: 237→250 is still 3 digits)
 framed that round as the project's last planned feature addition; this project's Steps 1-16 plus five
 Continued Development rounds and three post-publication audit/refinement rounds are all complete with
 no open backlog entries or queued Suggestion as of this pass.
+
+**Updated 2026-09-06 (Continued Development — CRM Write Simulated-Success Fallback):** Test count
+refreshed 250 → 253 (185 backend + 68 frontend, both re-measured live) after this round added 2 new
+backend tests for `write_contact`'s simulated-success path (net +1 versus the 1 test it replaced) and
+2 new frontend tests for the simulated-write UI note. Description re-measured, still 584/600 chars
+(same digit count: 250→253 is still 3 digits). No feature-list or skills changes — this round
+deepened Feature 05's existing CRM-write behavior with no new route/UI surface. See
+`.claude/pipeline-reference.md`'s matching entry for the full before/after.

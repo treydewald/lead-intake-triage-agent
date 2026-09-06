@@ -289,6 +289,18 @@ that doesn't exist yet.)*
   distinguishing test was never "does the spec anticipate this failure" — every recoverable failure
   above was also spec-anticipated — it's "does the spec want the run to continue past it or halt for
   this lead." This supersedes the prior wording; it is not a second rule standing beside it.
+  **Amended 2026-09-06 (Continued Development — CRM Write Simulated-Success Fallback, deepens Feature
+  05):** a genuinely *unconfigured* external system (no `HUBSPOT_ACCESS_TOKEN` at all) is not the same
+  case as a *failed* write against a real one. `hubspot_tools.write_contact` now treats a blank token as
+  "no live CRM to write to" and returns a `status="simulated"` result instead of raising — the run
+  completes normally, and the UI marks that stage as simulated. This is a narrow carve-out, not a
+  reversal: a write that fails with a token present (401/403, rejected 4xx, retries exhausted) still
+  raises `HubSpotWriteError` and still halts the run exactly as this Key Decision already established.
+  Rationale: every real lead in this project's dev/demo environment was hitting the halt-on-failure path
+  for the same reason (no sandbox token configured), which made the app's own demo data look broken —
+  see `.claude/pipeline-reference.md`'s CRM Write Simulated-Success Fallback entry for the full
+  before/after evidence. `search_contact` (a read) is deliberately unchanged — it still raises on a
+  missing token, since a read has no equivalent honest "nothing happened" fallback.
 - **Real tool bindings for external systems (LLM calls, lookups, CRM writes) are registered into
   `ToolRegistry` via one dedicated module per external system under `app/orchestrator/tools/`, wired
   together by a single `register_default_tools(registry, settings)` factory that

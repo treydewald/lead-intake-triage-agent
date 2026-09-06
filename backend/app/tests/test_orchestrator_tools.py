@@ -188,19 +188,40 @@ class _FakeWriteClient:
         return self._responses.pop(0)
 
 
-def test_write_contact_raises_clear_error_when_token_missing():
+def test_write_contact_simulates_success_when_token_missing():
     client = _FakeWriteClient([])
 
-    with pytest.raises(HubSpotWriteError, match="access token is not configured"):
-        write_contact(
-            client,
-            "https://api.hubapi.com",
-            "",
-            email="jane@example.com",
-            properties={"email": "jane@example.com"},
-            sleep=lambda _seconds: None,
-        )
+    result = write_contact(
+        client,
+        "https://api.hubapi.com",
+        "",
+        email="jane@example.com",
+        properties={"email": "jane@example.com"},
+        sleep=lambda _seconds: None,
+    )
 
+    assert result["status"] == "simulated"
+    assert result["id"].startswith("simulated-")
+    assert result["dedupe_key_used"] == "email"
+    assert result["dedupe_uncertain"] is False
+    assert result["retry_count"] == 0
+    assert client.calls == []
+
+
+def test_write_contact_simulated_write_flags_dedupe_uncertain_with_no_phone_or_email():
+    client = _FakeWriteClient([])
+
+    result = write_contact(
+        client,
+        "https://api.hubapi.com",
+        "",
+        properties={"firstname": "Jane"},
+        sleep=lambda _seconds: None,
+    )
+
+    assert result["status"] == "simulated"
+    assert result["dedupe_key_used"] is None
+    assert result["dedupe_uncertain"] is True
     assert client.calls == []
 
 
