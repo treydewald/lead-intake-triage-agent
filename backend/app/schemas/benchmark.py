@@ -42,3 +42,11 @@ class BenchmarkRunOut(BenchmarkRunSummaryOut):
 
 class BenchmarkRunListOut(BaseModel):
     items: list[BenchmarkRunSummaryOut]
+
+
+class ConfidenceThresholdOut(BaseModel):
+    """Feature 17: the live `Settings.confidence_threshold` value, read-only — the one
+    piece of backend config the What-If Simulator needs to show a "current" baseline
+    alongside a candidate threshold. See architecture-plan-feature-17.md."""
+
+    confidence_threshold: float

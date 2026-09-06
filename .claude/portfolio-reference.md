@@ -1,16 +1,25 @@
 # Portfolio Reference — Lead Intake Triage Agent
 
-**Last Updated:** 2026-09-06 (Continued Development — Feature 16, Failed-Run Retry/Resubmission,
-COMPLETED. New `POST /leads/{lead_id}/retry`, generalizing Feature 06's resume-graph pattern to
-start from whichever stage failed, reconstructing pre-failure state from `StageTrace.
-output_snapshot` rather than a stored full-state snapshot. First feature to actually create a
-second `PipelineRun` row for one `lead_id`, which exposed and fixed a latent gap in Feature 08's
-`GET /leads/{lead_id}` (`.first()` with no `ORDER BY` — see Key Decisions' amended entry). New
-"Retry" action on `LeadDetailPage.tsx`'s failed-state banner. Verified live against the real
-backend (placeholder HubSpot token still fails CRM Write as expected, proving the retry mechanism
-itself works correctly even though the write can't succeed in this dev environment) plus 147/147
-backend and 47/47 frontend tests, no regressions. S-02 (Confidence-Threshold What-If Simulator)
-remains queued as the next CD round per `scope-expansion.md`'s tie-break decision. Prior update:
+**Last Updated:** 2026-09-06 (Continued Development — Feature 17, Confidence-Threshold "What-If"
+Simulator, COMPLETED. New `GET /benchmark/confidence-threshold` (the only backend config exposed to
+the frontend) plus a collapsed-by-default "Threshold Simulator" panel on `BenchmarkPage.tsx`,
+connecting Feature 09's benchmark dataset to Feature 06's live confidence gate entirely client-side
+— the Scope Expansion candidate's originally-proposed "derived endpoint" turned out unnecessary once
+the existing `GET /benchmark/runs/{run_id}` response was actually checked (see Key Decisions).
+Live-verified against a real 22-case benchmark run: at the live 0.7 threshold, 21/22 cases would
+auto-process, 3 of which are actually wrong — a genuine finding surfaced as a side effect. 149/149
+backend and 56/56 frontend tests, no regressions. This closes both P1s from `scope-expansion.md`'s
+Round 1 tie-break decision (S-01 → Feature 16, S-02 → Feature 17), both shipped same-day per the
+user's "both, in sequence" confirmation. Prior update: Continued Development — Feature 16, Failed-Run
+Retry/Resubmission, COMPLETED. New `POST /leads/{lead_id}/retry`, generalizing Feature 06's
+resume-graph pattern to start from whichever stage failed, reconstructing pre-failure state from
+`StageTrace.output_snapshot` rather than a stored full-state snapshot. First feature to actually
+create a second `PipelineRun` row for one `lead_id`, which exposed and fixed a latent gap in Feature
+08's `GET /leads/{lead_id}` (`.first()` with no `ORDER BY` — see Key Decisions' amended entry). New
+"Retry" action on `LeadDetailPage.tsx`'s failed-state banner. Verified live against the real backend
+(placeholder HubSpot token still fails CRM Write as expected, proving the retry mechanism itself
+works correctly even though the write can't succeed in this dev environment) plus 147/147 backend
+and 47/47 frontend tests, no regressions. Prior update:
 Step 12 — Batch Backlog Processor COMPLETED, Round 5: closed the
 project-wide page-height/whitespace gap across all 7 primary desktop pages (pixel-measured 30-57%→
 2-3% empty), closed as a side effect the two remaining mobile density exceptions (Benchmark 94px→0px,
@@ -120,14 +129,15 @@ portfolio gate (Mode: STANDARD).
 | `frontend/src/pages/LeadDetailPage.tsx` | Feature 08: per-lead detail + full stage-trace timeline against `GET /leads/{lead_id}`; Feature 11 added a "View Full History →" link to `LeadHistoryPage.tsx` |
 | `frontend/src/pages/LeadHistoryPage.tsx` | Feature 11: merged chronological timeline (stage transitions + human review actions) for a lead against `GET /leads/{lead_id}/history`; links back to `LeadDetailPage.tsx`; no persistent nav entry (reached only via that page's link, same pattern as `ReviewDetailPage.tsx`) |
 | `frontend/src/lib/` | API client and typed helpers — `api.ts` (fetch wrappers for every backend endpoint: leads/reviews/notifications/benchmark) and `stageOrder.ts` (see below) |
-| `frontend/src/lib/api.ts` | Typed `fetch` helpers for every backend endpoint this frontend calls (leads, reviews, notifications, benchmark); Feature 11 added `getLeadHistory()`/`TimelineEntry`/`LeadHistory` and `reviewer_name` on `ReviewActionRequest` |
+| `frontend/src/lib/api.ts` | Typed `fetch` helpers for every backend endpoint this frontend calls (leads, reviews, notifications, benchmark); Feature 11 added `getLeadHistory()`/`TimelineEntry`/`LeadHistory` and `reviewer_name` on `ReviewActionRequest`; Feature 16 added `retryLead()` and generalized `ReviewActionResult` into `PipelineRunResult`; Feature 17 added `getConfidenceThreshold()` |
 | `frontend/src/lib/stageOrder.ts` | Feature 08: static TypeScript mirror of the backend's `graph.py` `STAGE_ORDER` (deliberately duplicated — TS can't import a Python constant) — used to render `LeadDetailPage.tsx`'s stage timeline in canonical order |
+| `frontend/src/lib/thresholdSimulation.ts` | Feature 17: pure `simulateThreshold(cases, threshold)` — client-side auto/review split over a benchmark run's already-fetched cases, using the same `confidence >= threshold` boundary as `_route_after_enrich` (never re-derived from a backend round-trip; see Key Decisions) |
 | `backend/app/benchmark/dataset.py` | Feature 09's `BENCHMARK_DATASET` — 22 labeled `DatasetItem`s (buyer/browser/spam/ambiguous), ships as a Python-literal fixture |
 | `backend/app/benchmark/harness.py` | Feature 09's `run_benchmark()` — builds one `ToolRegistry`/`register_default_tools()` per run, invokes `IntentClassificationStage().run()` directly (out-of-graph single-stage invocation, see Key Decisions), computes attempt-level accuracy and item-level consistency |
 | `backend/app/models/benchmark.py` | Feature 09's `BenchmarkRun`/`BenchmarkCase` — `BenchmarkCase.attempts_json` is the source of truth per repeat; `predicted_label`/`confidence`/`correct` reflect the first attempt only, the representative prediction the failure table shows |
-| `backend/app/schemas/benchmark.py` | Feature 09's `BenchmarkRunSummaryOut` (list, no case detail)/`BenchmarkRunOut` (detail, full `cases`)/`BenchmarkCaseOut` |
-| `backend/app/routers/benchmark.py` | Feature 09: `POST /benchmark/run` (synchronous), `GET /benchmark/runs`, `GET /benchmark/runs/{run_id}` |
-| `frontend/src/pages/BenchmarkPage.tsx` | Feature 09: "Run Benchmark" trigger, accuracy/consistency/model stat tiles, ambiguous-or-misclassified case table |
+| `backend/app/schemas/benchmark.py` | Feature 09's `BenchmarkRunSummaryOut` (list, no case detail)/`BenchmarkRunOut` (detail, full `cases`)/`BenchmarkCaseOut`; Feature 17 added `ConfidenceThresholdOut` |
+| `backend/app/routers/benchmark.py` | Feature 09: `POST /benchmark/run` (synchronous), `GET /benchmark/runs`, `GET /benchmark/runs/{run_id}`; Feature 17 added `GET /confidence-threshold` — the only backend config exposed to the frontend, read fresh from `settings` every call |
+| `frontend/src/pages/BenchmarkPage.tsx` | Feature 09: "Run Benchmark" trigger, accuracy/consistency/model stat tiles, ambiguous-or-misclassified case table; Feature 17 added a collapsed-by-default "Threshold Simulator" panel (slider + live-computed auto/review counts, via `lib/thresholdSimulation.ts`) |
 | `frontend/src/pages/ReviewQueuePage.tsx` | Feature 15 (CD round, addendum): PENDING review-queue list, reading `GET /reviews` |
 | `frontend/src/pages/ReviewDetailPage.tsx` | Feature 15: per-item detail + approve/reject/edit action form against `GET /reviews/{run_id}`/`POST /reviews/{run_id}/action`; surfaces the backend's 409 "already actioned" response as a distinct message, not a generic error; Feature 11 added an optional "Your name" input sent as `reviewer_name` |
 
@@ -505,3 +515,22 @@ that doesn't exist yet.)*
   the very first run of this fix, including on `LeadHistoryPage.tsx`, which was still visibly broken.
   Caught by cross-checking the script's numbers against a direct look at the actual screenshots before
   trusting them — see `portfolio-evaluation.md`'s Round 5 Step 12 batch notes for the full account.
+- **A read-only derived view over data the frontend already has in full (e.g. "how many of this
+  already-fetched dataset satisfy some client-chosen condition") should be computed client-side, not
+  via a new backend endpoint that re-derives the same thing from the same underlying rows.** Feature
+  17's own originating Scope Expansion candidate proposed "a new derived endpoint computing the
+  auto/review split" for the Threshold Simulator; checking the actual response shape first
+  (`GET /benchmark/runs/{run_id}` already returns every case's `confidence`/`correct`/`is_ambiguous`)
+  showed the split is a pure function of data already in the frontend's hands, so no endpoint was
+  added — only `GET /benchmark/confidence-threshold`, exposing the one genuinely-missing piece (the
+  live setting value itself). **Generalized rule:** before adding a backend endpoint to compute
+  something, check whether the frontend already has every input value that computation needs; if so,
+  compute it there instead of adding a network round-trip for arithmetic over data already in memory.
+  Set by Feature 17's implementation plan (`architecture-plan-feature-17.md`).
+- **Any client-side re-derivation of a production routing/gating decision (e.g. the Threshold
+  Simulator's `confidence >= threshold` auto/review split) must use the exact same boundary
+  convention as the real decision it simulates, and both sides should note the other in a comment.**
+  `frontend/src/lib/thresholdSimulation.ts` mirrors `_route_after_enrich`'s `>=` convention
+  (`backend/app/orchestrator/graph.py`) exactly — a future change to either boundary should grep for
+  the other before shipping, since nothing else enforces them staying in sync. Set by Feature 17's
+  implementation plan (`architecture-plan-feature-17.md`).

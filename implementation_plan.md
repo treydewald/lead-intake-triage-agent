@@ -1495,4 +1495,143 @@ Success Criteria
 
 ====================================================================
 
+FEATURE SPECIFICATION
+====================
+
+Feature 17: Confidence-Threshold "What-If" Simulator
+
+Tier: Addendum (connects two existing Tier 1/Tier 2 systems that were never wired together — see
+roadmap-addendum-2026-09-06.md; proposed by `docs/scope-expansion.md`'s Scope Expander, Round 1,
+S-02)
+
+Execution Metadata (REQUIRED)
+status: COMPLETED
+group: THRESHOLD_SIMULATOR
+locked: false
+assigned_worker: null
+is_blocked: false
+depends_on: [06, 09]
+
+Description
+Connects Feature 09's benchmark dataset (a 22-item labeled set with a per-case confidence score
+already persisted) to Feature 06's live `CONFIDENCE_THRESHOLD` gate, letting anyone see how many
+labeled leads would land on each side of a *candidate* threshold — and how many of those
+auto-processed cases would actually be wrong — before touching the real setting. A distinct
+question from Tier 2's existing Benchmark Report, which measures accuracy/consistency at the
+*current* threshold only, never threshold sensitivity.
+
+Requirements
+
+Functional Requirements:
+- Expose the live `CONFIDENCE_THRESHOLD` setting read-only via `GET /benchmark/confidence-threshold`
+  so the frontend has a "current" baseline to compare a candidate threshold against — nothing today
+  exposes any backend config to the frontend
+- Add a "Threshold Simulator" panel to `BenchmarkPage.tsx`'s existing run-detail view: a slider over
+  a candidate confidence threshold (0.0-1.0), recomputing live, from the already-loaded run's cases,
+  how many would be auto-processed vs. routed to human review at that candidate threshold
+- Distinguish, among cases that would auto-process at the candidate threshold, how many are actually
+  correct, actually incorrect, or ambiguous (no ground truth) — the actionable number is "how many
+  wrong classifications would this threshold silently let through un-reviewed"
+- Show the current live threshold's own split alongside the candidate's, so the delta ("moving the
+  threshold from X to Y changes N cases from auto to review") is visible without mental math
+
+System Behaviors:
+- The simulation is a pure, client-side computation over data the page already has (`BenchmarkCase`'s
+  `confidence`/`correct`/`is_ambiguous` fields, already returned by the existing
+  `GET /benchmark/runs/{run_id}`) — dragging the slider never issues a network request
+- The panel is collapsed by default (matches `LeadDetailPage.tsx`'s existing `<details>` pattern for
+  optional deeper content) so it adds zero permanent vertical footprint to a page already under this
+  project's no-scroll constraint (`docs/ui-design-standards.md` §1) when not in use
+- Changing which benchmark run is selected (existing run-history table) re-bases the simulation on
+  the newly-selected run's own cases, never stale data from a previously-viewed run
+
+Edge Cases:
+- **No benchmark run exists yet:** The simulator panel does not render at all (same empty-state gate
+  the rest of the page already uses for "no runs yet")
+- **Candidate threshold set to 0.0 or 1.0 (extremes):** All cases auto-process, or all cases route to
+  review, respectively — not a special-cased error, just the natural result of the same comparison
+- **A run with zero ambiguous cases, or zero misclassified cases:** Those specific counts render as 0,
+  not omitted or hidden
+- **Candidate threshold exactly equal to a case's confidence:** Uses the same `>=` convention Feature
+  06's own live gate already uses (`confidence >= confidence_threshold` auto-proceeds), so the
+  simulator's boundary behavior matches production behavior exactly
+
+Inputs
+- The currently-selected `BenchmarkRun`'s `cases` array (already fetched by the existing page)
+- `GET /benchmark/confidence-threshold` (new) — the live current threshold
+- The user's candidate threshold, via the slider (client-side state only, never sent to the backend)
+
+Outputs
+- Live-updating counts rendered in the panel: auto-processed count, review count, and (among
+  auto-processed) correct/incorrect/ambiguous counts, for both the current and candidate threshold
+
+Acceptance Criteria
+- [x] `GET /benchmark/confidence-threshold` returns the real configured value, matching
+  `Settings.confidence_threshold` (verified live against the real backend)
+- [x] Dragging the slider updates all counts immediately, with no network request per change
+- [x] At the current live threshold, the simulator's own computed auto/review counts match what
+  Feature 06's live gate would actually do for the same confidence values (`>=` boundary convention;
+  cross-checked against real live benchmark data — see `.claude/validation-results.md`)
+- [x] Switching the selected benchmark run re-bases the simulation on that run's own cases
+- [x] The panel is collapsed by default and does not affect the page's existing no-scroll layout
+  when collapsed (expanded-state visual check recorded `UNVERIFIED` — no browser automation
+  available this session, see architecture-plan-feature-17.md)
+
+Dependencies
+- Depends on: Feature 06 (the `CONFIDENCE_THRESHOLD` setting this reads), Feature 09 (the benchmark
+  dataset/per-case confidence values this reuses verbatim)
+- Blocks: none
+
+Implementation Notes
+
+Technology Stack:
+- Frontend: React + a native `<input type="range">` slider, pure TypeScript computation (no new
+  library)
+- Backend: FastAPI — one new read-only route on the existing `benchmark` router
+- Database: none — reads an existing in-memory `Settings` value and existing `BenchmarkCase` rows;
+  no new columns, no new tables
+
+Key Files to Create:
+- `frontend/src/lib/thresholdSimulation.ts` — the pure `simulateThreshold(cases, threshold)`
+  computation, unit-tested independent of any component
+- `frontend/src/lib/thresholdSimulation.test.ts`
+- `backend/app/tests/test_router_benchmark_threshold.py`
+
+Key Files to Modify:
+- `backend/app/routers/benchmark.py` — add `GET /confidence-threshold`
+- `frontend/src/lib/api.ts` — add `getConfidenceThreshold()` and its response type
+- `frontend/src/pages/BenchmarkPage.tsx` — add the collapsible Threshold Simulator panel
+- `frontend/src/pages/BenchmarkPage.test.tsx` — cover the new panel
+
+See `architecture-plan-feature-17.md` (CD-2.5) for the full implementation plan, including why the
+Scope Expansion candidate's originally-proposed "derived endpoint computing the auto/review split"
+was replaced with pure client-side computation once the actual data shape was checked.
+
+Testing Strategy:
+- Backend: one endpoint test confirming the real configured value is returned
+- Frontend: unit tests for `simulateThreshold()` covering the edge cases above (extremes, boundary
+  equality, zero-ambiguous/zero-misclassified runs), plus a component test confirming the panel
+  updates on slider change and re-bases on run switch
+
+Worker Pool Considerations
+- File Ownership: `backend/app/routers/benchmark.py`, `backend/app/tests/
+  test_router_benchmark_threshold.py`, `frontend/src/lib/thresholdSimulation.ts`,
+  `frontend/src/lib/thresholdSimulation.test.ts`, `frontend/src/lib/api.ts`,
+  `frontend/src/pages/BenchmarkPage.tsx`, `frontend/src/pages/BenchmarkPage.test.tsx` — no overlap
+  with any other group's owned files
+- Parallel Safety: single group, no concurrent conflicts expected
+- Group Assignment: `THRESHOLD_SIMULATOR`
+- Execution Order: no ordering constraint beyond Features 06/09 already being complete (they are)
+
+Success Criteria
+✅ The simulator connects real benchmark data to the real live threshold setting, not fabricated
+  or hardcoded values
+✅ No new backend computation endpoint where client-side computation over already-fetched data
+  suffices
+✅ Panel is collapsed by default; no regression to the page's existing no-scroll layout when
+  collapsed
+✅ Backend and frontend tests passing, no regression in the existing Feature 09/Benchmark suites
+
+====================================================================
+
 END OF IMPLEMENTATION PLAN

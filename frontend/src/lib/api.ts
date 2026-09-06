@@ -129,6 +129,15 @@ export async function getBenchmarkRun(runId: string): Promise<BenchmarkRun> {
   return response.data
 }
 
+export interface ConfidenceThreshold {
+  confidence_threshold: number
+}
+
+export async function getConfidenceThreshold(): Promise<ConfidenceThreshold> {
+  const response = await api.get<ConfidenceThreshold>('/benchmark/confidence-threshold')
+  return response.data
+}
+
 export interface ReviewQueueItem {
   id: string
   run_id: string

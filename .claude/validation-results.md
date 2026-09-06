@@ -827,3 +827,77 @@ adds one new route and one ordering fix to an existing route, nothing else in `l
 Verdict: Feature 16 (Failed-Run Retry / Resubmission) is implementation-complete, live-verified,
 and regression-free. Per `scope-expansion.md`'s tie-break decision, S-02 (Confidence-Threshold
 What-If Simulator) is the queued next Continued Development round.
+
+---
+
+## 2026-09-06 — Continued Development: Feature 17 (Confidence-Threshold "What-If" Simulator), CD-4
+
+**Scope:** CD-1 (`roadmap-addendum-2026-09-06.md`) through CD-4 all run this session, immediately
+following Feature 16, per the user's "both" confirmation to run both P1 candidates from
+`docs/scope-expansion.md` Round 1 in sequence.
+
+**Step 4 — Full test suite:** 149/149 backend (`pytest`, ~31s — 147 pre-existing + 2 new in
+`test_router_benchmark_threshold.py`), 56/56 frontend (`vitest run`, ~10s — 47 pre-existing + 7 new
+in `thresholdSimulation.test.ts` + 2 new in `BenchmarkPage.test.tsx`). `npm run lint` (oxlint) and
+`npm run build` (`tsc -b && vite build`) both clean, zero errors.
+
+**Test coverage:** no coverage tool configured on either side — consistent with every prior
+feature's validation entry.
+
+**Performance baseline regression check:** cumulative bundle size after both Feature 16 and Feature
+17 this session: 343.00 kB / 105.93 kB gzip, vs. the recorded 307.21 kB / 97.89 kB gzip baseline —
++11.6% raw / +8.2% gzip, both under the 15% material threshold from `docs/continued-development.md`
+CD-4's default. Not a regression.
+
+**Step 3 — Live verification against the real backend (no mocks), via a running `uvicorn`
+instance:**
+1. `GET /benchmark/confidence-threshold` → `{"confidence_threshold": 0.7}`, matching
+   `Settings.confidence_threshold`'s real configured default.
+2. `GET /benchmark/runs` → confirmed a real, pre-existing 22-case benchmark run on record (from
+   Feature 09's own prior live verification).
+3. `GET /benchmark/runs/{run_id}` → fetched all 22 real cases and independently recomputed the
+   threshold split in a one-off script using the identical `confidence >= threshold` rule
+   `simulateThreshold()` implements: at 0.7, **21/22 auto-process, 1 goes to review; of the 21
+   auto-processed, 15 correct, 3 incorrect, 3 ambiguous.** This is a genuine, actionable finding
+   surfaced as a side effect of building the feature (3 of 22 known cases would be silently wrong at
+   the project's current threshold) — not a synthetic example.
+4. Cross-checked this matches `_route_after_enrich`'s real production boundary
+   (`backend/app/orchestrator/graph.py`) — same `>=` comparison, same threshold source
+   (`Settings.confidence_threshold`), so the simulator's "current" column is not just plausible but
+   provably identical to what the live pipeline would actually do for these cases.
+
+**Acceptance criteria coverage (architecture-plan-feature-17.md / `implementation_plan.md`'s
+Feature 17 spec):**
+1. `GET /benchmark/confidence-threshold` returns the real configured value → live check #1 above +
+   `test_confidence_threshold_returns_the_configured_value` +
+   `test_confidence_threshold_reflects_a_live_config_change`
+2. Slider updates counts with no network request per change → `simulateThreshold` is a pure
+   function (no `fetch`/`axios` call in its body, confirmed by code review) +
+   `BenchmarkPage.test.tsx`'s slider-change test
+3. Current-threshold counts match production routing exactly → live checks #3-4 above +
+   `thresholdSimulation.test.ts`'s boundary-equality test
+4. Switching runs re-bases the simulation → `BenchmarkPage.test.tsx`'s run-switch test
+5. Panel collapsed by default, no no-scroll regression when collapsed → code review (`<details>`
+   without `open`, matching `LeadDetailPage.tsx`'s existing pattern); **expanded-state visual layout
+   recorded `UNVERIFIED`** per `docs/agent-portability.md` — no browser-automation tool available
+   this session (same capability gap noted throughout this project's history, e.g. Feature 11's Step
+   7 verification)
+
+**Architectural fidelity (`docs/implementation-planning.md` §14):** implementation matched
+`architecture-plan-feature-17.md` exactly, including its central finding — the Scope Expansion
+candidate's originally-proposed "derived endpoint computing the auto/review split" was not built;
+`GET /benchmark/confidence-threshold` (exposing only the live threshold value) was the only new
+backend surface needed, confirmed correct by the live cross-check above. Actual Footprint recorded
+in the plan file: 8/8 predicted files changed, no unplanned files, no rework cycle.
+
+**Additional confirmation:** the existing `GET /benchmark/run`, `/runs`, and `/runs/{run_id}`
+endpoints re-verified unchanged via the full existing benchmark test suite passing unmodified —
+Feature 17 adds one new route alongside them, nothing else in `benchmark.py`/`schemas/benchmark.py`
+changed.
+
+Verdict: Feature 17 (Confidence-Threshold "What-If" Simulator) is implementation-complete,
+live-verified against real data, and regression-free (collapsed-state layout only; expanded-state
+visual check honestly recorded `UNVERIFIED`, not silently assumed). This closes both P1 candidates
+from `scope-expansion.md`'s Round 1 — no further Continued Development round is currently queued;
+a future session should re-run `docs/next-action-selection.md`'s Dynamic Next-Action Selection or
+bring a new Suggestion.

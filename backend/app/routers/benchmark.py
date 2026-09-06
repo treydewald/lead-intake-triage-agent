@@ -8,7 +8,12 @@ from app.benchmark.harness import run_benchmark
 from app.core.config import settings as default_settings
 from app.database.session import SessionLocal
 from app.models.benchmark import BenchmarkRun
-from app.schemas.benchmark import BenchmarkRunListOut, BenchmarkRunOut, BenchmarkRunSummaryOut
+from app.schemas.benchmark import (
+    BenchmarkRunListOut,
+    BenchmarkRunOut,
+    BenchmarkRunSummaryOut,
+    ConfidenceThresholdOut,
+)
 
 router = APIRouter(prefix="/benchmark", tags=["benchmark"])
 
@@ -31,6 +36,14 @@ def trigger_benchmark_run(
     architecture-plan-feature-09.md's Feature-Specific Requirements."""
     run = run_benchmark(repeats=repeats, session_factory=session_factory, settings=default_settings)
     return BenchmarkRunOut.model_validate(run)
+
+
+@router.get("/confidence-threshold", response_model=ConfidenceThresholdOut)
+def get_confidence_threshold() -> ConfidenceThresholdOut:
+    """Feature 17: the live confidence threshold Feature 06's gate actually uses, read
+    fresh from `settings` on every call (never cached) so a live config change is
+    reflected immediately - the What-If Simulator's "current" baseline."""
+    return ConfidenceThresholdOut(confidence_threshold=default_settings.confidence_threshold)
 
 
 @router.get("/runs", response_model=BenchmarkRunListOut)

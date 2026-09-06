@@ -1,13 +1,15 @@
 import { useEffect, useState } from 'react'
-import { Cpu, Gauge, Repeat, Sparkles } from 'lucide-react'
+import { Cpu, Gauge, Repeat, SlidersHorizontal, Sparkles } from 'lucide-react'
 import {
   getBenchmarkRun,
+  getConfidenceThreshold,
   listBenchmarkRuns,
   runBenchmark,
   type BenchmarkCase,
   type BenchmarkRun,
   type BenchmarkRunSummary,
 } from '../lib/api'
+import { simulateThreshold } from '../lib/thresholdSimulation'
 import { PageHeader } from '../components/ui/PageHeader'
 import { StatCard } from '../components/ui/StatCard'
 import { Card, SectionLabel } from '../components/ui/Card'
@@ -36,6 +38,19 @@ export function BenchmarkPage() {
   const [running, setRunning] = useState(false)
   const [switchingRunId, setSwitchingRunId] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const [liveThreshold, setLiveThreshold] = useState<number | null>(null)
+  const [candidateThreshold, setCandidateThreshold] = useState(0.7)
+
+  useEffect(() => {
+    getConfidenceThreshold()
+      .then(({ confidence_threshold }) => {
+        setLiveThreshold(confidence_threshold)
+        setCandidateThreshold(confidence_threshold)
+      })
+      .catch(() => {
+        // Non-critical - the simulator still works with its 0.7 default if this fails.
+      })
+  }, [])
 
   useEffect(() => {
     let cancelled = false
@@ -82,6 +97,10 @@ export function BenchmarkPage() {
   }
 
   const misclassifiedAndAmbiguous = latestRun?.cases.filter((c) => c.is_ambiguous || !c.correct) ?? []
+
+  const candidateSimulation = latestRun ? simulateThreshold(latestRun.cases, candidateThreshold) : null
+  const liveSimulation =
+    latestRun && liveThreshold !== null ? simulateThreshold(latestRun.cases, liveThreshold) : null
 
   const trendPoints = [...runs]
     .sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime())
@@ -137,6 +156,72 @@ export function BenchmarkPage() {
               icon={Cpu}
             />
           </div>
+
+          {candidateSimulation && (
+            <details className="group rounded-xl border border-slate-200 bg-white shadow-sm">
+              <summary className="flex cursor-pointer list-none items-center gap-2 px-4 py-3 text-sm font-medium text-slate-700 marker:content-none">
+                <SlidersHorizontal className="h-4 w-4 text-teal-700" aria-hidden="true" />
+                Threshold Simulator
+                <span className="ml-auto text-xs font-normal text-slate-400 group-open:hidden">
+                  Click to explore what-if scenarios
+                </span>
+              </summary>
+              <div className="flex flex-col gap-3 border-t border-slate-100 px-4 pb-4 pt-3 sm:gap-4">
+                <p className="text-xs text-slate-500">
+                  Move the slider to see how many of this run's {candidateSimulation.totalCases} cases
+                  would auto-process vs. route to human review at a candidate confidence threshold,
+                  compared to the live setting.
+                </p>
+                <div className="flex items-center gap-3">
+                  <input
+                    type="range"
+                    min={0}
+                    max={1}
+                    step={0.01}
+                    value={candidateThreshold}
+                    onChange={(e) => setCandidateThreshold(Number(e.target.value))}
+                    aria-label="Candidate confidence threshold"
+                    className="h-2 w-full flex-1 cursor-pointer appearance-none rounded-full bg-slate-200 accent-teal-700"
+                  />
+                  <span className="w-14 shrink-0 text-right text-sm font-semibold text-slate-900">
+                    {candidateThreshold.toFixed(2)}
+                  </span>
+                </div>
+                <div className="grid grid-cols-2 gap-2 sm:gap-3">
+                  <div className="rounded-lg border border-slate-200 bg-slate-50 p-3">
+                    <p className="text-xs font-medium uppercase tracking-wide text-slate-500">
+                      Live threshold {liveThreshold !== null ? `(${liveThreshold.toFixed(2)})` : ''}
+                    </p>
+                    {liveSimulation ? (
+                      <dl className="mt-1.5 grid grid-cols-2 gap-x-3 gap-y-1 text-sm">
+                        <dt className="text-slate-500">Auto-processed</dt>
+                        <dd className="text-right font-medium text-slate-900">{liveSimulation.autoCount}</dd>
+                        <dt className="text-slate-500">To review</dt>
+                        <dd className="text-right font-medium text-slate-900">{liveSimulation.reviewCount}</dd>
+                        <dt className="text-slate-500">Wrong, auto-approved</dt>
+                        <dd className="text-right font-medium text-red-700">{liveSimulation.autoIncorrect}</dd>
+                      </dl>
+                    ) : (
+                      <p className="mt-1.5 text-sm text-slate-400">Loading live threshold…</p>
+                    )}
+                  </div>
+                  <div className="rounded-lg border border-teal-200 bg-teal-50 p-3">
+                    <p className="text-xs font-medium uppercase tracking-wide text-teal-700">
+                      Candidate threshold ({candidateThreshold.toFixed(2)})
+                    </p>
+                    <dl className="mt-1.5 grid grid-cols-2 gap-x-3 gap-y-1 text-sm">
+                      <dt className="text-teal-800">Auto-processed</dt>
+                      <dd className="text-right font-medium text-teal-900">{candidateSimulation.autoCount}</dd>
+                      <dt className="text-teal-800">To review</dt>
+                      <dd className="text-right font-medium text-teal-900">{candidateSimulation.reviewCount}</dd>
+                      <dt className="text-teal-800">Wrong, auto-approved</dt>
+                      <dd className="text-right font-medium text-red-700">{candidateSimulation.autoIncorrect}</dd>
+                    </dl>
+                  </div>
+                </div>
+              </div>
+            </details>
+          )}
 
           <SectionLabel>Failure &amp; Ambiguous Cases</SectionLabel>
           <Card className="overflow-x-auto">

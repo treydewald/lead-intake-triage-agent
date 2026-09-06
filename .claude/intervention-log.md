@@ -339,3 +339,33 @@ edit to that same entry once the round they belong to is scored, not a new entry
 - Surprise: none beyond the Key Decision gap already noted in this round's
   `implementation_planning_standard` entry above.
 - Agent: claude/claude_code
+
+### 2026-09-06 — implementation_planning_standard (Feature 17)
+- Trigger: CD-2.5 re-entry for Feature 17 (Confidence-Threshold "What-If" Simulator), immediately
+  after Feature 16 in the same session — classified Standard tier (touches exactly two existing
+  systems: Feature 06's confidence gate, Feature 09's benchmark dataset).
+- Expected effect (Predicted Footprint, `architecture-plan-feature-17.md`): 8 files across
+  `benchmark.py`, `schemas/benchmark.py`, `api.ts`, `BenchmarkPage.tsx`/`.test.tsx`,
+  `thresholdSimulation.ts`/`.test.ts`, and 1 new backend test file.
+- Outcome (Actual Footprint, same file): 8/8 predicted files changed, no unplanned files, no rework
+  cycle. Full backend (149/149) and frontend (56/56) suites passed on the first full run.
+- Surprise: the plan's own Existing Systems Analysis found the originating Scope Expansion
+  candidate's proposed "new derived endpoint" was unnecessary duplication once the actual
+  `GET /benchmark/runs/{run_id}` response shape was checked — it already returns everything the
+  simulation needs, so the feature shipped with one fewer backend endpoint than originally scoped,
+  in favor of pure client-side computation.
+- Agent: claude/claude_code
+
+### 2026-09-06 — continued_development (Feature 17, CD-1 through CD-4)
+- Trigger: user's "both" answer to the CD-2-for-Feature-16 confirmation question, read as
+  authorizing this same session to continue into S-02 (Feature 17) once Feature 16 shipped, per
+  `scope-expansion.md`'s own tie-break decision ("both, in sequence").
+- Expected effect: connect Feature 09's benchmark dataset to Feature 06's live confidence threshold
+  via a new panel on `BenchmarkPage.tsx`, per `roadmap-addendum-2026-09-06.md`.
+- Outcome: COMPLETED. Live-verified against a real 22-case benchmark run: at the live 0.7
+  threshold, 21/22 cases would auto-process, 3 of which are actually wrong — a genuine, actionable
+  finding, not a synthetic example. 149/149 backend + 56/56 frontend tests passed. Full detail:
+  `.claude/validation-results.md`'s 2026-09-06 Feature 17 CD-4 entry.
+- Surprise: none beyond the endpoint-elimination finding already noted in this round's
+  `implementation_planning_standard` entry above.
+- Agent: claude/claude_code

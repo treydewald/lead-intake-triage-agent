@@ -33,7 +33,7 @@ CANDIDATES (this round)
   proposition — "what happens when it fails" is exactly the production-readiness question a real client
   would ask next.
 
-- S-02 Confidence-Threshold "What-If" Simulator: Value: High | Cost: Medium | Priority: P1 | Status: Not Started
+- S-02 Confidence-Threshold "What-If" Simulator: Value: High | Cost: Medium | Priority: P1 | Status: Shipped (Feature 17, 2026-09-06)
   Ties two systems that already exist but have never been connected: the benchmark harness's 22-item
   labeled dataset (`BenchmarkCase`, with a per-item confidence score already persisted) and the live
   `CONFIDENCE_THRESHOLD` setting that gates auto-processing vs. human review. Nothing today lets anyone
@@ -94,9 +94,12 @@ this session.
 
 - S-01: Status: Shipped (2026-09-06) — Feature 16, Failed-Run Retry/Resubmission. CD-1 through CD-4
   all complete; see `.claude/validation-results.md`'s 2026-09-06 entry.
-- S-02: Status: Not Started (queued as the next CD round now that S-01 has shipped)
+- S-02: Status: Shipped (2026-09-06) — Feature 17, Confidence-Threshold "What-If" Simulator. CD-1
+  through CD-4 all complete, same session immediately after S-01, per the user's "both" confirmation.
 
 NEXT ROUND
-No forced follow-up beyond the queued S-02 CD round above. Once both P1s ship, a natural future
-candidate worth revisiting is extending S-02's simulator into a live "preview this threshold against real
-pending reviews" view, using the same lead-level action-button pattern S-01 will establish.
+Both P1s from this round are now shipped. No forced follow-up — a natural future candidate worth
+revisiting is extending Feature 17's simulator into a live "preview this threshold against real
+pending reviews" view, using the same lead-level action pattern Feature 16 established. A future
+idle session should run `docs/next-action-selection.md`'s Dynamic Next-Action Selection rather than
+defaulting straight back to another Scope Expansion round.
