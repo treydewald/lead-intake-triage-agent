@@ -192,3 +192,62 @@ Features 16-19). No new evaluation work below — four numbers already scored in
 - **portfolio_value:** 9/10, confidence: HIGH (Dimension 2, Visual & UI/UX Polish — carried forward from
   In-App Cohesion Audit Round 1, 2026-09-06, the freshest of this project's four idle-time operations;
   not re-derived, per Continual Refinement's own "re-score cheaply" rule)
+
+## PROJECT_COMPLETED — 2026-09-06 (Round 9) — evaluation_version: metrics_rubric_v1
+
+Source: `portfolio-evaluation.md` (Step 11, Portfolio Evaluator, Round 9 — re-verification after the
+CRM Write Simulated-Success Fallback Continued Development round), copied verbatim — not a re-score.
+
+- **portfolio_value:** 9/10, confidence: HIGH — OVERALL SCORE from this run, unchanged from Round 6/the
+  In-App Cohesion Audit round. Fresh full-app screenshots against the regenerated dev dataset show no
+  visual regression, and the CD round's one new UI element (the CRM-write fallback's amber "Simulated
+  write" note) is well-executed. Held at 9, not pushed toward 10, because this round's own direct code
+  check found the same disclosure is missing from the Full History timeline (P2-01) — a real, if
+  moderate-cost, consistency gap.
+- **professional_readiness:** 9/10, confidence: HIGH — unchanged. States, data realism (dataset
+  regenerated through the real live pipeline this session, not hand-edited), and accessibility
+  fundamentals all re-confirmed with no drift; 185/185 backend and 68/68 frontend tests passing.
+
+## PROJECT_FINAL_EVALUATION — 2026-09-06 (Round 2) — evaluation_version: metrics_rubric_v1
+
+Source: Step 13 (Portfolio Score Gate), on PASS — second Gate 1 pass this project has recorded, after
+four Scope-Expansion-sourced features (Failed-Run Retry, Threshold Simulator, Analytics Dashboard,
+Slack Review Actions), a composite confidence-scoring upgrade, and a CRM-write reliability fix all
+shipped since the first FINAL evaluation (2026-09-05).
+
+scores:
+  completeness: 9/10, confidence: HIGH (carried forward from Continual Refinement Round 2, 2026-09-06 —
+    unchanged; no functional regression since, and Scope Expansion Round 1 is now fully resolved except
+    one already-judged-non-credible P3 item)
+  validation_quality: 9/10, confidence: HIGH (carried forward from Continual Refinement Round 2 — RB-010
+    closed; the CRM Write Fallback round added net +1 backend / +2 frontend tests with all suites green,
+    but did not re-run a fresh statement-coverage measurement this session, so the prior round's own
+    98%/92% figures are carried rather than re-derived)
+  portfolio_value: 9/10, confidence: HIGH (Step 11 Round 9 OVERALL SCORE, this session)
+  professional_readiness: 9/10, confidence: HIGH (Step 11 Round 9)
+  outcome_achievement: 10/10, confidence: HIGH — every Must-Have and original Nice-to-Have item remains
+    shipped and verified (see the first FINAL entry), and four additional Scope-Expansion-sourced
+    features plus two reliability/accuracy deepening rounds have shipped since with the gate never
+    dropping below 9.0 across any of the six intervening idle-time/CD/audit rounds — the shipped project
+    continues to exceed `project-definition.md`'s original bar, not just hold it.
+
+derived:
+  overall_score: 9
+  initial_to_final_delta: +1 (portfolio_value 9 FINAL minus portfolio_value_potential 8 CREATED) —
+    SIGNIFICANT_IMPROVEMENT (docs/quality-metrics.md §5.4), unchanged from the first FINAL entry
+  quality_status: STRONG
+  outcome: COMPLETED_SUCCESSFULLY — clean single-pass Gate 1 result this round (no Step 11→12 loop
+    needed), on top of continued feature growth since the first FINAL evaluation
+
+findings:
+  - STRENGTH: Four additional Scope-Expansion-sourced features plus a composite confidence-scoring
+    upgrade and a CRM-write reliability fix all shipped since the first FINAL evaluation with the gate
+    never dropping below 9.0 across any of the six intervening rounds.
+  - STRENGTH: The CRM-write fallback's new UI disclosure (amber "Simulated write" note) demonstrates
+    continued production-honesty discipline consistent with the project's established pattern (e.g. the
+    HubSpot sandbox halt-on-failure design) rather than degrading under feature-growth pressure.
+  - RISK: This round's own verification surfaced a real, moderate-cost consistency gap (P2-01 — the Full
+    History timeline doesn't mirror Lead Detail's write-status disclosure). The gate still passes because
+    it's a missing enhancement, not a broken or misleading state, but it's evidence that new UI-facing
+    work should get a same-round cohesion check (`docs/ui-audit-refinement.md` trigger 1) rather than
+    deferring it to the next full audit.

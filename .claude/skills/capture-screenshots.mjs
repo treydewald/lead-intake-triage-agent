@@ -74,6 +74,18 @@ async function run() {
   await waitForPage(page, /^Lead [0-9a-f]+/)
   await shot(page, '03-lead-detail')
 
+  // The "newest first" row captured above is whatever lead most recently entered the
+  // pipeline, which is often still mid-flight (e.g. awaiting review, HubSpot stage
+  // "not yet run") and so never shows the simulated-write note. Separately capture a
+  // completed lead's detail page (an "Auto-processed" row, found by status text rather
+  // than a fixed row index so this keeps working as the seed dataset changes) to show
+  // the CRM Write Simulated-Success Fallback round's actual new UI element.
+  await nav(page).getByRole('link', { name: 'Observability', exact: true }).click()
+  await waitForPage(page, 'Leads')
+  await page.locator('main table tbody tr', { hasText: 'Auto-processed' }).first().locator('a').click()
+  await waitForPage(page, /^Lead [0-9a-f]+/)
+  await shot(page, '03b-lead-detail-simulated-write')
+
   await page.locator('main').getByRole('link', { name: /View Full History/i }).click()
   await waitForPage(page, /^Full history/)
   await shot(page, '04-lead-history')

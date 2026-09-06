@@ -659,3 +659,33 @@ edit to that same entry once the round they belong to is scored, not a new entry
   needed (every fix was mechanical), but this is a concrete instance of the general lesson that a tool
   binding's "existing systems" footprint includes its test doubles, not just its production callers.
 - Agent: claude/claude_code
+
+### 2026-09-06 — ui_audit_refinement (Round 2, post-CRM-fallback verification)
+- Trigger: `docs/ui-audit-refinement.md` §3 trigger 1 (end of a CD round whose implemented group was
+  UI-facing) — the CRM Write Simulated-Success Fallback round added one new UI element (the amber
+  "Simulated write" note on `LeadDetailPage.tsx`). This session's own Dynamic Next-Action Selection
+  (`docs/next-action-selection.md`) had recommended Continual Project Refinement instead, on the
+  grounds that more of the day's changes were backend/architectural; the user explicitly chose a
+  different, self-specified path — Step 10 (Screenshot Capture), Step 13 (Score Gate), then Phase 6
+  documentation — which functions as a UI-Audit-shaped re-verification once Step 11 was added back in
+  (required by Step 13's own Entry Conditions).
+- Expected effect: fresh screenshots and a re-run Step 11 evaluation confirming the new UI element
+  reads well and nothing else drifted, per `docs/ui-audit-refinement.md`'s own "what it needs to be
+  worth selecting" framing (trigger 1: verify the new UI-facing work before considering that round's
+  polish complete).
+- Outcome: COMPLETED. Overall Score held at 9/10 (Visual & UI/UX 9/10), matching Round 8 — no
+  regression. The new "Simulated write" note scored well (honest, well-placed, correctly colored).
+  Found one real, previously-unflagged gap the CD round's own CD-5/CD-8 check should have caught:
+  the Full History timeline has no equivalent disclosure for the same stage (logged as P2-01 in
+  `portfolio-evaluation.md` Round 9 — a `TimelineEntry` schema gap, not a one-line fix), plus one minor
+  cosmetic observation on Analytics' sparse-data card whitespace (P3-08). Step 13 gate: PASS (Overall
+  9/10, Visual & UI/UX 9/10). `.claude/project-metrics.md` gained a `PROJECT_COMPLETED` (Round 9) and a
+  second `PROJECT_FINAL_EVALUATION` (Round 2) entry; `meta/PROJECT_METRICS_AGGREGATE.md` in the pipeline
+  repo's Layer 2 row left unchanged (identical scores) with a Change Log note.
+- Surprise: the existing screenshot-capture script always opened the "newest first" lead, which is
+  frequently still mid-flight and never reaches the HubSpot CRM Write stage — it would have silently
+  never shown the very UI element this round existed to verify. Caught by inspecting the first capture
+  run's `03-lead-detail.png` output before treating Step 10 as done, not assumed complete because the
+  script exited without error. Fixed by extending the script (not rewriting it) to separately capture
+  the first `Auto-processed` row by status text.
+- Agent: claude/claude_code

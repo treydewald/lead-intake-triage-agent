@@ -1,6 +1,16 @@
 # Pipeline Reference — Lead Intake Triage Agent
 
-**Last Updated:** 2026-09-06 (Continued Development — CRM Write Simulated-Success Fallback,
+**Last Updated:** 2026-09-06 (Step 10 → 11 (Round 9) → 13 → Phase 6 verification, per direct user
+instruction, following the CRM Write Simulated-Success Fallback round). Score Gate PASS held at 9/10
+(Visual & UI/UX 9/10, unchanged from Round 8); found one real consistency gap (P2-01, Full History
+timeline doesn't mirror Lead Detail's new "Simulated write" disclosure) and one cosmetic observation
+(P3-08, Analytics card whitespace). All three docs (README/description/LinkedIn) verified already
+current from the same-day CD round's own refresh — no rewrite needed. Full detail: "Current Step"
+below; `portfolio-evaluation.md` Round 9; `.claude/project-metrics.md`'s new `PROJECT_COMPLETED`
+(Round 9) and `PROJECT_FINAL_EVALUATION` (Round 2) entries; `.claude/intervention-log.md`'s
+`ui_audit_refinement` entry.
+
+Prior update: 2026-09-06 (Continued Development — CRM Write Simulated-Success Fallback,
 deepens Feature 05). User-reported problem, not a Suggestion phrased as a feature: leads showed
 `status: failed` for ~89% of the dev DB, the review queue's processed items all ended in failure
 regardless of the reviewer's decision, and benchmark confidence scores looked poor (many under 78%).
@@ -56,7 +66,66 @@ How *this project* is using the Upwork Portfolio Project Pipeline. Distinct from
 
 ## Current Step
 
-**This session (2026-09-06, thirty-eighth session) — Continued Development: CRM Write
+**This session (2026-09-06, thirty-ninth session) — Step 10 (Screenshot Capture) → Step 11 (Portfolio
+Evaluator, Round 9) → Step 13 (Score Gate) → Phase 6 documentation verification, per direct user
+instruction:**
+
+This session's own Dynamic Next-Action Selection (`docs/next-action-selection.md`) recommended
+Continual Project Refinement (real code shipped since Round 2/its addendum — composite confidence
+scoring, the CRM-write fallback). The user instead explicitly directed this session to a
+self-specified sequence: Step 10, Step 13, then Phase 6 (Steps 14-16), skipping Continual Refinement.
+Followed as given — Step 11 was added back in between Step 10 and Step 13 because Step 13's own Entry
+Conditions require a scored `portfolio-evaluation.md` and Step 10's own Next Steps section states the
+Step 10→11 handoff is unconditional. In effect this ran as a `docs/ui-audit-refinement.md` trigger-1
+pass (verifying the CRM Write Simulated-Success Fallback round's one new UI-facing element before
+considering that round's polish complete).
+
+**Step 10:** Both dev servers started fresh; re-ran the existing `.claude/skills/capture-screenshots.mjs`
+against the regenerated dev dataset. Caught, before treating capture as done, that the script's "newest
+first" lead is frequently still mid-flight and never reaches the HubSpot CRM Write stage — it would have
+silently never shown the CRM-fallback round's new amber "Simulated write" note. Extended the script in
+place (per its own convention) to also capture the first `Auto-processed` row (`03b-lead-detail-
+simulated-write.png`), found by status text so it keeps working as the seed dataset changes. All 12
+screenshots visually reviewed directly (not assumed from the capture log); whitespace re-measured via
+`measure-page-whitespace.py` (2.0-2.9% across all 8 desktop pages, unchanged from the Round 5 fix).
+
+**Step 11 (Round 9):** Overall Score held at 9/10 (Visual & UI/UX 9/10), unchanged from Round 8 — no
+regression against the regenerated dataset. The new "Simulated write" note scored well: honest, amber
+(not a false-success green), placed directly on the stage card it explains. Direct code check (not
+assumption) found one real, previously-unflagged gap: `LeadHistoryPage.tsx`'s shared `TimelineRow`
+renders from a `TimelineEntry` type that carries no `decision`/`write_status` field at all, so the Full
+History timeline has no equivalent disclosure for the same stage on the same lead — logged as P2-01 (a
+backend-serializer + frontend change, not a one-line fix). Also logged P3-08: Analytics' "By Source
+Channel"/"Reviewer Throughput" cards look visually sparse with only 1 channel/1 reviewer in the current
+dataset (distinct from the bottom-of-page whitespace metric, which reads clean).
+
+**Step 13:** PASS — Overall 9/10 and Visual & UI/UX 9/10 both clear the ≥9.0 gate. Recorded a
+`PROJECT_COMPLETED` (Round 9) and a second `PROJECT_FINAL_EVALUATION` (Round 2) entry in
+`.claude/project-metrics.md` per `docs/quality-metrics.md` §4.4; appended a Change Log note (not a new
+row — scores identical to the first FINAL evaluation) to `meta/PROJECT_METRICS_AGGREGATE.md` in the
+local pipeline clone, committed and pushed there.
+
+**Phase 6 (Steps 14-16):** Read `README.md`, `portfolio-description.md`, and `linkedin-entry.md` in
+full and cross-checked their claims (test counts, feature list, HubSpot setup wording) against the
+current codebase — all three were already accurate and current, having been refreshed same-day by the
+CRM Write Fallback CD round's own documentation step before this session began. No new shipped
+capability emerged from this session's Step 10/11/13 work (both new findings are backlog items, not
+features), so no rewrite was needed; this was a genuine verification pass, not a rubber stamp. Updated
+`.claude/skills/README.md`'s `capture-screenshots.mjs` entry to describe the new `03b` capture step.
+
+Pipeline-level friction check: none found this session.
+
+**Next step:** project is idle again — no Suggestion queued. `.claude/refinement-backlog.md` remains
+at zero `OPEN` entries (P2-01 and P3-08 above live in `portfolio-evaluation.md`'s own backlog, not that
+file — no Step 12 iteration ran this session since the user's own instruction routed straight through
+to documentation rather than a backlog-closing loop). A future idle session should run
+`docs/next-action-selection.md`'s Dynamic Next-Action Selection fresh — Continual Project Refinement
+remains a credible candidate (this session didn't run it), and P2-01/P3-08 are available as a scoped
+Step 12 pickup if a future session wants to close them before the next full evaluation.
+
+---
+
+**Prior session (2026-09-06, thirty-eighth session) — Continued Development: CRM Write
 Simulated-Success Fallback (user-reported problem, deepens Feature 05):**
 
 The user reported the project "nearly finished, but the information doesn't look good" — leads showing
