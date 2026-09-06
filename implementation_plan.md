@@ -1634,4 +1634,146 @@ Success Criteria
 
 ====================================================================
 
+Feature 18: Aggregate Lead Funnel & Reviewer Throughput Dashboard
+
+Tier: Addendum (a new cross-lead aggregate view neither Tier 1 nor Tier 2 provides — see
+roadmap-addendum-2026-09-06-round2.md; proposed by `docs/scope-expansion.md`'s Scope Expander,
+Round 1, S-03)
+
+Execution Metadata (REQUIRED)
+status: COMPLETED
+group: FUNNEL_DASHBOARD
+locked: false
+assigned_worker: null
+is_blocked: false
+depends_on: [06, 08]
+
+Description
+`project-definition.md`'s Use Case 4 names a "sales manager" persona wanting to see pipeline
+performance, but every existing page answers "what happened to this one lead"
+(`LeadListPage.tsx`/`LeadDetailPage.tsx`) or "how accurate is classification right now"
+(`BenchmarkPage.tsx`). This feature answers a distinct question — "how is the whole pipeline
+performing across every lead" — as a pure read-path aggregation over data the project already
+persists: conversion/outcome mix by source channel, average time-to-resolution, and review-queue
+throughput per reviewer.
+
+Requirements
+
+Functional Requirements:
+- Add `GET /analytics/funnel`, returning: total lead count; a count per display status
+  (auto_processed/awaiting_review/rejected/failed/in_progress); a count and average confidence per
+  source channel; the average resolution time (seconds) across every run that reached a terminal
+  outcome; and per-reviewer throughput (actioned count, average time from review-queue entry to
+  action) for every reviewer who has ever actioned an item
+- Add `FunnelDashboardPage.tsx` at a new persistent nav route, `/analytics` — stat tiles for the
+  top-level totals, a table for the per-channel breakdown, and a table for reviewer throughput
+- Give the new page a persistent `Layout.tsx` nav entry (unlike `LeadHistoryPage.tsx`/
+  `ReviewDetailPage.tsx`, which are reached only via a link from a parent page, this page answers a
+  standalone question a sales-manager persona navigates to directly) and a fourth section card on
+  `HomePage.tsx`, matching the existing three-card pattern (RB-004)
+
+System Behaviors:
+- Every number is computed at request time directly from `PipelineRun`/`ReviewQueueItem` rows — no
+  new columns, no new tables, no caching layer, no denormalization; reads current DB state exactly
+  like every other page's endpoint already does
+- "Resolution time" counts only runs whose `status` is `COMPLETED`, `FAILED`, or `REJECTED` — a run
+  still `RUNNING` or `AWAITING_REVIEW` has not resolved yet and is excluded from that average (but
+  still counted in `total_leads` and its own status bucket)
+- Reviewer throughput counts only `ACTIONED` `ReviewQueueItem` rows (never `PENDING`); a null
+  `reviewer_name` (self-reported, no auth model — see existing Key Decision) groups under
+  "Unattributed" rather than being dropped or erroring
+- A `source_channel` of `None` (should not occur in practice since Feature 02 always sets it, but
+  the column is nullable) groups under "unknown" rather than raising
+
+Edge Cases:
+- **Zero leads exist yet:** the endpoint returns `total_leads: 0` and empty breakdown lists (not an
+  error); the page renders its existing `EmptyState` component, not a NaN/blank table
+- **No review has ever been actioned:** `reviewer_throughput` is an empty list; the page's reviewer
+  table renders its own `EmptyState`, distinct from the page-level empty state above (leads can exist
+  with zero actioned reviews)
+- **Every run so far is still `RUNNING`/`AWAITING_REVIEW`:** `avg_resolution_seconds` is `null` (not
+  `0` or `NaN`), rendered as "—" per this project's existing `null`-value convention
+  (`LeadDetailPage.tsx`'s confidence display)
+- **A source channel with leads but zero resolved runs:** its `count`/`avg_confidence` still appear
+  in `by_source_channel`; only the project-wide `avg_resolution_seconds` figure is `null`-guarded,
+  not per-channel numbers this feature doesn't attempt to break out further
+
+Inputs
+- Existing `PipelineRun` rows (`status`, `source_channel`, `confidence_score`, `created_at`,
+  `updated_at`) and `ReviewQueueItem` rows (`status`, `reviewer_name`, `created_at`, `actioned_at`) —
+  no request body, no query parameters
+
+Outputs
+- `GET /analytics/funnel` → `FunnelDashboardOut`: `total_leads`, `by_status[]`,
+  `by_source_channel[]`, `avg_resolution_seconds` (nullable), `reviewer_throughput[]`
+
+Acceptance Criteria
+- [x] `GET /analytics/funnel` returns real counts computed from actual DB rows, verified against a
+  hand-checked dataset (not fabricated/hardcoded)
+- [x] `avg_resolution_seconds` excludes `RUNNING`/`AWAITING_REVIEW` runs and is `null`, not `0` or
+  `NaN`, when no run has resolved yet
+- [x] `reviewer_throughput` excludes `PENDING` review-queue items and groups a null `reviewer_name`
+  under "Unattributed"
+- [x] `FunnelDashboardPage.tsx` is reachable from `Layout.tsx`'s persistent nav and from a fourth
+  `HomePage.tsx` section card, matching the existing three-card pattern
+- [x] Zero-data states (no leads, no actioned reviews) render designed empty states, not errors or
+  blank tables
+
+Dependencies
+- Depends on: Feature 08 (`PipelineRun`'s denormalized `source_channel`/`confidence_score` columns
+  this reuses verbatim), Feature 06 (`ReviewQueueItem`, whose `reviewer_name`/`actioned_at` this
+  reads for throughput)
+- Blocks: none
+
+Implementation Notes
+
+Technology Stack:
+- Frontend: React, existing `ui/` component kit (`PageHeader`/`StatCard`/`Card`/`SectionLabel`/
+  `States`) — no new charting library, plain HTML tables and stat tiles match every other page
+- Backend: FastAPI — one new router, aggregation computed in Python over queried rows (consistent
+  with this project's existing scale reasoning — see `.claude/portfolio-reference.md`'s Key Decision
+  on `message_body` projection: "an endpoint with no realistic volume concern")
+- Database: none — no new columns, no new tables
+
+Key Files to Create:
+- `backend/app/routers/analytics.py` — `GET /analytics/funnel`
+- `backend/app/schemas/analytics.py` — `FunnelDashboardOut` and its nested shapes
+- `backend/app/tests/test_router_analytics.py`
+- `frontend/src/pages/FunnelDashboardPage.tsx`
+- `frontend/src/pages/FunnelDashboardPage.test.tsx`
+
+Key Files to Modify:
+- `backend/main.py` — register the new `analytics` router
+- `frontend/src/lib/api.ts` — add `getFunnelDashboard()` and its response types
+- `frontend/src/App.tsx` — add the `/analytics` route
+- `frontend/src/components/Layout.tsx` — add the "Analytics" nav item
+- `frontend/src/pages/HomePage.tsx` — add the fourth section card
+
+See `architecture-plan-feature-18.md` (CD-2.5) for the full implementation plan.
+
+Testing Strategy:
+- Backend: seed a small set of `PipelineRun`/`ReviewQueueItem` rows across every status/channel/
+  reviewer combination the edge cases above name, assert every computed field by hand
+- Frontend: component test confirming stat tiles and both tables render from a mocked response,
+  including the empty-state paths for zero leads and zero actioned reviews
+
+Worker Pool Considerations
+- File Ownership: `backend/app/routers/analytics.py`, `backend/app/schemas/analytics.py`,
+  `backend/app/tests/test_router_analytics.py`, `frontend/src/pages/FunnelDashboardPage.tsx`,
+  `frontend/src/pages/FunnelDashboardPage.test.tsx`, plus additive edits to `backend/main.py`,
+  `frontend/src/lib/api.ts`, `frontend/src/App.tsx`, `frontend/src/components/Layout.tsx`,
+  `frontend/src/pages/HomePage.tsx` — no overlap with any other group's owned files
+- Parallel Safety: single group, no concurrent conflicts expected
+- Group Assignment: `FUNNEL_DASHBOARD`
+- Execution Order: no ordering constraint beyond Features 06/08 already being complete (they are)
+
+Success Criteria
+✅ Every number the dashboard shows is a real aggregation over actual DB rows, never fabricated
+✅ Zero-data and zero-actioned-review states render designed empty states, not errors
+✅ New page is reachable from persistent nav and from HomePage, per this project's in-app-cohesion
+  pattern
+✅ Backend and frontend tests passing, no regression in the existing Feature 06/08 suites
+
+====================================================================
+
 END OF IMPLEMENTATION PLAN

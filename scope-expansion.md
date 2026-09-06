@@ -97,9 +97,28 @@ this session.
 - S-02: Status: Shipped (2026-09-06) — Feature 17, Confidence-Threshold "What-If" Simulator. CD-1
   through CD-4 all complete, same session immediately after S-01, per the user's "both" confirmation.
 
+NEXT ROUND (thirty-first session, 2026-09-06)
+Trigger: `docs/next-action-selection.md`'s Dynamic Next-Action Selection ran per idle Step 2 (no
+Suggestion, zero OPEN backlog entries, no CD round queued). Evidence favored UI Audit & Refinement
+(Feature 17's expanded panel was left visually UNVERIFIED last session, and browser automation is now
+confirmed available in this environment) — offered first, user explicitly chose Scope Expansion instead
+to continue S-03/S-04.
+
+TIE-BREAK DECISION (S-03 vs. S-04, both P2)
+Per §4's tie-break rule, asked the user directly which to pursue first. Answer: both, in sequence — S-03
+(Aggregate Lead Funnel & Reviewer Throughput Dashboard) goes into CD-1 first; S-04 (Interactive Slack
+Review Actions) follows as its own CD round immediately after, same pattern as the S-01/S-02 round.
+
+- S-03: Status: Shipped (2026-09-06) — Feature 18, Aggregate Lead Funnel & Reviewer Throughput
+  Dashboard. CD-1 through CD-4 all complete, live-verified against real accumulated data and
+  visually confirmed with real browser automation at all four target viewports; see
+  `.claude/validation-results.md`'s CD-4 entry.
+- S-04: Status: In Progress — entering CD-1 this session as Feature 19, per the user's "both, in
+  sequence" answer.
+
 NEXT ROUND
-Both P1s from this round are now shipped. No forced follow-up — a natural future candidate worth
-revisiting is extending Feature 17's simulator into a live "preview this threshold against real
-pending reviews" view, using the same lead-level action pattern Feature 16 established. A future
-idle session should run `docs/next-action-selection.md`'s Dynamic Next-Action Selection rather than
-defaulting straight back to another Scope Expansion round.
+Once S-03/S-04 ship, all 5 of this round's candidates will be resolved except S-05 (P3, CSV export),
+still available but not selected this round. A future idle session should run `docs/next-
+action-selection.md`'s Dynamic Next-Action Selection rather than defaulting straight back to another
+Scope Expansion round — the UI Audit & Refinement gap flagged above (Feature 17's panel, and now
+Feature 18/19's own UI surfaces) should be weighed then too.

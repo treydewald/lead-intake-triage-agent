@@ -1,6 +1,7 @@
 import { BrowserRouter, Route, Routes } from 'react-router-dom'
 import { Layout } from './components/Layout'
 import { BenchmarkPage } from './pages/BenchmarkPage'
+import { FunnelDashboardPage } from './pages/FunnelDashboardPage'
 import { HomePage } from './pages/HomePage'
 import { LeadDetailPage } from './pages/LeadDetailPage'
 import { LeadHistoryPage } from './pages/LeadHistoryPage'
@@ -21,6 +22,7 @@ function App() {
           <Route path="reviews" element={<ReviewQueuePage />} />
           <Route path="reviews/:runId" element={<ReviewDetailPage />} />
           <Route path="benchmark" element={<BenchmarkPage />} />
+          <Route path="analytics" element={<FunnelDashboardPage />} />
           <Route path="*" element={<NotFoundPage />} />
         </Route>
       </Routes>

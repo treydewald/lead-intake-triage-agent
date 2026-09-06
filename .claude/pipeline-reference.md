@@ -1,8 +1,8 @@
 # Pipeline Reference — Lead Intake Triage Agent
 
-**Last Updated:** 2026-09-06 (Continued Development — Feature 17 (Confidence-Threshold What-If
-Simulator) COMPLETED, immediately after Feature 16 in the same session. Both P1 candidates from
-`scope-expansion.md`'s Round 1 are now shipped; no Continued Development round is currently queued.)
+**Last Updated:** 2026-09-06 (Continued Development — Round 2, Feature 18 (Aggregate Lead Funnel &
+Reviewer Throughput Dashboard) COMPLETED. Feature 19 (Interactive Slack Review Actions, S-04) is
+in progress in the same session, per the user's "both, in sequence" tie-break answer.)
 
 How *this project* is using the Upwork Portfolio Project Pipeline. Distinct from
 `portfolio-reference.md`, which is about the product — this file is about pipeline state.
@@ -11,7 +11,43 @@ How *this project* is using the Upwork Portfolio Project Pipeline. Distinct from
 
 ## Current Step
 
-**This session (2026-09-06, thirtieth session), continued — Feature 17:** After Feature 16 shipped,
+**This session (2026-09-06, thirty-first session) — Continued Development, Round 2, Feature 18:**
+No Suggestion was queued and `.claude/refinement-backlog.md` had zero `OPEN` entries (all 9
+`COMPLETED`), so per Master Prompt Step 2's idle branch, ran `docs/next-action-selection.md`'s
+Dynamic Next-Action Selection. Evidence favored UI Audit & Refinement (Feature 17's expanded panel
+was left visually `UNVERIFIED` last session, and this session confirmed working browser automation —
+`playwright-core` + local Chromium — is actually available, closing that capability gap). Offered
+this to the user first per the selection procedure's mandatory confirmation step; the user explicitly
+chose to continue Scope Expansion instead, picking up S-03/S-04 (the two P2 candidates left in
+`scope-expansion.md`'s Round 1 after both P1s shipped as Features 16/17).
+
+Per that round's own tie-break rule (S-03 vs. S-04, both P2), asked the user directly which to
+pursue first — answer: both, in sequence, S-03 first. Ran CD-1 through CD-4 for **Feature 18
+(Aggregate Lead Funnel & Reviewer Throughput Dashboard)** — see `roadmap-addendum-2026-09-06-round2.md`
+(CD-1), `implementation_plan.md`'s Feature 18 entry (CD-2), `architecture-plan-feature-18.md` (CD-2.5/
+CD-4), and `.claude/validation-results.md`'s new CD-4 entry for full detail. New `GET
+/analytics/funnel` (new `analytics.py` router/schema pair — justified since this aggregation spans
+both `PipelineRun` and `ReviewQueueItem`, two existing routers' domains) plus a new
+`FunnelDashboardPage.tsx` at a persistent `/analytics` nav route and a fourth `HomePage.tsx` section
+card. Pure read-path aggregation, no new columns/tables. 154/154 backend, 60/60 frontend tests, no
+regressions (bundle +2.9%, coverage -0.17pp, both under CD-4's material thresholds). Live-verified
+against the real accumulated dev database (33 real `PipelineRun` rows, 8 real `ReviewQueueItem`
+actions) and — for the first time this project has had working browser automation confirmed
+available — visually verified with real Playwright/Chromium at all four target viewports (zero
+overflow), closing the category of `UNVERIFIED` gap Feature 17's session left open.
+
+Pipeline-level friction check (Feature 18): none found — `docs/continued-development.md`'s CD-1
+through CD-4 sequence and `docs/implementation-planning.md`'s output format were clear and
+sufficient as written; this was also the first round to exercise `docs/next-action-selection.md`'s
+confirmation step actually being declined in favor of a different operation the user chose instead,
+which worked exactly as that doc's §6 describes (offer, user redirects, proceed with what they chose).
+
+Continuing into Feature 19 (S-04, Interactive Slack Review Actions) in this same session per the
+user's "both, in sequence" answer — see below.
+
+---
+
+**Prior update, same session (2026-09-06, thirtieth session), continued — Feature 17:** After Feature 16 shipped,
 the user's original "both" answer (to run both S-01 and S-02) was read as authorizing this same
 session to continue into S-02 as well, rather than stopping. Ran CD-1 through CD-4 for Feature 17
 (Confidence-Threshold "What-If" Simulator) — see `roadmap-addendum-2026-09-06.md`,

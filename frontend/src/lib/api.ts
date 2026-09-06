@@ -192,3 +192,33 @@ export async function actionReview(runId: string, payload: ReviewActionRequest):
   const response = await api.post<ReviewActionResult>(`/reviews/${runId}/action`, payload)
   return response.data
 }
+
+export interface FunnelStatusCount {
+  status: string
+  count: number
+}
+
+export interface FunnelChannelStat {
+  source_channel: string
+  count: number
+  avg_confidence: number | null
+}
+
+export interface ReviewerThroughput {
+  reviewer_name: string
+  actioned_count: number
+  avg_resolution_seconds: number | null
+}
+
+export interface FunnelDashboard {
+  total_leads: number
+  by_status: FunnelStatusCount[]
+  by_source_channel: FunnelChannelStat[]
+  avg_resolution_seconds: number | null
+  reviewer_throughput: ReviewerThroughput[]
+}
+
+export async function getFunnelDashboard(): Promise<FunnelDashboard> {
+  const response = await api.get<FunnelDashboard>('/analytics/funnel')
+  return response.data
+}

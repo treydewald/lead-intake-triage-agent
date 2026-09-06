@@ -1,7 +1,18 @@
 # Portfolio Reference — Lead Intake Triage Agent
 
-**Last Updated:** 2026-09-06 (Continued Development — Feature 17, Confidence-Threshold "What-If"
-Simulator, COMPLETED. New `GET /benchmark/confidence-threshold` (the only backend config exposed to
+**Last Updated:** 2026-09-06 (Continued Development — Feature 18, Aggregate Lead Funnel & Reviewer
+Throughput Dashboard, COMPLETED. New `GET /analytics/funnel` (new `analytics.py` router/schema pair,
+justified since this aggregation spans both `PipelineRun` and `ReviewQueueItem`, two existing
+routers' domains) plus a new `FunnelDashboardPage.tsx` at a persistent `/analytics` nav route and a
+fourth `HomePage.tsx` section card. Pure read-path aggregation computed in Python over existing rows
+— no new columns, no new tables. Live-verified against the real accumulated dev database (33 real
+`PipelineRun` rows, 8 real `ReviewQueueItem` actions) and, for the first time this project has had
+working browser automation available, visually verified with real Playwright/Chromium at all four
+target viewports — zero overflow, closing the category of `UNVERIFIED` gap Feature 17's session left
+open. 154/154 backend and 60/60 frontend tests, no regressions (bundle +2.9%, coverage -0.17pp, both
+under CD-4's material thresholds). Ships S-03 from `scope-expansion.md`'s Round 1; S-04 (Interactive
+Slack Review Actions) follows as Feature 19 in the same session. Prior update: Continued Development
+— Feature 17, Confidence-Threshold "What-If" Simulator, COMPLETED. New `GET /benchmark/confidence-threshold` (the only backend config exposed to
 the frontend) plus a collapsed-by-default "Threshold Simulator" panel on `BenchmarkPage.tsx`,
 connecting Feature 09's benchmark dataset to Feature 06's live confidence gate entirely client-side
 — the Scope Expansion candidate's originally-proposed "derived endpoint" turned out unnecessary once
@@ -120,16 +131,18 @@ portfolio gate (Mode: STANDARD).
 | `backend/app/schemas/notification.py` | Feature 07's `NotificationOut` — response shape for `GET /notifications`; Feature 10 added `external_delivery_status`/`external_delivery_error` (optional, `null` for pre-Feature-10 rows) |
 | `backend/app/routers/reviews.py` | Feature 06: `GET /reviews`, `GET /reviews/{run_id}`, `POST /reviews/{run_id}/action` — concurrency-safe claim via an atomic `UPDATE ... WHERE status='PENDING'`; approve/edit re-enter the orchestrator via `resume_pipeline()`, reject sets `RunStatus.REJECTED` directly and also calls `persist_outcome_notification()`; Feature 11's `reviewer_name` is persisted in the same atomic `UPDATE`, no second write; Step 12 added `_to_review_out()`, parsing `message_body` out of `state_snapshot` for both GET endpoints (read-only projection, not a new source of truth — see Key Decisions) |
 | `backend/app/routers/notifications.py` | Feature 07: `GET /notifications` (list, newest first) |
+| `backend/app/routers/analytics.py` | Feature 18: `GET /analytics/funnel` — aggregate lead funnel / reviewer throughput, computed in Python over all `PipelineRun`/`ReviewQueueItem` rows at request time (no new columns/tables, no caching) |
+| `backend/app/schemas/analytics.py` | Feature 18: `FunnelDashboardOut` and its nested shapes (`FunnelStatusCountOut`, `FunnelChannelStatOut`, `ReviewerThroughputOut`) |
 | `backend/app/routers/leads.py` | Feature 08: `GET /leads` (list, paginated, denormalized `source_channel`/`confidence_score` for filter/sort), `GET /leads/{lead_id}` (detail — full stage-trace timeline via `STAGE_ORDER`/`_STAGE_LABELS`, mirrored on the frontend by `lib/stageOrder.ts`; ordered `.order_by(created_at.desc()).first()` since Feature 16 — see Key Decisions); Feature 11 added `GET /leads/{lead_id}/history` — merges every `PipelineRun` row for a `lead_id` (never `.first()` — see Key Decisions) with any `ACTIONED` `ReviewQueueItem`, sorted by `created_at`; Feature 16 added `POST /leads/{lead_id}/retry` — retries the lead's most recent `FAILED` run via `retry_pipeline()`, `409` if none exists |
 | `backend/alembic/` | DB migrations, wired to `app.database.session.Base` and `settings.database_url`; `245c694fed3d_*` creates `pipeline_run`/`stage_trace`; `68de6a50cacb_*` creates `review_queue_item`; `5f3cbe979b96_*` creates `notification`; `9217c457cc82_*` (Feature 08) adds `pipeline_run.source_channel`/`.confidence_score`; `b86e4d4ef367_*` (Feature 09) creates `benchmark_run`/`benchmark_case`; `a95fad549dbf_*` (Feature 10) adds `notification.external_delivery_status`/`.external_delivery_error`; `327d880cd1b9_*` (Feature 11) adds `review_queue_item.reviewer_name` |
-| `frontend/src/components/` | Shared UI: `BuildIndicator.tsx`, `Layout.tsx` (persistent sidebar nav — Leads/Reviews/Benchmark, `lucide-react` icons added Step 12); `ui/` subdirectory (added Step 12, portfolio backlog P1-02/P1-03) — `PageHeader.tsx`, `Card.tsx` (`Card`/`SectionLabel`), `StatCard.tsx`, `States.tsx` (`EmptyState`/`LoadingState`/`ErrorState`), used by every page for a consistent type scale, card depth, and designed empty/loading/error states |
+| `frontend/src/components/` | Shared UI: `BuildIndicator.tsx`, `Layout.tsx` (persistent sidebar nav — Leads/Reviews/Benchmark/Analytics (Feature 18), `lucide-react` icons added Step 12); `ui/` subdirectory (added Step 12, portfolio backlog P1-02/P1-03) — `PageHeader.tsx`, `Card.tsx` (`Card`/`SectionLabel`), `StatCard.tsx`, `States.tsx` (`EmptyState`/`LoadingState`/`ErrorState`), used by every page for a consistent type scale, card depth, and designed empty/loading/error states |
 | `frontend/src/pages/` | Route-level pages — each has its own row below: `HomePage.tsx`, `LeadListPage.tsx`/`LeadDetailPage.tsx` (Feature 08), `BenchmarkPage.tsx` (Feature 09), `ReviewQueuePage.tsx`/`ReviewDetailPage.tsx` (Feature 15) |
-| `frontend/src/pages/HomePage.tsx` | Index route (`/`) — landing page linking to Observability (`/leads`), Review Queue (`/reviews`), and Benchmark (`/benchmark`); replaced Step 4's bootstrap placeholder per `.claude/refinement-backlog.md`'s RB-004 (COMPLETED) |
+| `frontend/src/pages/HomePage.tsx` | Index route (`/`) — landing page linking to Observability (`/leads`), Review Queue (`/reviews`), Benchmark (`/benchmark`), and Analytics (`/analytics`, Feature 18); replaced Step 4's bootstrap placeholder per `.claude/refinement-backlog.md`'s RB-004 (COMPLETED) |
 | `frontend/src/pages/LeadListPage.tsx` | Feature 08: paginated lead list against `GET /leads`, filterable by status/channel |
 | `frontend/src/pages/LeadDetailPage.tsx` | Feature 08: per-lead detail + full stage-trace timeline against `GET /leads/{lead_id}`; Feature 11 added a "View Full History →" link to `LeadHistoryPage.tsx` |
 | `frontend/src/pages/LeadHistoryPage.tsx` | Feature 11: merged chronological timeline (stage transitions + human review actions) for a lead against `GET /leads/{lead_id}/history`; links back to `LeadDetailPage.tsx`; no persistent nav entry (reached only via that page's link, same pattern as `ReviewDetailPage.tsx`) |
 | `frontend/src/lib/` | API client and typed helpers — `api.ts` (fetch wrappers for every backend endpoint: leads/reviews/notifications/benchmark) and `stageOrder.ts` (see below) |
-| `frontend/src/lib/api.ts` | Typed `fetch` helpers for every backend endpoint this frontend calls (leads, reviews, notifications, benchmark); Feature 11 added `getLeadHistory()`/`TimelineEntry`/`LeadHistory` and `reviewer_name` on `ReviewActionRequest`; Feature 16 added `retryLead()` and generalized `ReviewActionResult` into `PipelineRunResult`; Feature 17 added `getConfidenceThreshold()` |
+| `frontend/src/lib/api.ts` | Typed `fetch` helpers for every backend endpoint this frontend calls (leads, reviews, notifications, benchmark, analytics); Feature 11 added `getLeadHistory()`/`TimelineEntry`/`LeadHistory` and `reviewer_name` on `ReviewActionRequest`; Feature 16 added `retryLead()` and generalized `ReviewActionResult` into `PipelineRunResult`; Feature 17 added `getConfidenceThreshold()`; Feature 18 added `getFunnelDashboard()` |
 | `frontend/src/lib/stageOrder.ts` | Feature 08: static TypeScript mirror of the backend's `graph.py` `STAGE_ORDER` (deliberately duplicated — TS can't import a Python constant) — used to render `LeadDetailPage.tsx`'s stage timeline in canonical order |
 | `frontend/src/lib/thresholdSimulation.ts` | Feature 17: pure `simulateThreshold(cases, threshold)` — client-side auto/review split over a benchmark run's already-fetched cases, using the same `confidence >= threshold` boundary as `_route_after_enrich` (never re-derived from a backend round-trip; see Key Decisions) |
 | `backend/app/benchmark/dataset.py` | Feature 09's `BENCHMARK_DATASET` — 22 labeled `DatasetItem`s (buyer/browser/spam/ambiguous), ships as a Python-literal fixture |
@@ -140,6 +153,7 @@ portfolio gate (Mode: STANDARD).
 | `frontend/src/pages/BenchmarkPage.tsx` | Feature 09: "Run Benchmark" trigger, accuracy/consistency/model stat tiles, ambiguous-or-misclassified case table; Feature 17 added a collapsed-by-default "Threshold Simulator" panel (slider + live-computed auto/review counts, via `lib/thresholdSimulation.ts`) |
 | `frontend/src/pages/ReviewQueuePage.tsx` | Feature 15 (CD round, addendum): PENDING review-queue list, reading `GET /reviews` |
 | `frontend/src/pages/ReviewDetailPage.tsx` | Feature 15: per-item detail + approve/reject/edit action form against `GET /reviews/{run_id}`/`POST /reviews/{run_id}/action`; surfaces the backend's 409 "already actioned" response as a distinct message, not a generic error; Feature 11 added an optional "Your name" input sent as `reviewer_name` |
+| `frontend/src/pages/FunnelDashboardPage.tsx` | Feature 18: stat tiles (total leads, awaiting review, avg. time-to-resolution) plus a by-source-channel table and a reviewer-throughput table, against `GET /analytics/funnel`; persistent nav entry (`/analytics`) and a fourth `HomePage.tsx` section card, unlike `LeadHistoryPage.tsx`/`ReviewDetailPage.tsx` which are reached only via a parent-page link |
 
 *(Fill in further as each remaining feature's own Step 6 group lands — don't pre-guess a structure
 that doesn't exist yet.)*

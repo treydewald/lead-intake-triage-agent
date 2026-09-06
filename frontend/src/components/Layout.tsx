@@ -1,4 +1,4 @@
-import { Activity, ClipboardCheck, Gauge } from 'lucide-react'
+import { Activity, BarChart3, ClipboardCheck, Gauge } from 'lucide-react'
 import { NavLink, Outlet, useLocation } from 'react-router-dom'
 import { BuildIndicator } from './BuildIndicator'
 
@@ -6,6 +6,7 @@ const navItems = [
   { to: '/leads', label: 'Observability', icon: Activity },
   { to: '/reviews', label: 'Review Queue', icon: ClipboardCheck },
   { to: '/benchmark', label: 'Benchmark', icon: Gauge },
+  { to: '/analytics', label: 'Analytics', icon: BarChart3 },
 ]
 
 export function Layout() {

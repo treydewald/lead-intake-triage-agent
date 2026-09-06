@@ -22,6 +22,7 @@ describe('App', () => {
     expect(within(main).getByRole('link', { name: /Observability/i })).toHaveAttribute('href', '/leads')
     expect(within(main).getByRole('link', { name: /Review Queue/i })).toHaveAttribute('href', '/reviews')
     expect(within(main).getByRole('link', { name: /Benchmark/i })).toHaveAttribute('href', '/benchmark')
+    expect(within(main).getByRole('link', { name: /Analytics/i })).toHaveAttribute('href', '/analytics')
 
     await waitFor(() => expect(within(main).getByText('12')).toBeInTheDocument())
   })

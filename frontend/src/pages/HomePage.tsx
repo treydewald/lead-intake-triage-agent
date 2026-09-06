@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { Activity, ArrowRight, ClipboardCheck, Gauge, History } from 'lucide-react'
+import { Activity, ArrowRight, BarChart3, ClipboardCheck, Gauge, History } from 'lucide-react'
 import { listBenchmarkRuns, listLeads, listReviews, type LeadListItem } from '../lib/api'
 import { PageHeader } from '../components/ui/PageHeader'
 import { StatCard } from '../components/ui/StatCard'
@@ -33,6 +33,12 @@ const sections = [
     label: 'Benchmark',
     description: 'Measure classification accuracy and consistency against known cases.',
     icon: Gauge,
+  },
+  {
+    to: '/analytics',
+    label: 'Analytics',
+    description: 'Aggregate funnel, conversion by channel, and reviewer throughput.',
+    icon: BarChart3,
   },
 ]
 
@@ -112,7 +118,7 @@ export function HomePage() {
         />
       </div>
 
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-3 sm:gap-4">
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4 lg:grid-cols-4">
         {sections.map((section) => (
           <Link
             key={section.to}

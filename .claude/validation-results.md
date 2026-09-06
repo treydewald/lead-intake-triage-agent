@@ -901,3 +901,76 @@ visual check honestly recorded `UNVERIFIED`, not silently assumed). This closes 
 from `scope-expansion.md`'s Round 1 — no further Continued Development round is currently queued;
 a future session should re-run `docs/next-action-selection.md`'s Dynamic Next-Action Selection or
 bring a new Suggestion.
+
+---
+
+## CD-4 — Feature 18 (Aggregate Lead Funnel & Reviewer Throughput Dashboard), 2026-09-06
+
+**Backend tests:** 154/154 passed (was 149/149 — +5 new in `test_router_analytics.py`), no
+regressions. Coverage held at 98% (unchanged from Continual Refinement Round 1's baseline).
+
+**Frontend tests:** 60/60 passed (was 56/56 — +4 new in `FunnelDashboardPage.test.tsx`, +1 assertion
+added to `App.test.tsx`'s existing nav-region test), no regressions. Coverage 89.03% → 88.86%
+statements (−0.17 points — well under the 5-point material-regression threshold from
+`docs/continued-development.md` CD-4).
+
+**Build/lint:** `tsc -b` clean, `oxlint` clean (0 warnings), `vite build` 338.09 kB → 347.79 kB
+(+2.9%, under the 15% material-regression threshold).
+
+**Live verification against the real accumulated dev database** (not just mocks — `backend/leads.db`
+carries 33 real `PipelineRun` rows and 8 real `ReviewQueueItem` actions accumulated across every
+prior session's live testing, per `.claude/seed-data.md`):
+1. `GET /analytics/funnel` against the real running backend returned `total_leads: 33`, with
+   `by_status` counts (`awaiting_review: 1, failed: 29, rejected: 3`) summing to exactly 33 —
+   confirmed by hand, not just eyeballed.
+2. `by_source_channel` correctly bucketed a real pre-existing `PipelineRun` row whose
+   `source_channel` is `None` under `"unknown"` (`avg_confidence: null`) — an edge case this session
+   didn't have to construct synthetically, since real historical data already contained it.
+3. `reviewer_throughput` correctly separated 4 distinct real reviewer names ("Jordan", "QA Tester",
+   "QA Tester 2", "Unattributed" for null `reviewer_name`), each with a plausible
+   `avg_resolution_seconds` derived from real `created_at`/`actioned_at` timestamps spanning this
+   project's actual multi-day build history.
+
+**Visual verification with real browser automation** (`playwright-core` + local Chromium, confirmed
+available this session — unlike Feature 17's session, which recorded its expanded panel
+`UNVERIFIED` for exactly this capability gap per `docs/agent-portability.md`):
+1. `/analytics` measured zero horizontal/vertical `main` overflow at all four target viewports
+   (1920×1080, 1440×900, 1366×768, 390×844) via the same `scrollWidth`/`scrollHeight` vs.
+   `clientWidth`/`clientHeight` measurement method `docs/ui-design-standards.md` §1 established.
+2. Screenshots reviewed directly (not just the numeric measurement) at desktop and mobile widths —
+   both tables and stat tiles render cleanly, consistent with every other page's visual language, no
+   layout defects found.
+3. A live click-through from `HomePage.tsx`'s new fourth "Analytics" section card actually navigated
+   to `/analytics`, confirming the in-app-cohesion link works end-to-end, not just that the `href`
+   attribute is correct in a mocked test.
+
+**Acceptance criteria coverage (architecture-plan-feature-18.md / `implementation_plan.md`'s
+Feature 18 spec):**
+1. Real, non-fabricated counts → live checks #1-3 above.
+2. `avg_resolution_seconds` excludes unresolved runs, `null` when none resolved →
+   `test_funnel_avg_resolution_excludes_unresolved_runs` (a run with a 5-hour `AWAITING_REVIEW` gap
+   is proven not to skew the average) + `test_funnel_returns_zero_state_for_empty_database`.
+3. Reviewer throughput excludes `PENDING`, groups null `reviewer_name` as "Unattributed" →
+   `test_reviewer_throughput_excludes_pending_and_groups_unattributed`.
+4. Reachable from persistent nav and a fourth HomePage card → live click-through (visual check #3
+   above) + `App.test.tsx`'s extended assertion.
+5. Zero-data states render designed empty states → `FunnelDashboardPage.test.tsx`'s two empty-state
+   tests (zero leads; leads exist but zero actioned reviews).
+
+**Architectural fidelity (`docs/implementation-planning.md` §14):** implementation matched
+`architecture-plan-feature-18.md`'s Implementation Order and Existing Systems Analysis — reused
+`display_status_for()` (Feature 08) rather than inventing a third status vocabulary, reused the
+existing `ui/` component kit with no new shared component, and correctly judged this feature's
+aggregation domain (spanning `PipelineRun` and `ReviewQueueItem`) as justifying a new router/schema
+pair rather than bolting onto `leads.py` or `reviews.py`. One real bug self-caught before any test
+ran: the reviewer-throughput computation was initially written with an O(reviewers) nested re-query
+inside a list comprehension; rewritten to a single pass before committing. Actual Footprint recorded
+in the plan file: 9/10 predicted files changed (one fewer — no dedicated `HomePage.test.tsx` exists
+in this project, so there was nothing to touch there), no unplanned files, no rework cycle beyond the
+pre-commit self-catch above.
+
+Verdict: Feature 18 (Aggregate Lead Funnel & Reviewer Throughput Dashboard) is implementation-complete,
+live-verified against real accumulated data, visually confirmed with real browser automation at all
+four target viewports (closing the category of gap Feature 17 left `UNVERIFIED`), and regression-free.
+Per `scope-expansion.md`'s Round 1 tie-break decision, S-04 (Interactive Slack Review Actions) follows
+next in this same session as Feature 19.
