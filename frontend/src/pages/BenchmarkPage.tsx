@@ -162,12 +162,12 @@ export function BenchmarkPage() {
               <summary className="flex cursor-pointer list-none items-center gap-2 px-4 py-3 text-sm font-medium text-slate-700 marker:content-none">
                 <SlidersHorizontal className="h-4 w-4 text-teal-700" aria-hidden="true" />
                 Threshold Simulator
-                <span className="ml-auto text-xs font-normal text-slate-400 group-open:hidden">
+                <span className="ml-auto text-xs font-normal text-slate-600 group-open:hidden">
                   Click to explore what-if scenarios
                 </span>
               </summary>
-              <div className="flex flex-col gap-3 border-t border-slate-100 px-4 pb-4 pt-3 sm:gap-4">
-                <p className="text-xs text-slate-500">
+              <div className="flex flex-col gap-2 border-t border-slate-100 px-4 pb-3 pt-2.5 sm:gap-4 sm:pb-4 sm:pt-3">
+                <p className="hidden text-xs text-slate-500 sm:block">
                   Move the slider to see how many of this run's {candidateSimulation.totalCases} cases
                   would auto-process vs. route to human review at a candidate confidence threshold,
                   compared to the live setting.
@@ -271,7 +271,12 @@ export function BenchmarkPage() {
                 <div className="p-4 pb-3">
                   <TrendChart points={trendPoints} />
                 </div>
-                <div className="min-w-0 flex-1 min-h-0 overflow-auto border-t border-slate-200">
+                <div
+                  className="min-w-0 flex-1 min-h-0 overflow-auto border-t border-slate-200"
+                  tabIndex={0}
+                  role="region"
+                  aria-label="Run history table, scrollable"
+                >
                   <table aria-label="Run history" className="w-full min-w-[560px] text-left text-sm">
                     <thead className="sticky top-0 border-b border-slate-200 bg-slate-50 text-xs uppercase tracking-wide text-slate-500">
                       <tr>

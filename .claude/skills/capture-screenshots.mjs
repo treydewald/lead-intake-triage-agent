@@ -93,6 +93,18 @@ async function run() {
   await page.waitForTimeout(1000)
   await shot(page, '07-benchmark')
 
+  // Feature 17's Threshold Simulator panel is a collapsed-by-default <details> disclosure
+  // (see BenchmarkPage.tsx) — expand it via its <summary> before capturing, otherwise the
+  // panel's actual rendered content (slider, live-vs-candidate comparison) never gets
+  // visually verified, only its collapsed header.
+  await page.locator('main details summary', { hasText: 'Threshold Simulator' }).click()
+  await page.waitForTimeout(300)
+  await shot(page, '07b-benchmark-threshold-expanded')
+
+  await nav(page).getByRole('link', { name: 'Analytics', exact: true }).click()
+  await waitForPage(page, 'Lead Funnel & Reviewer Throughput')
+  await shot(page, '08-analytics')
+
   await desktopCtx.close()
 
   // --- Mobile pass: a couple of representative pages showing the responsive layout ---
@@ -101,11 +113,11 @@ async function run() {
 
   await mobilePage.goto(BASE_URL)
   await waitForPage(mobilePage, 'Automated classification, routing, and review')
-  await shot(mobilePage, '08-mobile-home')
+  await shot(mobilePage, '09-mobile-home')
 
   await nav(mobilePage).getByRole('link', { name: 'Observability', exact: true }).click()
   await waitForPage(mobilePage, 'Leads')
-  await shot(mobilePage, '09-mobile-lead-list')
+  await shot(mobilePage, '10-mobile-lead-list')
 
   await mobileCtx.close()
   await browser.close()

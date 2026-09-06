@@ -171,10 +171,10 @@ export function ReviewDetailPage() {
       <div className="grid flex-1 min-h-0 grid-cols-1 gap-4 sm:gap-5 lg:grid-cols-3">
         <div className="flex min-h-0 flex-col gap-3 overflow-y-auto sm:gap-4 lg:col-span-2">
           <Card className="p-5 sm:p-6">
-            <div className="mb-3 flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-slate-500">
+            <h2 className="mb-3 flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-slate-500">
               <MessageSquare className="h-3.5 w-3.5" aria-hidden="true" />
               Lead message
-            </div>
+            </h2>
             <p className="whitespace-pre-wrap text-sm leading-relaxed text-slate-800">
               {item.message_body?.trim() ? item.message_body : 'This lead was submitted with no message content.'}
             </p>
@@ -183,10 +183,10 @@ export function ReviewDetailPage() {
           {recentActivity && recentActivity.length > 0 && (
             <Card className="flex flex-1 min-h-0 flex-col gap-3 overflow-y-auto p-5 sm:gap-3.5 sm:p-6">
               <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-slate-500">
+                <h2 className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-slate-500">
                   <History className="h-3.5 w-3.5" aria-hidden="true" />
                   Recent activity
-                </div>
+                </h2>
                 <Link
                   to={`/leads/${item.lead_id}/history`}
                   className="text-xs font-medium text-teal-700 hover:underline"

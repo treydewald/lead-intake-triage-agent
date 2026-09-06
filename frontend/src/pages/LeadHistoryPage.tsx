@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { ArrowLeft, Clock3, ListTree } from 'lucide-react'
 import { getLeadDetail, getLeadHistory, type LeadDetail, type LeadHistory } from '../lib/api'
-import { Card } from '../components/ui/Card'
+import { Card, SectionLabel } from '../components/ui/Card'
 import { ErrorState, LoadingState } from '../components/ui/States'
 import { TimelineRow } from '../components/ui/TimelineRow'
 import { ConfidenceMeter } from '../components/ui/ConfidenceMeter'
@@ -105,15 +105,18 @@ export function LeadHistoryPage() {
       </div>
 
       <div className="grid flex-1 min-h-0 grid-cols-1 gap-5 lg:grid-cols-3">
-        <Card className="flex min-h-0 flex-col gap-3 overflow-y-auto p-5 lg:col-span-2">
-          {history.entries.length === 0 ? (
-            <p className="text-slate-500">No history recorded for this lead yet.</p>
-          ) : (
-            history.entries.map((entry, index) => (
-              <TimelineRow key={`${entry.run_id}-${entry.kind}-${index}`} entry={entry} />
-            ))
-          )}
-        </Card>
+        <div className="flex min-h-0 flex-col gap-2 lg:col-span-2">
+          <SectionLabel>Timeline</SectionLabel>
+          <Card className="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto p-5">
+            {history.entries.length === 0 ? (
+              <p className="text-slate-500">No history recorded for this lead yet.</p>
+            ) : (
+              history.entries.map((entry, index) => (
+                <TimelineRow key={`${entry.run_id}-${entry.kind}-${index}`} entry={entry} />
+              ))
+            )}
+          </Card>
+        </div>
 
         {lead && (
           <Card className="flex flex-col gap-4 p-6">

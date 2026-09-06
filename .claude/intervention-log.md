@@ -454,3 +454,38 @@ edit to that same entry once the round they belong to is scored, not a new entry
   above. This ships the last of `scope-expansion.md`'s Round 1 P1/P2 candidates — only S-05 (P3)
   remains.
 - Agent: claude/claude_code
+
+### 2026-09-06 — ui_audit_refinement (Round 1)
+- Trigger: `docs/ui-audit-refinement.md` §3.4, trigger 4 (full-app pass) — no full-app UI Audit &
+  Refinement round had been recorded since Step 11 Round 6 (2026-09-05), and three Continued
+  Development rounds shipped UI-facing changes since (Feature 16's Retry button, Feature 17's
+  Threshold Simulator panel — left `UNVERIFIED` in its own session, Feature 18's `/analytics`
+  dashboard). Ran the standard Step 10→11→12→11 loop per that doc's §4.
+- Expected effect: close Feature 17's `UNVERIFIED` visual gap, extend screenshot/no-scroll/axe
+  coverage to Feature 18's new route, and re-score Professional Readiness (which folds in
+  Responsiveness/Accessibility) against current state rather than a carried-forward number.
+- Outcome: OVERALL SCORE 9/10 (Visual & UI/UX 9, Feature Signaling 9, Professional Readiness 9,
+  Client Impact 9) — unchanged in number from Round 6, but this round found and fixed real defects
+  the unchanged score hadn't reflected: 2 serious + 2 moderate axe-core violations (color-contrast,
+  a non-keyboard-focusable scrollable region, 2 heading-order breaks), all newly discovered because
+  this project had never run an automated accessibility scan against Features 16-19's surfaces
+  before. All 4 fixed in one capped Step 12 batch; axe-core now reports 0 critical/serious/moderate
+  violations across all 9 route states. Also found and partially fixed a Lead Detail mobile-density
+  regression (a stale 15px exception had actually grown to 50px once Feature 16's Retry banner
+  shipped; reduced to 43px this round, documented as the current figure rather than further
+  compressed). One small new exception (10px mobile overflow on Benchmark's expanded Threshold
+  Simulator panel) was investigated but not fully closed — accepted as documented per this doc's own
+  effort-cap discipline (capped at one Step 12 round). Full backend (171/171) and frontend (60/60)
+  tests, lint, and build all clean after the batch. `portfolio-evaluation.md` updated (Round 7,
+  tagged UI-Audit-sourced); `.claude/portfolio-reference.md` gained 2 new Key Decisions (heading-order
+  pattern, updated mobile-exception figures); 2 new reusable scripts registered
+  (`.claude/skills/check-no-scroll.mjs`, `.claude/skills/check-axe.mjs`).
+- Surprise: the routine screenshot/no-scroll checks all sample the *first* lead returned by
+  `GET /leads`, which is essentially never the multi-run/failed lead a documented mobile exception
+  was actually measured against — meaning a documented exception figure can go stale silently across
+  multiple Continued Development rounds without any check catching the drift, since nothing
+  re-verifies it against a worst-case data instance rather than whatever the routine capture happens
+  to sample. Logged as a pipeline-level insight (`meta/PIPELINE_INSIGHTS_LOG.md` in the pipeline repo)
+  since `docs/ui-audit-refinement.md` doesn't currently call this out as something a UI Audit pass
+  should specifically re-check.
+- Agent: claude/claude_code

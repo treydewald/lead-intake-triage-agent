@@ -1,6 +1,21 @@
 # Portfolio Reference — Lead Intake Triage Agent
 
-**Last Updated:** 2026-09-06 (Continued Development — Feature 19, Interactive Slack Review Actions,
+**Last Updated:** 2026-09-06 (UI Audit & Refinement — Round 1, trigger 4 (full-app pass; no full-app
+UI Audit had been recorded since Step 11 Round 6, and Features 16-19 shipped UI-facing changes since).
+Closed Feature 17's `UNVERIFIED` visual gap by actually expanding and screenshotting the Threshold
+Simulator panel; extended screenshot/no-scroll/axe coverage to Feature 18's `/analytics` route for the
+first time. Found and fixed, in one capped Step 12 batch: 2 serious + 2 moderate axe-core violations
+(color-contrast, a non-keyboard-focusable scrollable region, 2 heading-order breaks) — now 0
+critical/serious/moderate project-wide — and a Lead Detail mobile-density regression (Feature 16's
+Retry banner pushed the documented exception from a stale 15px to 50px on an actual failed/retried
+lead, reduced to 43px this round). Two new reusable scripts, `.claude/skills/check-no-scroll.mjs` and
+`.claude/skills/check-axe.mjs`, mechanize checks this project's prior rounds ran ad hoc.
+`@axe-core/playwright` installed as a real declared devDependency. Professional Readiness re-scored 9/10
+(was 9/10 but now genuinely re-verified against 3 new surfaces rather than carried forward unchecked);
+Overall Score 9/10, gate re-confirmed cleared. Full detail: `portfolio-evaluation.md`'s Round 7 entry,
+`.claude/pipeline-reference.md`'s UI Audit & Refinement — Round 1 entry.
+
+Prior update: Continued Development — Feature 19, Interactive Slack Review Actions,
 COMPLETED. New `POST /slack/interactions`, a genuine inbound trust boundary verifying Slack's own
 HMAC-SHA256 request signature before trusting anything in the payload; a valid Approve/Reject click
 routes through `apply_review_action()` — the exact same logic `POST /reviews/{run_id}/action` uses,
@@ -493,6 +508,25 @@ that doesn't exist yet.)*
   on desktop also resolved a pre-existing mobile constraint), and `LeadDetailPage.tsx`'s 303px reduced to
   15px (padding/spacing redistribution, not a net height increase). Lead Detail's remaining 15px stays a
   documented exception under the same reasoning, now far smaller.
+  **Updated UI Audit & Refinement, Round 1 (2026-09-06):** the 15px figure was stale — it predated
+  Feature 16's Retry banner (a new failed-state UI element with an error message and a Retry button),
+  which this round found pushes `LeadDetailPage.tsx`'s mobile overflow to 50px for an actual failed/
+  retried lead (the routine screenshot/no-scroll checks all sample the *first* lead returned by
+  `GET /leads`, which is rarely the multi-run one, so this had gone unmeasured since Feature 16 shipped).
+  Tightened banner padding/spacing (a `p-3`→`p-2.5`, `mt-2`→`mt-1.5` mobile-only reduction, `sm:` values
+  unchanged) recovered 7px, landing at **43px, the current documented figure** — not further compressed,
+  since the remaining content (the error message and the retry action itself) is genuinely load-bearing,
+  the same "genuinely data-heavy, not a fixable layout choice" reasoning already applied to this page.
+  A second, new, smaller exception was also found and documented this round:
+  `BenchmarkPage.tsx`'s Threshold Simulator panel (Feature 17) overflows by 10px on mobile only when
+  manually expanded — investigated directly (four rounds of CSS reduction removing over 70px of the
+  panel's own content had zero effect on the flagged number, meaning some other element's flex-sizing
+  floor is the real constraint, not the panel's own content height) and accepted rather than chased
+  further, per `docs/ui-audit-refinement.md`'s own effort-cap discipline. **General lesson:** a
+  documented mobile-exception figure can go stale the moment a later Continued Development round adds
+  real content to that same page — re-verify the actual figure against a worst-case data instance (not
+  just whatever lead a routine screenshot pass happens to sample) whenever a UI Audit round touches a
+  page that already carries one of these exceptions.
 - **A chart's axis-label legibility defect can survive a fontSize/fill fix untouched if the real cause
   is non-uniform SVG scaling, not text styling (Step 12, Round 4, 2026-09-05).** `TrendChart.tsx`'s
   `<svg preserveAspectRatio="none">` inside a fixed-height, full-width container stretches X and Y by
@@ -576,6 +610,26 @@ that doesn't exist yet.)*
   (Feature 05's `write_contact`/`search_contact` reuse) to a new trigger — a second *inbound* transport,
   not just a second internal caller. Set by Feature 19's implementation plan
   (`architecture-plan-feature-19.md`).
+- **A section label that visually precedes heading-level content (e.g. a `TimelineRow`'s `<h3>`) must
+  itself be a real heading element (`<h2>`), not a styled `<div>` with identical classes** — this
+  project's `SectionLabel` component (`ui/Card.tsx`) already renders `<h2>`, but three call sites
+  (`ReviewDetailPage.tsx`'s "Lead message"/"Recent activity" labels, `LeadHistoryPage.tsx`'s timeline
+  column) had hand-rolled the same visual style as a plain `<div>` instead of reusing `SectionLabel` or
+  writing their own `<h2>`, which axe-core's `heading-order` rule correctly flagged once actually run
+  against those pages (UI Audit & Refinement Round 1, 2026-09-06 — this project had never run an
+  automated accessibility scan against these specific pages' current markup before). Fixed by changing
+  the wrapping element to `<h2>` (zero visual change, since the classes were already identical) or, for
+  `LeadHistoryPage.tsx`'s previously-unlabeled timeline column, adding a real `SectionLabel`. **General
+  rule:** any future page-level "label" styled to look like `SectionLabel`'s output should just use
+  `SectionLabel` (or a real heading of the correct level) rather than re-implementing its classes on a
+  non-heading element — the visual similarity otherwise hides a real structural defect from view.
+- **`@axe-core/playwright` is a real, declared `devDependency`** (installed UI Audit & Refinement Round
+  1, 2026-09-06, via `npm install --save-dev`) — prior sessions' references to axe-core being "already a
+  project dependency" were inaccurate; it had only ever been installed with `--no-save` in a past Step 9
+  session and was later pruned, per this project's own documented pattern of undeclared installs getting
+  silently removed by an unrelated `npm install`. Two new reusable scripts,
+  `.claude/skills/check-no-scroll.mjs` and `.claude/skills/check-axe.mjs`, mechanize checks this
+  project's Step 8/9/12 rounds had previously only ever run ad hoc — see `.claude/skills/README.md`.
 - **A genuine inbound trust boundary (verifying a request actually originated from an external system,
   not just calling out to one) fails closed on every missing or invalid input — an unconfigured secret,
   a missing signature header, a missing timestamp header, or a non-numeric timestamp all reject exactly

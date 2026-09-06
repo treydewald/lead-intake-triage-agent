@@ -123,7 +123,7 @@ export function LeadDetailPage() {
   const badgeClass = STATUS_BADGE_CLASSES[lead.status] ?? 'bg-slate-100 text-slate-700'
 
   return (
-    <div className="flex h-full min-h-0 flex-col gap-4 sm:gap-5">
+    <div className="flex h-full min-h-0 flex-col gap-3 sm:gap-5">
       <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
         <div>
           <Link
@@ -143,7 +143,7 @@ export function LeadDetailPage() {
       </div>
 
       {lead.status === 'failed' && lead.failed_stage && (
-        <div className="flex items-start gap-2 rounded-xl border border-red-300 bg-red-50 p-3 text-sm text-red-800">
+        <div className="flex items-start gap-2 rounded-xl border border-red-300 bg-red-50 p-2.5 text-sm text-red-800 sm:p-3">
           <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" />
           <div className="flex-1">
             <p className="font-medium">
@@ -155,7 +155,7 @@ export function LeadDetailPage() {
               type="button"
               onClick={handleRetry}
               disabled={retrying}
-              className="mt-2 inline-flex items-center gap-1.5 rounded-lg border border-red-300 bg-white px-3 py-1.5 text-sm font-medium text-red-800 shadow-sm transition-all hover:border-red-400 hover:shadow-md active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60"
+              className="mt-1.5 inline-flex items-center gap-1.5 rounded-lg border border-red-300 bg-white px-3 py-1.5 text-sm font-medium text-red-800 shadow-sm transition-all hover:border-red-400 hover:shadow-md active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60 sm:mt-2"
             >
               <RotateCcw className="h-3.5 w-3.5" aria-hidden="true" />
               {retrying ? 'Retrying…' : 'Retry'}

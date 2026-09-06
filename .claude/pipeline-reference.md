@@ -1,9 +1,8 @@
 # Pipeline Reference — Lead Intake Triage Agent
 
-**Last Updated:** 2026-09-06 (Continued Development — Round 3, Feature 19 (Interactive Slack Review
-Actions) COMPLETED, immediately after Feature 18 in the same session. All of `scope-expansion.md`'s
-Round 1 P1/P2 candidates are now shipped (S-01 through S-04); only S-05 (P3) remains. No Continued
-Development round is currently queued.)
+**Last Updated:** 2026-09-06 (UI Audit & Refinement — Round 1, trigger 4 (full-app pass). OVERALL
+SCORE 9/10, Visual & UI/UX 9/10 — gate re-confirmed cleared. Full detail: `portfolio-evaluation.md`'s
+Round 7 entry, `.claude/portfolio-reference.md`'s Key Decisions.)
 
 How *this project* is using the Upwork Portfolio Project Pipeline. Distinct from
 `portfolio-reference.md`, which is about the product — this file is about pipeline state.
@@ -12,7 +11,70 @@ How *this project* is using the Upwork Portfolio Project Pipeline. Distinct from
 
 ## Current Step
 
-**This session (2026-09-06, thirty-first session), continued — Feature 19:** After Feature 18
+**This session (2026-09-06, thirty-second session) — UI Audit & Refinement, Round 1 (trigger:
+`docs/ui-audit-refinement.md` §3.4, trigger 4 — no full-app UI Audit had been recorded since Step 11
+Round 6, and three Continued Development rounds shipped UI-facing changes since (Feature 16's Retry
+button, Feature 17's Threshold Simulator panel, Feature 18's `/analytics` dashboard); scope: full-app;
+Professional Readiness 9→9, Overall 9→9 — gate held, but this round found and fixed real defects the
+prior unchanged score hadn't reflected):**
+
+1. **Inspect (Step 10 re-run):** Extended `.claude/skills/capture-screenshots.mjs` to expand and
+   capture Feature 17's Threshold Simulator panel (via a real `<summary>` click, closing the
+   `UNVERIFIED` visual gap Feature 17's own session left open) and to navigate to and capture Feature
+   18's `/analytics` route for the first time. Regenerated the project's one `awaiting_review` review-
+   queue item first (consumed by Feature 19's own live verification) via the documented disposable-
+   second-`uvicorn`-instance technique (`.claude/seed-data.md`). 11 screenshots captured (was 9).
+2. **Evaluate (Step 11 re-run):** Re-ran Step 9's Responsive & Accessibility Validation checklist
+   against current state via two new reusable scripts, `.claude/skills/check-no-scroll.mjs` (the
+   no-scroll invariant at all 4 target viewports × 9 route states) and `.claude/skills/check-axe.mjs`
+   (Step 9.5's automated scan, via `@axe-core/playwright` — installed as a real declared devDependency
+   this round; it had never actually been declared before despite prior sessions' notes claiming
+   otherwise). Found: 2 serious + 2 moderate axe violations (all on surfaces never previously scanned:
+   Benchmark's Threshold Simulator, Lead History, Review Detail) and a Lead Detail mobile-density
+   regression (Feature 16's Retry banner pushed the documented exception from a stale 15px to 50px on
+   an actual failed/retried lead — the routine checks only ever sample the first lead in the list,
+   which is rarely the multi-run one).
+3. **Identify concrete issues (tagged as UI-Audit-sourced in `portfolio-evaluation.md`):** color-
+   contrast failure (Threshold Simulator hint text), a non-keyboard-focusable scrollable region
+   (Benchmark's Run History table), 2 heading-order breaks (Lead History, Review Detail), and the Lead
+   Detail mobile regression.
+4. **Prioritize:** all 4 items treated as P1/P2-equivalent (would have held Professional Readiness
+   below 9 if left unfixed) — see `portfolio-evaluation.md`'s Round 7 backlog.
+5. **Implement (Step 12, one capped batch per this audit's own rule):** fixed all 4 items — contrast
+   fix (`text-slate-400`→`text-slate-600`), `tabIndex`/`role="region"`/`aria-label` on the scrollable
+   table wrapper, 2 heading-order fixes (`<div>`→`<h2>` at 2 call sites, plus a new `SectionLabel` on
+   Lead History's previously-unlabeled timeline column), and mobile spacing tightening on both
+   `BenchmarkPage.tsx` (partial — see below) and `LeadDetailPage.tsx`'s failed-state banner (50px→43px).
+6. **Re-run the audit after changes:** axe-core now 0 critical/serious/moderate across all 9 route
+   states (was 2 serious + 2 moderate). No-scroll: 35/36 page×viewport combinations clean (was also
+   35/36 — one exception, Benchmark's expanded panel at 390×844, 10px, resisted four rounds of targeted
+   CSS reduction removing 70+px of the panel's own content with zero effect on the flagged number,
+   pointing to a flex-sizing floor elsewhere on the page rather than the panel itself; accepted as a new
+   documented exception per this doc's effort-cap discipline rather than chased further).
+7. **Verify no regressions:** full backend (171/171) and frontend (60/60) suites, lint (0 warnings),
+   and build all clean after the batch. Fresh screenshots re-captured for all 3 touched pages.
+8. **Record:** this entry, `.claude/portfolio-reference.md`'s Key Decisions (heading-order pattern,
+   axe-core dependency, updated mobile-exception figures), `.claude/intervention-log.md`,
+   `.claude/seed-data.md` (regenerated review item), `.claude/skills/README.md` (2 new scripts
+   registered).
+
+**Gate status: cleared on this round's own re-evaluation (Step 11) — no further Step 12 round needed.**
+Score path: OVERALL SCORE 9/10, Visual & UI/UX 9/10, Feature Signaling 9/10, Professional Readiness
+9/10, Client Impact 9/10 (all unchanged in number from Round 6 except Professional Readiness, which
+is now genuinely re-verified against 3 previously-unchecked surfaces rather than carried forward
+unexamined). 6 P3 items remain (4 carried from Round 6, 2 new small documented mobile exceptions).
+
+Pipeline-level friction check: none blocking, but one insight worth naming — a documented mobile-
+exception figure (Lead Detail's) went stale silently for two Continued Development rounds because the
+routine screenshot/no-scroll checks always sample the first lead returned by the API, not a worst-case
+data instance. `docs/ui-audit-refinement.md` itself doesn't currently call this out; logged to
+`meta/PIPELINE_INSIGHTS_LOG.md` in the pipeline repo as a possible future addition (a UI Audit pass
+should specifically re-check any page carrying a documented data-dependent exception against a
+worst-case instance of that data, not just whatever the routine capture script happens to sample).
+
+---
+
+**Prior update, same session (2026-09-06, thirty-first session), continued — Feature 19:** After Feature 18
 shipped, continued into Feature 19 (S-04, Interactive Slack Review Actions) per the user's "both, in
 sequence" tie-break answer. Ran CD-1 through CD-4 — see `roadmap-addendum-2026-09-06-round3.md`
 (CD-1), `implementation_plan.md`'s Feature 19 entry (CD-2), `architecture-plan-feature-19.md`
