@@ -1,4 +1,4 @@
-import { act, render, screen } from '@testing-library/react'
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { createMemoryRouter, MemoryRouter, Route, RouterProvider, Routes } from 'react-router-dom'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { LeadDetailPage } from './LeadDetailPage'
@@ -72,6 +72,76 @@ describe('LeadDetailPage', () => {
 
     expect(await screen.findByText(/Pipeline failed at HubSpot CRM Write/)).toBeInTheDocument()
     expect(screen.getByText('HubSpot API returned 500')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /Retry/ })).toBeInTheDocument()
+  })
+
+  it('does not show a Retry action for a non-failed lead', async () => {
+    vi.spyOn(api, 'getLeadDetail').mockResolvedValue({
+      ...BASE_LEAD,
+      status: 'auto_processed',
+      stages: [],
+    })
+    vi.spyOn(api, 'getLeadHistory').mockResolvedValue({ lead_id: 'lead-abc12345', entries: [] })
+
+    renderDetail()
+
+    await screen.findByText('auto processed')
+    expect(screen.queryByRole('button', { name: /Retry/ })).not.toBeInTheDocument()
+  })
+
+  it('retrying a failed lead calls the retry endpoint and refreshes the displayed status', async () => {
+    vi.spyOn(api, 'getLeadDetail')
+      .mockResolvedValueOnce({
+        ...BASE_LEAD,
+        status: 'failed',
+        failed_stage: 'hubspot_crm_write',
+        error: 'HubSpot API returned 500',
+        stages: [],
+      })
+      .mockResolvedValueOnce({
+        ...BASE_LEAD,
+        run_id: 'run-retry-2',
+        status: 'auto_processed',
+        failed_stage: null,
+        error: null,
+        stages: [],
+      })
+    vi.spyOn(api, 'getLeadHistory').mockResolvedValue({ lead_id: 'lead-abc12345', entries: [] })
+    const retrySpy = vi.spyOn(api, 'retryLead').mockResolvedValue({
+      id: 'run-retry-2',
+      lead_id: 'lead-abc12345',
+      status: 'COMPLETED',
+      created_at: '2026-09-05T12:00:00Z',
+      updated_at: '2026-09-05T12:00:05Z',
+      stage_traces: [],
+    })
+
+    renderDetail()
+
+    const retryButton = await screen.findByRole('button', { name: /Retry/ })
+    fireEvent.click(retryButton)
+
+    await waitFor(() => expect(retrySpy).toHaveBeenCalledWith('lead-abc12345'))
+    expect(await screen.findByText('auto processed')).toBeInTheDocument()
+  })
+
+  it('shows an error message when retry fails', async () => {
+    vi.spyOn(api, 'getLeadDetail').mockResolvedValue({
+      ...BASE_LEAD,
+      status: 'failed',
+      failed_stage: 'hubspot_crm_write',
+      error: 'HubSpot API returned 500',
+      stages: [],
+    })
+    vi.spyOn(api, 'getLeadHistory').mockResolvedValue({ lead_id: 'lead-abc12345', entries: [] })
+    vi.spyOn(api, 'retryLead').mockRejectedValue(new Error('network error'))
+
+    renderDetail()
+
+    const retryButton = await screen.findByRole('button', { name: /Retry/ })
+    fireEvent.click(retryButton)
+
+    expect(await screen.findByText('Retry failed. Please try again.')).toBeInTheDocument()
   })
 
   it('shows the in-progress banner for a mid-pipeline lead', async () => {

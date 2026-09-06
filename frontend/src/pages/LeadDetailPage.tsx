@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
-import { AlertTriangle, ArrowLeft, Clock3, History } from 'lucide-react'
-import { getLeadDetail, getLeadHistory, type LeadDetail, type TimelineEntry } from '../lib/api'
+import { AlertTriangle, ArrowLeft, Clock3, History, RotateCcw } from 'lucide-react'
+import { getLeadDetail, getLeadHistory, retryLead, type LeadDetail, type TimelineEntry } from '../lib/api'
 import { STAGE_ORDER } from '../lib/stageOrder'
 import { Card } from '../components/ui/Card'
 import { ErrorState, LoadingState } from '../components/ui/States'
@@ -36,6 +36,8 @@ export function LeadDetailPage() {
   const [loading, setLoading] = useState(true)
   const [recentActivity, setRecentActivity] = useState<TimelineEntry[] | null>(null)
   const [prevLeadId, setPrevLeadId] = useState(leadId)
+  const [retrying, setRetrying] = useState(false)
+  const [retryError, setRetryError] = useState<string | null>(null)
 
   if (leadId !== prevLeadId) {
     setPrevLeadId(leadId)
@@ -82,6 +84,22 @@ export function LeadDetailPage() {
     }
   }, [leadId])
 
+  async function handleRetry() {
+    if (!leadId) return
+    setRetrying(true)
+    setRetryError(null)
+    try {
+      await retryLead(leadId)
+      const [detail, history] = await Promise.all([getLeadDetail(leadId), getLeadHistory(leadId)])
+      setLead(detail)
+      setRecentActivity(history.entries)
+    } catch {
+      setRetryError('Retry failed. Please try again.')
+    } finally {
+      setRetrying(false)
+    }
+  }
+
   if (loading) {
     return <LoadingState label="Loading lead detail…" />
   }
@@ -127,11 +145,21 @@ export function LeadDetailPage() {
       {lead.status === 'failed' && lead.failed_stage && (
         <div className="flex items-start gap-2 rounded-xl border border-red-300 bg-red-50 p-3 text-sm text-red-800">
           <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" />
-          <div>
+          <div className="flex-1">
             <p className="font-medium">
               Pipeline failed at {STAGE_ORDER.find((s) => s.key === lead.failed_stage)?.label ?? lead.failed_stage}
             </p>
             {lead.error && <p className="mt-1 text-red-700">{lead.error}</p>}
+            {retryError && <p className="mt-1 text-red-700">{retryError}</p>}
+            <button
+              type="button"
+              onClick={handleRetry}
+              disabled={retrying}
+              className="mt-2 inline-flex items-center gap-1.5 rounded-lg border border-red-300 bg-white px-3 py-1.5 text-sm font-medium text-red-800 shadow-sm transition-all hover:border-red-400 hover:shadow-md active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              <RotateCcw className="h-3.5 w-3.5" aria-hidden="true" />
+              {retrying ? 'Retrying…' : 'Retry'}
+            </button>
           </div>
         </div>
       )}

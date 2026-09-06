@@ -10,7 +10,14 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from app.database.session import SessionLocal
 from app.models.pipeline_run import PipelineRun, StageTrace
 from app.models.review_queue import ReviewQueueItem
-from app.orchestrator.graph import STAGE_ORDER, run_pipeline
+from app.orchestrator.graph import (
+    STAGE_ORDER,
+    NoFailedRunError,
+    RetryGraphFactory,
+    build_production_retry_graph,
+    retry_pipeline,
+    run_pipeline,
+)
 from app.orchestrator.state import IntakeSlice, LeadPipelineState
 from app.schemas.pipeline import (
     CallbackIntakeRequest,
@@ -48,6 +55,14 @@ def get_session_factory() -> SessionFactory:
     """FastAPI dependency, overridden in tests to bind the pipeline run and the
     response lookup to an isolated test DB (see `app.tests.conftest.db_session_factory`)."""
     return SessionLocal
+
+
+def get_retry_graph_factory() -> RetryGraphFactory:
+    """Feature 16: FastAPI dependency, overridden in tests to inject a retry graph
+    built with fake tool bindings - same pluggable-graph-factory pattern
+    `app.routers.reviews.get_resume_graph_factory` already established, for the same
+    reason (testable without live HubSpot/Ollama credentials)."""
+    return build_production_retry_graph
 
 
 def _run_and_respond(intake: IntakeSlice, session_factory: SessionFactory) -> PipelineRunOut:
@@ -171,7 +186,17 @@ def get_lead_detail(
     rather than a blank/missing section — see architecture-plan-feature-08.md."""
     db = session_factory()
     try:
-        run_row = db.query(PipelineRun).filter(PipelineRun.lead_id == lead_id).first()
+        # Feature 16: a lead can have more than one `PipelineRun` row once a retry has
+        # happened (the non-unique `lead_id` Key Decision, first actually exercised by
+        # Feature 16) - order by created_at desc so this always reflects the latest
+        # attempt, never an arbitrary row. Previously safe without an ORDER BY only
+        # because nothing ever created a second row for the same lead_id.
+        run_row = (
+            db.query(PipelineRun)
+            .filter(PipelineRun.lead_id == lead_id)
+            .order_by(PipelineRun.created_at.desc())
+            .first()
+        )
         if run_row is None:
             raise HTTPException(status_code=404, detail="Lead not found")
 
@@ -222,6 +247,28 @@ def get_lead_detail(
             error=error,
             stages=stages,
         )
+    finally:
+        db.close()
+
+
+@router.post("/{lead_id}/retry", response_model=PipelineRunOut)
+def retry_lead(
+    lead_id: str,
+    session_factory: SessionFactory = Depends(get_session_factory),
+    retry_graph_factory: RetryGraphFactory = Depends(get_retry_graph_factory),
+) -> PipelineRunOut:
+    """Feature 16: retry the lead's most recent FAILED run from the stage that raised
+    - never a bespoke stage-calling code path, see `retry_pipeline`/`build_retry_graph`
+    in `app.orchestrator.graph` and architecture-plan-feature-16.md."""
+    try:
+        final_state = retry_pipeline(lead_id, graph_factory=retry_graph_factory, session_factory=session_factory)
+    except NoFailedRunError as exc:
+        raise HTTPException(status_code=409, detail=str(exc)) from exc
+
+    db = session_factory()
+    try:
+        run_row = db.get(PipelineRun, final_state.run.run_id)
+        return PipelineRunOut.model_validate(run_row)
     finally:
         db.close()
 

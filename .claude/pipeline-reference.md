@@ -1,7 +1,8 @@
 # Pipeline Reference — Lead Intake Triage Agent
 
-**Last Updated:** 2026-09-05 (Scope Expander — Round 1, twenty-ninth session same day — 5 candidates
-proposed, S-01/S-02 tied P1, awaiting user's tie-break decision before CD-1.)
+**Last Updated:** 2026-09-06 (Continued Development — Feature 16 (Failed-Run Retry/Resubmission)
+COMPLETED: CD-2 through CD-4 all run this session, on top of the prior session's CD-1 addendum.
+S-02 (Confidence-Threshold What-If Simulator) is the queued next round.)
 
 How *this project* is using the Upwork Portfolio Project Pipeline. Distinct from
 `portfolio-reference.md`, which is about the product — this file is about pipeline state.
@@ -10,7 +11,57 @@ How *this project* is using the Upwork Portfolio Project Pipeline. Distinct from
 
 ## Current Step
 
-**This session (2026-09-05, twenty-ninth session same day):** Explicit user request ("run scope
+**This session (2026-09-06, thirtieth session):** User confirmed proceeding into CD-2 for Feature
+16 (Failed-Run Retry/Resubmission) — the prior session's own pause point before this exact
+commitment — and, per the user's "both" answer, this session runs the full CD-2→CD-4 round for
+Feature 16 rather than stopping at CD-2 alone (S-02, queued as the next round, is left for a
+follow-up session rather than also attempted here, to keep this round's own verification cycle
+clean).
+
+**CD-2 (spec):** Appended Feature 16 to `implementation_plan.md` using this project's established
+compact spec format (matching Features 06/11/15), with Requirements/Edge Cases/Acceptance Criteria/
+Dependencies/Implementation Notes/Worker Pool Considerations — no changes to the WORKER POOL
+METADATA yaml block, following Feature 15's own precedent of an addendum feature declaring its
+group inline rather than being retrofitted into that block.
+
+**CD-2.5 (architecture plan):** Read `.claude/portfolio-reference.md`'s Architecture Map/Key
+Decisions plus the actual `graph.py`/`reviews.py`/`leads.py`/`state.py`/`LeadDetailPage.tsx` source
+first (Standard-tier planning depth, treated with Deep-level scrutiny on the orchestrator-graph
+section since it touches the Critical-risk per-stage boundary). Wrote
+`architecture-plan-feature-16.md`. Key finding surfaced during Existing Systems Analysis: Feature
+11's own Key Decision claimed `get_lead_detail`'s unordered `.first()` was "correct" for a
+current-state view — true only because no code path had ever produced a second `PipelineRun` row
+for one `lead_id`. Feature 16 is that code path, so this round both flagged and fixed the gap
+(`.claude/portfolio-reference.md`'s Key Decisions amended in place, not silently overwritten — see
+that file's own amendment note). No new Architecture Rule proposed beyond that amendment — Feature
+16 exercises two existing Key Decisions (non-unique `lead_id`, Feature 06's resume-not-bespoke
+pattern) rather than establishing a new one.
+
+**CD-3 (implement):** `backend/app/orchestrator/graph.py` gained `build_retry_graph()` (a new,
+purely additive graph-builder reusing `_make_node`/`_make_human_review_node`/`_route_or_fail`/
+`_route_after_enrich` — `build_resume_graph` itself untouched), a state-reconstruction helper
+replaying `StageTrace.output_snapshot` values, and `retry_pipeline()`. `backend/app/routers/
+leads.py` gained `POST /{lead_id}/retry` (same pluggable-graph-factory dependency pattern
+`reviews.py` already established) and the `get_lead_detail` ordering fix. Frontend: `api.ts` gained
+`retryLead()` (generalizing `ReviewActionResult` into a shared `PipelineRunResult` type rather than
+duplicating an identical interface); `LeadDetailPage.tsx`'s failed-state banner gained a "Retry"
+action that refreshes the page's status/timeline in place on success.
+
+**CD-4 (verify):** 147/147 backend, 47/47 frontend, lint/build clean. Live-verified against a real
+running backend (not just mocks): a real lead failing at CRM Write (the known placeholder-token
+limitation), retried successfully (mechanism-wise — the write itself fails again for the same known
+reason, as expected), `GET /leads/{lead_id}` and `.../history` both correct after retry, `409` for
+no-failed-run, and a second consecutive retry-of-a-retry all confirmed live. Full detail:
+`.claude/validation-results.md`'s new CD-4 entry. Architecture plan's Actual Footprint: 8/8
+predicted files, no deviations, no rework.
+
+Pipeline-level friction check: none found this session — `docs/continued-development.md`'s CD-2
+through CD-4 sequence and `docs/implementation-planning.md`'s output format were clear and
+sufficient as written.
+
+---
+
+**Prior session (2026-09-05, twenty-ninth session same day):** Explicit user request ("run scope
 expansion"), overriding the prior session's own `NO_ACTION` conclusion (a valid independent trigger per
 `docs/scope-expansion.md` §9 — ideation has no honest-zero exit condition, so an explicit ask doesn't
 contradict a "nothing was already broken/stale" finding). Ran the Scope Expander per `docs/
@@ -1177,7 +1228,14 @@ Tier section, STANDARD mode with Tier 2/3 features present falls back to full ti
 
 ## Next Step
 
-**This session (2026-09-05, twenty-eighth session same day):** Ran `docs/next-action-selection.md`'s
+**This session (2026-09-06, thirtieth session):** Feature 16 (Failed-Run Retry/Resubmission)
+COMPLETED — CD-2 through CD-4 all closed this session, see Current Step above. **Next step for a
+future session: CD-1 for S-02 (Confidence-Threshold What-If Simulator)** — already scoped and
+prioritized by `scope-expansion.md`'s Round 1 tie-break decision as the round immediately following
+Feature 16, not a fresh Scope Expansion round. No `.claude/refinement-backlog.md` entries are
+`OPEN` (unaffected by this session's work).
+
+**Prior session (2026-09-05, twenty-eighth session same day):** Ran `docs/next-action-selection.md`'s
 Dynamic Next-Action Selection — concluded `NO_ACTION` (see Current Step above for the full evidence
 survey). **Next step for a future session:** there is genuinely nothing queued — no Suggestion, no
 `OPEN` backlog entry, no credible Scope Expansion gap, no stale Continual Refinement round, no UI/

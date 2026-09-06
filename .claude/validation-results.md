@@ -744,3 +744,86 @@ QA-1's fix and left in place (no delete-lead API exists to remove them safely). 
 
 Verdict: Application QA-complete, all functional and accessibility defects found this session fixed and
 regression-verified. Ready for Step 10 (Screenshot Capture).
+
+---
+
+## 2026-09-06 — Continued Development: Feature 16 (Failed-Run Retry / Resubmission), CD-4
+
+**Scope:** CD-2 (spec, `implementation_plan.md`), CD-2.5 (`architecture-plan-feature-16.md`), CD-3
+(implementation), CD-4 (this verification) all run this session, per `docs/scope-expansion.md`
+Round 1's S-01 candidate and the user's explicit "both, in sequence — S-01 first" tie-break
+decision.
+
+**Step 4 — Full test suite:** 147/147 backend (`pytest`, ~40s — 138 pre-existing + 9 new: 6 in
+`test_orchestrator_retry.py`, 3 additional endpoint tests woven into `test_router_leads_retry.py`'s
+4 tests total), 47/47 frontend (`vitest run`, ~10s — 44 pre-existing + 3 new Retry-action tests in
+`LeadDetailPage.test.tsx`). `npm run lint` (oxlint) and `npm run build` (`tsc -b && vite build`)
+both clean, zero errors.
+
+**Test coverage:** no coverage tool configured on either side — consistent with every prior
+feature's validation entry; not a new gap introduced this round.
+
+**Performance baseline regression check (`docs/continued-development.md` CD-4):** `qa-report.md`'s
+recorded baseline is 307.21 kB / 97.89 kB gzip (frontend bundle, no prior baseline before that).
+This round's `vite build` output: 339.04 kB / 105.08 kB gzip — a +10.4% raw / +7.3% gzip increase,
+both under the 15% material threshold. Not a regression; not re-recorded as a new baseline (CD-4's
+default only replaces the baseline when none exists yet).
+
+**Step 3 — Live verification against the real backend (no mocks), via a running `uvicorn`
+instance:**
+1. `POST /leads/webform` with a real message → real `IntentClassificationStage` (Ollama
+   `llama3.2:3b`) classified it high-confidence (0.9) → real `HubSpotCrmWriteStage` failed as
+   expected (`HUBSPOT_ACCESS_TOKEN` is a placeholder, this project's known deviation — see
+   `.claude/pipeline-reference.md`'s Deviations section) → run ended `FAILED` at
+   `hubspot_crm_write`, matching every prior session's same observed limitation.
+2. `POST /leads/{lead_id}/retry` against that real failed lead → created a genuinely new
+   `PipelineRun` row, replayed only `hubspot_crm_write` + `outcome_notification` (confirmed via the
+   response's own `stage_traces` — no `intake_parsing`/`intent_classification`/`data_enrichment`
+   entries), failed again at the same real HubSpot-token limitation (expected — proves the retry
+   mechanism itself engages correctly even though the underlying write can't succeed in this dev
+   environment, the same distinction Feature 11's own Step 7 session drew for the identical
+   limitation).
+3. `GET /leads/{lead_id}` after the retry returned the *new* run's id and status, not the original
+   failed run's — confirms the `get_lead_detail` ordering fix.
+4. `GET /leads/{lead_id}/history` after the retry showed both attempts' stage transitions,
+   correctly attributed to their own distinct `run_id`s, in chronological order.
+5. `POST /leads/no-such-lead/retry` → `409` with `{"detail": "No failed run found for lead
+   'no-such-lead'"}`, not a 500 or silent no-op.
+6. A second consecutive retry against the same lead (retry-of-a-retry) succeeded, creating a third
+   distinct `PipelineRun` row — confirms "most recent `FAILED` run" selection holds across more
+   than two attempts.
+7. Dev server log reviewed end-to-end: zero errors, only expected `INFO` access logs and the
+   already-known HubSpot-token warning.
+
+**Acceptance criteria coverage (architecture-plan-feature-16.md / `implementation_plan.md`'s
+Feature 16 spec):**
+1. Retry creates a new run continuing from the failed stage without re-running earlier stages →
+   live run #2 above + `test_retry_pipeline_creates_a_new_run_and_does_not_rerun_earlier_stages`
+2. New run's `StageTrace` rows contain only the replayed stage(s) → live run #2 above (same test)
+3. `GET /leads/{lead_id}` reflects the new run after retry → live run #3 above +
+   `test_get_lead_detail_reflects_latest_attempt_after_retry`
+4. `GET /leads/{lead_id}/history` shows both attempts distinctly, in order → live run #4 above +
+   `test_lead_history_shows_both_attempts_after_retry`
+5. No `FAILED` run → `409` → live run #5 above + `test_retry_with_no_failed_run_returns_409` +
+   `test_retry_pipeline_raises_when_no_failed_run_exists`
+6. `LeadDetailPage.tsx`'s Retry action calls the endpoint and refreshes status/timeline without a
+   manual reload → `LeadDetailPage.test.tsx`'s three new tests (button visibility, successful
+   retry updates displayed status, failed retry shows an inline error) — no live-browser
+   click-through available this session (same capability gap every prior frontend-only session has
+   noted; compensated with jsdom-rendered component tests, consistent with established practice)
+
+**Architectural fidelity (`docs/implementation-planning.md` §14):** implementation matched
+`architecture-plan-feature-16.md`'s plan exactly — `build_retry_graph` reuses the same
+`_make_node`/`_make_human_review_node`/`_route_or_fail`/`_route_after_enrich` building blocks
+`build_graph`/`build_resume_graph` already use, added as a new function rather than modifying
+either existing graph-builder; `build_resume_graph` itself is byte-for-byte unchanged and its own
+Feature 06 tests pass unmodified. Actual Footprint recorded in the plan file: 8/8 predicted files
+changed, no unplanned files, no rework cycle.
+
+**Additional confirmation:** `GET /leads` (list) and every other existing Feature 08/09/10/11
+endpoint re-verified unchanged via the full existing test suites passing unmodified — Feature 16
+adds one new route and one ordering fix to an existing route, nothing else in `leads.py` changed.
+
+Verdict: Feature 16 (Failed-Run Retry / Resubmission) is implementation-complete, live-verified,
+and regression-free. Per `scope-expansion.md`'s tie-break decision, S-02 (Confidence-Threshold
+What-If Simulator) is the queued next Continued Development round.

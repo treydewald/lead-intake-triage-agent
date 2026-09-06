@@ -25,6 +25,7 @@ from app.orchestrator.state import (
     LeadPipelineState,
     NotificationSlice,
     ReviewSlice,
+    RunMetadata,
     RunStatus,
 )
 from app.orchestrator.tool_scope import ToolRegistry
@@ -486,6 +487,228 @@ def resume_pipeline(
         run_row = db.get(PipelineRun, run_id)
         if run_row is not None:
             run_row.status = final_state.run.status.value
+            db.commit()
+    finally:
+        db.close()
+
+    return final_state
+
+
+class NoFailedRunError(LookupError):
+    """Feature 16: raised by `retry_pipeline` when a lead has no `FAILED` `PipelineRun`
+    to retry - the router translates this into a 409, distinct from the 404 used when
+    the lead itself doesn't exist."""
+
+
+# Feature 16: node name each retry-eligible `STAGE_ORDER` slice enters the graph at -
+# a subset of `STAGE_ORDER`'s slice names ("review"/"notification" are excluded, see
+# architecture-plan-feature-16.md's Edge Cases: Human Review's stage body never raises
+# in practice, and Outcome Notification failures are already swallowed as a
+# best-effort side effect, so neither ever produces a FAILED run to retry).
+_RETRY_ENTRY_NODES: dict[str, str] = {
+    "intake": "intake_stage",
+    "classification": "classify_stage",
+    "enrichment": "enrich_stage",
+    "crm_write": "crm_write_stage",
+}
+
+# Feature 16: slice name -> the Pydantic model its StageTrace.output_snapshot deserializes
+# into, for every slice a retry might need to replay ahead of its starting stage.
+_SLICE_MODEL_BY_NAME: dict[str, type[BaseModel]] = {
+    "intake": IntakeSlice,
+    "classification": ClassificationSlice,
+    "enrichment": EnrichmentSlice,
+    "crm_write": CrmWriteSlice,
+}
+
+
+def build_retry_graph(
+    start_stage: str,
+    stages: dict[str, Stage],
+    registry: ToolRegistry,
+    session_factory: SessionFactory,
+    confidence_threshold: float,
+) -> CompiledStateGraph:
+    """Feature 16: continue a FAILED run from the stage that raised. Reuses the exact
+    same per-stage node/routing building blocks `build_graph`/`build_resume_graph`
+    already use (`_make_node`, `_make_human_review_node`, `_route_or_fail`,
+    `_route_after_enrich`) - never a bespoke stage-calling code path. Unlike
+    `build_resume_graph` (a fixed crm_write_stage -> notify_stage shape for Feature
+    06's AWAITING_REVIEW resume), this graph's shape depends on which stage failed, so
+    only nodes actually reachable from that stage onward are added - langgraph raises
+    at compile time if a node is unreachable from START. `build_resume_graph` itself is
+    left unmodified; this is purely additive, matching this codebase's existing
+    convention of one flat, explicit builder per graph shape rather than a single
+    builder parameterized over every possible shape (see
+    architecture-plan-feature-16.md's Feature-Specific Requirements)."""
+    entry_node = _RETRY_ENTRY_NODES.get(start_stage)
+    if entry_node is None:
+        raise ValueError(f"Retry is not supported starting at stage '{start_stage}'")
+
+    graph = StateGraph(LeadPipelineState)
+    notification_stage = stages["notification"]
+
+    include_from_intake = start_stage == "intake"
+    include_from_classification = include_from_intake or start_stage == "classification"
+    include_from_enrichment = include_from_classification or start_stage == "enrichment"
+    # crm_write and notification are always included - every supported start stage
+    # eventually reaches them; human_review is only reachable via enrich_stage's own
+    # conditional routing, so it's added only when enrich_stage is present.
+
+    if include_from_intake:
+        graph.add_node("intake_stage", _make_node(stages["intake"], registry, session_factory, notification_stage))
+    if include_from_classification:
+        graph.add_node(
+            "classify_stage", _make_node(stages["classification"], registry, session_factory, notification_stage)
+        )
+    if include_from_enrichment:
+        graph.add_node(
+            "enrich_stage", _make_node(stages["enrichment"], registry, session_factory, notification_stage)
+        )
+        graph.add_node(
+            "human_review_stage",
+            _make_human_review_node(stages["review"], registry, session_factory, notification_stage),
+        )
+    graph.add_node(
+        "crm_write_stage", _make_node(stages["crm_write"], registry, session_factory, notification_stage)
+    )
+    graph.add_node("notify_stage", _make_node(notification_stage, registry, session_factory))
+
+    graph.add_edge(START, entry_node)
+
+    if include_from_intake:
+        graph.add_conditional_edges(
+            "intake_stage", _route_or_fail("classify"), {"classify": "classify_stage", "failed": END}
+        )
+    if include_from_classification:
+        graph.add_conditional_edges(
+            "classify_stage", _route_or_fail("enrich"), {"enrich": "enrich_stage", "failed": END}
+        )
+    if include_from_enrichment:
+        graph.add_conditional_edges(
+            "enrich_stage",
+            _route_after_enrich(confidence_threshold),
+            {"crm_write": "crm_write_stage", "human_review": "human_review_stage", "failed": END},
+        )
+        graph.add_edge("human_review_stage", END)
+    graph.add_conditional_edges(
+        "crm_write_stage", _route_or_fail("notify"), {"notify": "notify_stage", "failed": END}
+    )
+    graph.add_edge("notify_stage", END)
+
+    return graph.compile()
+
+
+def build_production_retry_graph(
+    start_stage: str, session_factory: SessionFactory = SessionLocal
+) -> CompiledStateGraph:
+    from app.core.config import settings
+    from app.orchestrator.tools import register_default_tools
+
+    registry = ToolRegistry()
+    register_default_tools(registry, settings)
+    return build_retry_graph(start_stage, default_stages(), registry, session_factory, settings.confidence_threshold)
+
+
+def _reconstruct_state_before_stage(
+    lead_id: str, run_id: str, failed_run_id: str, start_stage: str, session_factory: SessionFactory
+) -> LeadPipelineState:
+    """Feature 16: rebuild the `LeadPipelineState` a FAILED run had immediately before
+    the stage that raised, from that run's own `StageTrace` rows. A FAILED run has no
+    full-state snapshot the way an AWAITING_REVIEW `ReviewQueueItem` does (see
+    architecture-plan-feature-16.md), so this replays each already-COMPLETED stage's
+    persisted `output_snapshot` instead of requiring a new snapshot column."""
+    start_index = next(i for i, (slice_name, _node_name, _feature_id) in enumerate(STAGE_ORDER) if slice_name == start_stage)
+
+    db = session_factory()
+    try:
+        traces_by_stage_name = {
+            trace.stage_name: trace
+            for trace in db.query(StageTrace).filter(StageTrace.run_id == failed_run_id).all()
+        }
+    finally:
+        db.close()
+
+    state = LeadPipelineState()
+    for slice_name, node_name, _feature_id in STAGE_ORDER[:start_index]:
+        model = _SLICE_MODEL_BY_NAME.get(slice_name)
+        trace = traces_by_stage_name.get(node_name)
+        if model is None or trace is None or trace.output_snapshot is None:
+            continue
+        setattr(state, slice_name, model.model_validate_json(trace.output_snapshot))
+
+    state.run = RunMetadata(run_id=run_id, lead_id=lead_id, status=RunStatus.RUNNING)
+    return state
+
+
+RetryGraphFactory = Callable[[str, SessionFactory], CompiledStateGraph]
+
+
+def retry_pipeline(
+    lead_id: str,
+    *,
+    graph_factory: RetryGraphFactory | None = None,
+    session_factory: SessionFactory = SessionLocal,
+) -> LeadPipelineState:
+    """Feature 16: locate the lead's most recent FAILED `PipelineRun`, determine which
+    stage raised, and start a NEW `PipelineRun` continuing from that stage. Never
+    mutates the failed row in place - consistent with how Feature 11's history view
+    already represents multiple attempts sharing one `lead_id` (see
+    architecture-plan-feature-16.md)."""
+    db = session_factory()
+    try:
+        failed_run = (
+            db.query(PipelineRun)
+            .filter(PipelineRun.lead_id == lead_id, PipelineRun.status == RunStatus.FAILED.value)
+            .order_by(PipelineRun.created_at.desc())
+            .first()
+        )
+        if failed_run is None:
+            raise NoFailedRunError(f"No failed run found for lead '{lead_id}'")
+        failed_run_id = failed_run.id
+
+        failed_trace = (
+            db.query(StageTrace)
+            .filter(StageTrace.run_id == failed_run_id, StageTrace.status == "FAILED")
+            .first()
+        )
+        if failed_trace is None:
+            raise NoFailedRunError(f"Failed run '{failed_run_id}' has no failed stage trace to retry from")
+        start_stage = next(
+            slice_name for slice_name, node_name, _feature_id in STAGE_ORDER if node_name == failed_trace.stage_name
+        )
+    finally:
+        db.close()
+
+    db = session_factory()
+    try:
+        new_run_row = PipelineRun(lead_id=lead_id, status=RunStatus.RUNNING.value)
+        db.add(new_run_row)
+        db.commit()
+        db.refresh(new_run_row)
+        new_run_id = new_run_row.id
+    finally:
+        db.close()
+
+    initial_state = _reconstruct_state_before_stage(lead_id, new_run_id, failed_run_id, start_stage, session_factory)
+
+    compiled = (
+        graph_factory(start_stage, session_factory)
+        if graph_factory is not None
+        else build_production_retry_graph(start_stage, session_factory)
+    )
+
+    result = compiled.invoke(initial_state)
+    final_state = result if isinstance(result, LeadPipelineState) else LeadPipelineState.model_validate(result)
+    final_state = _mark_completed_if_still_running(final_state)
+
+    db = session_factory()
+    try:
+        run_row = db.get(PipelineRun, new_run_id)
+        if run_row is not None:
+            run_row.status = final_state.run.status.value
+            run_row.source_channel = final_state.intake.source_channel
+            run_row.confidence_score = final_state.classification.confidence_score
             db.commit()
     finally:
         db.close()

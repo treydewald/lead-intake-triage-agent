@@ -18,7 +18,7 @@ existed before this round.
 
 CANDIDATES (this round)
 
-- S-01 Failed-Run Retry / Resubmission: Value: High | Cost: Low-Medium | Priority: P1 | Status: Not Started
+- S-01 Failed-Run Retry / Resubmission: Value: High | Cost: Low-Medium | Priority: P1 | Status: Shipped (Feature 16, 2026-09-06)
   Today a `FAILED` `PipelineRun` (e.g. a HubSpot write exhausting its retries) is a permanent dead end —
   the UI can show that it failed, but nothing lets anyone act on it short of manually recreating the lead
   from scratch. This is genuinely new: no roadmap tier mentions retry, and it's distinct from Feature 06's
@@ -92,8 +92,9 @@ Asked the user directly which to pursue first, per §4's tie-break rule. Answer:
 after, not deferred to a future Scope Expansion round. Status below updated to reflect S-01 entering CD-1
 this session.
 
-- S-01: Status: In Progress (entering CD-1 this session)
-- S-02: Status: Not Started (queued as the next CD round after S-01 ships)
+- S-01: Status: Shipped (2026-09-06) — Feature 16, Failed-Run Retry/Resubmission. CD-1 through CD-4
+  all complete; see `.claude/validation-results.md`'s 2026-09-06 entry.
+- S-02: Status: Not Started (queued as the next CD round now that S-01 has shipped)
 
 NEXT ROUND
 No forced follow-up beyond the queued S-02 CD round above. Once both P1s ship, a natural future

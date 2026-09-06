@@ -307,3 +307,35 @@ edit to that same entry once the round they belong to is scored, not a new entry
 - Surprise: none — the mechanism's own documented tie-break rule (more than one candidate at the same top
   tier) applied on this project's very first round, confirming it isn't a hypothetical edge case.
 - Agent: claude/claude_code
+
+### 2026-09-06 — implementation_planning_standard (Feature 16)
+- Trigger: CD-2.5 re-entry for Feature 16 (Failed-Run Retry/Resubmission) — classified Standard tier
+  (feature expansion touching 1-3 existing systems), treated with Deep-level scrutiny on the
+  orchestrator-graph section since it extends this project's Critical-risk per-stage boundary.
+- Expected effect (Predicted Footprint, `architecture-plan-feature-16.md`): 8 files across
+  `graph.py`, `leads.py`, `api.ts`, `LeadDetailPage.tsx`, `LeadDetailPage.test.tsx`, and 2 new
+  backend test files.
+- Outcome (Actual Footprint, same file): 8/8 predicted files changed, no unplanned files, no rework
+  cycle. Full backend (147/147) and frontend (47/47) suites passed on the first full run.
+- Surprise: the plan's own Existing Systems Analysis surfaced a genuine pre-existing gap — Feature
+  11's Key Decision had claimed `get_lead_detail`'s unordered `.first()` was "correct," true only
+  because no code path had ever produced a second `PipelineRun` row for one `lead_id` before. Fixed
+  as part of this round rather than deferred, since Feature 16 is exactly the feature that makes the
+  gap real.
+- Agent: claude/claude_code
+
+### 2026-09-06 — continued_development (Feature 16, CD-2 through CD-4)
+- Trigger: user confirmed proceeding into CD-2 for Feature 16 after the prior session's own
+  deliberate pause point (a Suggestion this size warranted an explicit go-ahead before CD-2's larger
+  commitment); user's answer ("both") also authorized carrying the round through CD-4 in the same
+  session rather than stopping at CD-2.
+- Expected effect: `POST /leads/{lead_id}/retry`, generalizing Feature 06's resume-graph pattern to
+  start from whichever stage failed, per `roadmap-addendum-2026-09-05.md` and
+  `architecture-plan-feature-16.md`.
+- Outcome: COMPLETED. Live-verified against a real running backend (real Ollama classification,
+  real — expected-failing — HubSpot write per this project's known placeholder-token limitation);
+  147/147 backend + 47/47 frontend tests passed; no regression to `build_resume_graph`/Feature 06's
+  own tests. Full detail: `.claude/validation-results.md`'s 2026-09-06 CD-4 entry.
+- Surprise: none beyond the Key Decision gap already noted in this round's
+  `implementation_planning_standard` entry above.
+- Agent: claude/claude_code

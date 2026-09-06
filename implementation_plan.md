@@ -1342,4 +1342,157 @@ Success Criteria
 
 ====================================================================
 
+FEATURE SPECIFICATION
+====================
+
+Feature 16: Failed-Run Retry / Resubmission
+
+Tier: Addendum (post-hoc extension of Tier 1 pipeline-execution machinery to a third
+terminal state — see roadmap-addendum-2026-09-05.md; proposed by `docs/scope-expansion.md`'s
+Scope Expander, Round 1, S-01)
+
+Execution Metadata (REQUIRED)
+status: COMPLETED
+group: FAILED_RUN_RETRY
+locked: false
+assigned_worker: null
+is_blocked: false
+depends_on: [01, 06, 11]
+
+Description
+Gives a `FAILED` `PipelineRun` (e.g. a HubSpot write that exhausted its retries per Feature 05's
+raise-vs-continue Key Decision) a way to actually be retried, instead of being a permanent dead
+end. Reuses Feature 06's resume-graph pattern — re-entering the compiled orchestrator graph at
+the stage that raised, never a bespoke tool call from the router layer — extended to start from
+whichever stage actually failed rather than a single fixed stage. Exercises the non-unique
+`PipelineRun.lead_id` Key Decision (set by Feature 11's implementation plan) for the first time:
+a retry creates a new `PipelineRun` row for the same `lead_id`, the same "another attempt"
+representation Feature 11's history view already displays correctly.
+
+Requirements
+
+Functional Requirements:
+- Provide `POST /leads/{lead_id}/retry` that locates the lead's most recent `FAILED`
+  `PipelineRun`, determines which stage raised, and starts a new `PipelineRun` continuing from
+  that stage forward
+- Reconstruct the pipeline state needed to resume from the failed run's own `StageTrace` rows
+  (each already-`COMPLETED` stage's `output_snapshot`) — a `FAILED` run has no full-state
+  snapshot the way an `AWAITING_REVIEW` `ReviewQueueItem` does, so this replays persisted stage
+  outputs rather than requiring a new snapshot column
+- Add a "Retry" action to `LeadDetailPage.tsx`'s existing failed-state banner, calling the new
+  endpoint and then refreshing the page's stage-trace timeline to reflect the new attempt
+- `LeadDetailPage.tsx`'s lead-detail lookup (`GET /leads/{lead_id}`) must show the *most recent*
+  `PipelineRun` attempt for a `lead_id`, not an arbitrary one — this becomes user-visible for the
+  first time once a `lead_id` can have more than one row (see Edge Cases)
+
+System Behaviors:
+- Retry never mutates the original `FAILED` row — it always creates a new `PipelineRun` row,
+  consistent with how Feature 11's history view already merges every `PipelineRun` sharing a
+  `lead_id` into one chronological timeline
+- The retry graph is built the same way `build_graph`/`build_resume_graph` already are — from
+  the shared per-stage node/routing building blocks (`_make_node`, `_make_human_review_node`,
+  `_route_or_fail`, `_route_after_enrich`) — not a new bespoke graph-construction path
+- Only nodes actually reachable from the retry's starting stage are added to the compiled graph
+  (mirrors `build_resume_graph`'s existing crm_write-only shape) — an unreachable node is a
+  langgraph compile-time error, not just dead code
+
+Edge Cases:
+- **Lead has no `FAILED` run (already retried and now `COMPLETED`, or never failed):** `409`
+  with a clear "no failed run to retry" message, not a generic error
+- **Lead has multiple prior `FAILED` runs (retried once, failed again):** Only the most recent
+  `FAILED` run (by `created_at`) is eligible; retry always resumes from the latest attempt
+- **Retry succeeds:** New `PipelineRun` reaches `COMPLETED`/`AWAITING_REVIEW`/`FAILED` exactly as
+  a fresh run would from that point forward; `GET /leads/{lead_id}` and
+  `GET /leads/{lead_id}/history` both reflect it correctly (the former shows only the latest
+  attempt; the latter shows every attempt, distinctly, in chronological order — the same
+  guarantee Feature 11's own Acceptance Criteria already states for "multiple pipeline attempts")
+- **Retry fails again (e.g. HubSpot sandbox still unreachable):** New `PipelineRun` also ends
+  `FAILED`; the lead becomes eligible for another retry against this newest failed run, not the
+  original one
+- **The stage that failed was Human Review itself:** Out of scope — Human Review's own stage
+  body only persists a queue row and does not call an external system, so it is not expected to
+  raise in practice; retry's stage-entry mapping does not need to support it
+
+Inputs
+- `lead_id` (path parameter) — the lead to retry
+- The failed run's own persisted `StageTrace` rows (read, not supplied by the caller)
+
+Outputs
+- The new `PipelineRun`'s resulting state, in the same `PipelineRunOut` shape `POST
+  /leads/webform` and `POST /reviews/{run_id}/action` already return
+
+Acceptance Criteria
+- [x] Retrying a lead whose most recent run is `FAILED` at CRM Write creates a new
+  `PipelineRun` that completes CRM Write and Outcome Notification without re-running Intake,
+  Classification, or Enrichment (verified live against the real backend, see `.claude/
+  validation-results.md`)
+- [x] The new run's `StageTrace` rows contain only the replayed stage(s) onward — the reused
+  prior-stage outputs are read, not re-persisted as duplicate trace rows
+- [x] `GET /leads/{lead_id}` reflects the new run's status after a retry, not the original
+  failed run's
+- [x] `GET /leads/{lead_id}/history` shows both the original failed attempt and the retried
+  attempt, distinctly, in chronological order
+- [x] Retrying a lead with no `FAILED` run returns `409`, not a silent no-op or a 500
+- [x] `LeadDetailPage.tsx`'s failed-state banner shows a "Retry" action, and a successful retry
+  updates the page's displayed status and stage timeline without a manual reload
+
+Dependencies
+- Depends on: Feature 01 (orchestrator graph/`Stage` contract this reuses), Feature 06
+  (resume-graph pattern this generalizes), Feature 11 (non-unique `lead_id` Key Decision this is
+  the first feature to actually exercise)
+- Blocks: none (S-02, the Confidence-Threshold What-If Simulator, is queued as an independent
+  follow-up CD round per `scope-expansion.md`'s tie-break decision, not blocked by this feature)
+
+Implementation Notes
+
+Technology Stack:
+- Frontend: React + react-router-dom + axios (same as every existing page)
+- Backend: FastAPI + the existing langgraph orchestrator (`app/orchestrator/graph.py`)
+- Database: none new — reuses the existing `pipeline_run`/`stage_trace` tables; no new columns
+  or migration required (state is reconstructed from existing `StageTrace.output_snapshot`
+  values, not a new snapshot column)
+
+Key Files to Create:
+- `backend/app/tests/test_orchestrator_retry.py` — retry graph construction/routing
+- `backend/app/tests/test_router_leads_retry.py` — `POST /leads/{lead_id}/retry` endpoint tests
+
+Key Files to Modify:
+- `backend/app/orchestrator/graph.py` — add `build_retry_graph()`, `build_production_retry_graph()`,
+  a state-reconstruction helper, and `retry_pipeline()`
+- `backend/app/routers/leads.py` — add the `POST /{lead_id}/retry` route and a
+  `get_retry_graph_factory` dependency (same pluggable-graph-factory pattern
+  `app/routers/reviews.py`'s `get_resume_graph_factory` already uses); fix `get_lead_detail`'s
+  unordered `.first()` query to `.order_by(PipelineRun.created_at.desc()).first()`
+- `frontend/src/lib/api.ts` — add a `retryLead(leadId)` function
+- `frontend/src/pages/LeadDetailPage.tsx` — add the "Retry" action to the failed-state banner
+
+See `architecture-plan-feature-16.md` (CD-2.5) for the full implementation plan and ordering.
+
+Testing Strategy:
+- Backend: a fake stage that raises on first call and succeeds on retry (mirrors
+  `test_router_reviews.py`'s `_FakeStage`/dependency-override pattern), asserting the new run's
+  status, its trace rows, and that `GET /leads/{lead_id}` and `.../history` reflect both attempts
+  correctly
+- Frontend: component test asserting the Retry action appears only in the failed state, calls
+  the new endpoint, and refreshes the displayed status
+
+Worker Pool Considerations
+- File Ownership: `backend/app/orchestrator/graph.py`, `backend/app/routers/leads.py`,
+  `backend/app/tests/test_orchestrator_retry.py`, `backend/app/tests/test_router_leads_retry.py`,
+  `frontend/src/lib/api.ts`, `frontend/src/pages/LeadDetailPage.tsx`,
+  `frontend/src/pages/LeadDetailPage.test.tsx` — no overlap with any other group's owned files
+- Parallel Safety: single group, no concurrent conflicts expected
+- Group Assignment: `FAILED_RUN_RETRY`
+- Execution Order: no ordering constraint beyond Features 01/06/11 already being complete (they are)
+
+Success Criteria
+✅ A `FAILED` run can be retried end-to-end without re-running already-completed stages
+✅ Feature 11's multi-attempt history guarantee holds for a real retried lead, not just the
+  original spec's anticipated case
+✅ `GET /leads/{lead_id}` always reflects the latest attempt
+✅ Backend and frontend tests passing, no regression in the existing Feature 06/11 suites
+✅ No new database migration required
+
+====================================================================
+
 END OF IMPLEMENTATION PLAN

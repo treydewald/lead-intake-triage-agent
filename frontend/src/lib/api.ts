@@ -61,6 +61,11 @@ export async function getLeadDetail(leadId: string): Promise<LeadDetail> {
   return response.data
 }
 
+export async function retryLead(leadId: string): Promise<PipelineRunResult> {
+  const response = await api.post<PipelineRunResult>(`/leads/${leadId}/retry`)
+  return response.data
+}
+
 export interface TimelineEntry {
   kind: 'stage' | 'review_action'
   run_id: string
@@ -150,7 +155,7 @@ export interface StageTraceSummary {
   created_at: string
 }
 
-export interface ReviewActionResult {
+export interface PipelineRunResult {
   id: string
   lead_id: string
   status: string
@@ -158,6 +163,11 @@ export interface ReviewActionResult {
   updated_at: string
   stage_traces: StageTraceSummary[]
 }
+
+// Same shape `POST /reviews/{run_id}/action` and `POST /leads/{lead_id}/retry` both
+// return (`PipelineRunOut` on the backend) — kept as its own name here since it's the
+// established public type for the reviews feature's own callers.
+export type ReviewActionResult = PipelineRunResult
 
 export async function listReviews(): Promise<ReviewQueueItem[]> {
   const response = await api.get<ReviewQueueItem[]>('/reviews')

@@ -1,6 +1,17 @@
 # Portfolio Reference — Lead Intake Triage Agent
 
-**Last Updated:** 2026-09-05 (Step 12 — Batch Backlog Processor COMPLETED, Round 5: closed the
+**Last Updated:** 2026-09-06 (Continued Development — Feature 16, Failed-Run Retry/Resubmission,
+COMPLETED. New `POST /leads/{lead_id}/retry`, generalizing Feature 06's resume-graph pattern to
+start from whichever stage failed, reconstructing pre-failure state from `StageTrace.
+output_snapshot` rather than a stored full-state snapshot. First feature to actually create a
+second `PipelineRun` row for one `lead_id`, which exposed and fixed a latent gap in Feature 08's
+`GET /leads/{lead_id}` (`.first()` with no `ORDER BY` — see Key Decisions' amended entry). New
+"Retry" action on `LeadDetailPage.tsx`'s failed-state banner. Verified live against the real
+backend (placeholder HubSpot token still fails CRM Write as expected, proving the retry mechanism
+itself works correctly even though the write can't succeed in this dev environment) plus 147/147
+backend and 47/47 frontend tests, no regressions. S-02 (Confidence-Threshold What-If Simulator)
+remains queued as the next CD round per `scope-expansion.md`'s tie-break decision. Prior update:
+Step 12 — Batch Backlog Processor COMPLETED, Round 5: closed the
 project-wide page-height/whitespace gap across all 7 primary desktop pages (pixel-measured 30-57%→
 2-3% empty), closed as a side effect the two remaining mobile density exceptions (Benchmark 94px→0px,
 Lead Detail 303px→15px). New reusable measurement script `.claude/skills/measure-page-whitespace.py`.
@@ -84,7 +95,7 @@ portfolio gate (Mode: STANDARD).
 | `backend/app/orchestrator/state.py` | `LeadPipelineState` — one Pydantic slice per stage (intake, classification, enrichment, crm_write, review, notification) + run metadata |
 | `backend/app/orchestrator/tool_scope.py` | `ToolRegistry`/`ScopedToolProxy` — the enforced per-stage tool-access boundary; a stage only ever reaches a tool through its scoped proxy |
 | `backend/app/orchestrator/errors.py` | `OutOfScopeToolError`, `StageExecutionError`, `StateValidationError` |
-| `backend/app/orchestrator/graph.py` | LangGraph `StateGraph` wiring the 6 stages, `run_pipeline()`/`resume_pipeline()` entry points; `persist_outcome_notification()` fires the notification stage directly for the three terminal transitions (failure, awaiting-review, reject) that never reach the graph's own `notify_stage` node; `_mark_completed_if_still_running()` is the sole place `RunStatus.COMPLETED` is assigned; also where Feature 10's external delivery hook lives, gated to `outcome_type == "awaiting_review"` only, calling `webhook_tools.py` directly (bypassing `ToolRegistry`/`ScopedToolProxy` — see Key Decisions) |
+| `backend/app/orchestrator/graph.py` | LangGraph `StateGraph` wiring the 6 stages, `run_pipeline()`/`resume_pipeline()` entry points; `persist_outcome_notification()` fires the notification stage directly for the three terminal transitions (failure, awaiting-review, reject) that never reach the graph's own `notify_stage` node; `_mark_completed_if_still_running()` is the sole place `RunStatus.COMPLETED` is assigned; also where Feature 10's external delivery hook lives, gated to `outcome_type == "awaiting_review"` only, calling `webhook_tools.py` directly (bypassing `ToolRegistry`/`ScopedToolProxy` — see Key Decisions); Feature 16 added `build_retry_graph()`/`retry_pipeline()` — continues a FAILED run from the stage that raised, into a new `PipelineRun` row, by replaying earlier stages' `StageTrace.output_snapshot` values rather than a stored full-state snapshot |
 | `backend/app/orchestrator/stages/intent_classification.py` | Feature 03's `IntentClassificationStage` — calls `ollama_classify` via the scoped tool proxy, retry-once-then-fail-closed |
 | `backend/app/orchestrator/stages/data_enrichment.py` | Feature 04's `DataEnrichmentStage` — calls `hubspot_search_contact` via the scoped tool proxy; exact-key phone/email match or `difflib`-scored fuzzy name match, merges only fields Intake left null, never raises |
 | `backend/app/orchestrator/stages/hubspot_crm_write.py` | Feature 05's `HubSpotCrmWriteStage` — write-only (`hubspot_write` alone); reads both `intake` and `enrichment` via `input_slices`; calls `tools.call("hubspot_write", ...)` with no try/except so a write failure halts the run |
@@ -100,7 +111,7 @@ portfolio gate (Mode: STANDARD).
 | `backend/app/schemas/notification.py` | Feature 07's `NotificationOut` — response shape for `GET /notifications`; Feature 10 added `external_delivery_status`/`external_delivery_error` (optional, `null` for pre-Feature-10 rows) |
 | `backend/app/routers/reviews.py` | Feature 06: `GET /reviews`, `GET /reviews/{run_id}`, `POST /reviews/{run_id}/action` — concurrency-safe claim via an atomic `UPDATE ... WHERE status='PENDING'`; approve/edit re-enter the orchestrator via `resume_pipeline()`, reject sets `RunStatus.REJECTED` directly and also calls `persist_outcome_notification()`; Feature 11's `reviewer_name` is persisted in the same atomic `UPDATE`, no second write; Step 12 added `_to_review_out()`, parsing `message_body` out of `state_snapshot` for both GET endpoints (read-only projection, not a new source of truth — see Key Decisions) |
 | `backend/app/routers/notifications.py` | Feature 07: `GET /notifications` (list, newest first) |
-| `backend/app/routers/leads.py` | Feature 08: `GET /leads` (list, paginated, denormalized `source_channel`/`confidence_score` for filter/sort), `GET /leads/{lead_id}` (detail — full stage-trace timeline via `STAGE_ORDER`/`_STAGE_LABELS`, mirrored on the frontend by `lib/stageOrder.ts`); Feature 11 added `GET /leads/{lead_id}/history` — merges every `PipelineRun` row for a `lead_id` (never `.first()` — see Key Decisions) with any `ACTIONED` `ReviewQueueItem`, sorted by `created_at` |
+| `backend/app/routers/leads.py` | Feature 08: `GET /leads` (list, paginated, denormalized `source_channel`/`confidence_score` for filter/sort), `GET /leads/{lead_id}` (detail — full stage-trace timeline via `STAGE_ORDER`/`_STAGE_LABELS`, mirrored on the frontend by `lib/stageOrder.ts`; ordered `.order_by(created_at.desc()).first()` since Feature 16 — see Key Decisions); Feature 11 added `GET /leads/{lead_id}/history` — merges every `PipelineRun` row for a `lead_id` (never `.first()` — see Key Decisions) with any `ACTIONED` `ReviewQueueItem`, sorted by `created_at`; Feature 16 added `POST /leads/{lead_id}/retry` — retries the lead's most recent `FAILED` run via `retry_pipeline()`, `409` if none exists |
 | `backend/alembic/` | DB migrations, wired to `app.database.session.Base` and `settings.database_url`; `245c694fed3d_*` creates `pipeline_run`/`stage_trace`; `68de6a50cacb_*` creates `review_queue_item`; `5f3cbe979b96_*` creates `notification`; `9217c457cc82_*` (Feature 08) adds `pipeline_run.source_channel`/`.confidence_score`; `b86e4d4ef367_*` (Feature 09) creates `benchmark_run`/`benchmark_case`; `a95fad549dbf_*` (Feature 10) adds `notification.external_delivery_status`/`.external_delivery_error`; `327d880cd1b9_*` (Feature 11) adds `review_queue_item.reviewer_name` |
 | `frontend/src/components/` | Shared UI: `BuildIndicator.tsx`, `Layout.tsx` (persistent sidebar nav — Leads/Reviews/Benchmark, `lucide-react` icons added Step 12); `ui/` subdirectory (added Step 12, portfolio backlog P1-02/P1-03) — `PageHeader.tsx`, `Card.tsx` (`Card`/`SectionLabel`), `StatCard.tsx`, `States.tsx` (`EmptyState`/`LoadingState`/`ErrorState`), used by every page for a consistent type scale, card depth, and designed empty/loading/error states |
 | `frontend/src/pages/` | Route-level pages — each has its own row below: `HomePage.tsx`, `LeadListPage.tsx`/`LeadDetailPage.tsx` (Feature 08), `BenchmarkPage.tsx` (Feature 09), `ReviewQueuePage.tsx`/`ReviewDetailPage.tsx` (Feature 15) |
@@ -364,14 +375,20 @@ that doesn't exist yet.)*
   already completed, where halting was never an option. Set by Feature 10's implementation plan
   (`architecture-plan-feature-10.md`).
 - **A per-lead read view that aggregates pipeline execution history must query every `PipelineRun` row
-  sharing a `lead_id` (ordered by `created_at`), never assume exactly one — even though today's three
-  intake endpoints each mint a fresh `lead_id` per submission and no code path currently produces a
-  second `PipelineRun` for an existing `lead_id`.** `PipelineRun.lead_id` carries no uniqueness
-  constraint specifically so multi-attempt history stays representable if a future feature ever adds a
-  retry/resubmit path. This does not change Feature 08's `GET /leads/{lead_id}`, which correctly uses
-  `.first()` because its job is "current state of the most recent/only attempt" — a different question
-  than a *history* view answers. Set by Feature 11's implementation plan
-  (`architecture-plan-feature-11.md`).
+  sharing a `lead_id` (ordered by `created_at`), never assume exactly one.** `PipelineRun.lead_id`
+  carries no uniqueness constraint specifically so multi-attempt history stays representable once a
+  future feature adds a retry/resubmit path. Set by Feature 11's implementation plan
+  (`architecture-plan-feature-11.md`). **Amended by Feature 16 (2026-09-06):** Feature 11's own text
+  claimed Feature 08's `GET /leads/{lead_id}` "correctly uses `.first()`" for a *current-state* view
+  (as opposed to this rule's *history* view) — that reasoning held only because no code path had ever
+  produced a second `PipelineRun` row for one `lead_id` yet. Feature 16 (Failed-Run Retry/Resubmission)
+  is that future feature, and its arrival exposed the gap: an unordered `.first()` can return an
+  arbitrary row once more than one exists, not necessarily the latest. `get_lead_detail` was corrected
+  to `.order_by(PipelineRun.created_at.desc()).first()`. **Generalized rule:** any current-state
+  (single-row) read of a table whose key is deliberately non-unique for future-multi-row reasons must
+  order and take the latest explicitly — never rely on a query planner's undefined default row order,
+  even before a second row is possible in practice. Set by Feature 16's implementation plan
+  (`architecture-plan-feature-16.md`).
 - **Reviewer identity is captured as an optional, free-text, self-reported `reviewer_name` field on
   `ReviewQueueItem`/`ReviewActionRequest`, populated at action time — this project has no User/auth
   model, and building one is out of scope for what is architecturally a single-operator review
